@@ -11,8 +11,8 @@ import java.security.Security;
 public class Main {
     public static void main(String[] args) throws Exception {
         Security.addProvider(new BouncyCastleProvider());
-        Node node = new Node();
-        node.start();
+        Node node = new Node(null);
+
 
     }
 }

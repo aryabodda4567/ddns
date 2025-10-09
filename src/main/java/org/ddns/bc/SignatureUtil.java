@@ -2,6 +2,7 @@ package org.ddns.bc;
 
 import java.security.*;
 import java.security.spec.ECGenParameterSpec;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 
@@ -105,5 +106,15 @@ public class SignatureUtil {
         byte[] keyBytes = Base64.getDecoder().decode(key);
         KeyFactory keyFactory = KeyFactory.getInstance("ECDSA", "BC");
         return keyFactory.generatePublic(new X509EncodedKeySpec(keyBytes));
+    }
+    /**
+     * A helper method to convert a private key string into PrivateKey object
+     * @param key The Private key string to convert
+     * @return  PrivateKey  Object
+     */
+    public static PrivateKey getPrivateKeyFromString(String key) throws Exception {
+        byte[] keyBytes = Base64.getDecoder().decode(key);
+        KeyFactory keyFactory = KeyFactory.getInstance("ECDSA", "BC");
+        return keyFactory.generatePrivate(new PKCS8EncodedKeySpec(keyBytes));
     }
 }

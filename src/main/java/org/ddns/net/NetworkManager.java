@@ -36,7 +36,7 @@ public class NetworkManager {
     private final Consumer<String> onDirectMessageReceived;
     private final Consumer<String> onMulticastReceived;
 
-    private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
+    public static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
     /**
      * Constructs the NetworkManager.
@@ -51,6 +51,7 @@ public class NetworkManager {
         this.onDirectMessageReceived = onDirectMessageReceived;
         this.onMulticastReceived = onMulticastReceived;
     }
+
 
     /**
      * Starts all background listener threads.
@@ -76,7 +77,7 @@ public class NetworkManager {
      * Sends a message to everyone on the local network using UDP broadcast.
      * @param jsonMessage The message to send, in JSON format.
      */
-    public void broadcast(String jsonMessage) {
+    public static void broadcast(String jsonMessage) {
         try (MulticastSocket socket = new MulticastSocket()) {
             byte[] buffer = jsonMessage.getBytes();
             InetAddress broadcastAddress = InetAddress.getByName("255.255.255.255");
@@ -92,7 +93,7 @@ public class NetworkManager {
      * @param peerIp The IP address of the recipient.
      * @param jsonMessage The message to send, in JSON format.
      */
-    public void sendDirectMessage(String peerIp, String jsonMessage) {
+    public static void sendDirectMessage(String peerIp, String jsonMessage) {
         try (Socket socket = new Socket(peerIp, DIRECT_MESSAGE_PORT);
              PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
             out.println(jsonMessage);
@@ -105,7 +106,7 @@ public class NetworkManager {
      * Sends a message to only the subscribed leaders using UDP multicast.
      * @param jsonMessage The message to send, in JSON format.
      */
-    public void sendMulticast(String jsonMessage) {
+    public static void sendMulticast(String jsonMessage) {
         try (MulticastSocket socket = new MulticastSocket()) {
             byte[] buffer = jsonMessage.getBytes();
             InetAddress group = InetAddress.getByName(MULTICAST_GROUP_IP);
@@ -165,14 +166,4 @@ public class NetworkManager {
         }
     }
 
-    // --- Serialization Helper Method ---
-
-    /**
-     * A static helper method to convert any object (like a Block) into a JSON string.
-     * @param object The object to serialize.
-     * @return The JSON string representation of the object.
-     */
-    public static String toJson(Object object) {
-        return gson.toJson(object);
-    }
 }
