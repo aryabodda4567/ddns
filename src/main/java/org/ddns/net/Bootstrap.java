@@ -10,12 +10,12 @@ import java.util.Set;
 
 public class Bootstrap {
     Set<SystemConfig> nodes;
-    PersistentStorage storage;
 
-    public  Bootstrap(String bootstrapNode){
-        storage = new PersistentStorage();
-        storage.put(Names.BOOTSTRAP_NODE_IP,bootstrapNode);
-        String nodesJson = storage.getString(Names.AVAILABLE_NODES);
+
+    public Bootstrap(String bootstrapNode) {
+
+        PersistentStorage.put(Names.BOOTSTRAP_NODE_IP, bootstrapNode);
+        String nodesJson = PersistentStorage.getString(Names.AVAILABLE_NODES);
         if (nodesJson == null) {
             nodes = new HashSet<>();
         } else {
@@ -25,8 +25,8 @@ public class Bootstrap {
     }
 
     public Bootstrap() {
-        storage = new PersistentStorage();
-        String nodesJson = storage.getString(Names.AVAILABLE_NODES);
+
+        String nodesJson = PersistentStorage.getString(Names.AVAILABLE_NODES);
         if (nodesJson == null) {
             nodes = new HashSet<>();
         } else {
@@ -34,8 +34,8 @@ public class Bootstrap {
         }
     }
 
-    public String  getBootstrapNodeIp(){
-        return  storage.getString(Names.BOOTSTRAP_NODE_IP);
+    public String getBootstrapNodeIp() {
+        return PersistentStorage.getString(Names.BOOTSTRAP_NODE_IP);
     }
 
     public void addNode(SystemConfig systemConfig) {
@@ -49,7 +49,7 @@ public class Bootstrap {
     }
 
     private void save() {
-        storage.put(Names.AVAILABLE_NODES, ConversionUtil.toJson(nodes));
+        PersistentStorage.put(Names.AVAILABLE_NODES, ConversionUtil.toJson(nodes));
     }
 
     public Set<SystemConfig> getNodes() {

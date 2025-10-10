@@ -9,6 +9,7 @@ import org.ddns.util.NetworkUtility;
 
 import java.security.PublicKey;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.CompletableFuture;
@@ -27,7 +28,6 @@ public class Node {
 
     private final CompletableFuture<Boolean> discoveryResponseFuture = new CompletableFuture<>();
     private final PublicKey publicKey;
-    private final NetworkManager networkManager;
     private Role role;
 
     /**
@@ -50,7 +50,7 @@ public class Node {
         }
 
         // Initialize network manager with custom message handlers
-        this.networkManager = new NetworkManager(
+        NetworkManager networkManager = new NetworkManager(
                 this::handleBroadcastMessage,
                 this::handleDirectMessage,
                 this::handleMulticastMessage
@@ -123,15 +123,30 @@ public class Node {
 
     }
 
-    public void cli(){
+    public void cli() {
         Scanner scanner = new Scanner(System.in);
-        System.out.println("1).View Votes");
+        System.out.println("1).View Votes\n2).Show nominations");
         int option = scanner.nextInt();
-        if(option ==1) Governance.votingResults();
+        if (option == 1) Governance.votingResults();
+        if (option == 2) {
+            List<String> nominations = Governance.getNominations();
+            if (nominations.isEmpty()) {
+                System.out.println("No nominations found");
+            } else {
+                System.out.println("Select the ip of the node to cast vote");
+                for (int i = 0; i < nominations.size(); i++) {
+                    System.out.println(i + "). " + nominations.get(i));
+                }
+                int selection = scanner.nextInt();
+
+                Governance.castVote(nominations.get(selection), true, this.publicKey);
+                Governance.updateNominations(nominations, nominations.get(selection));
+
+            }
+
+        }
         cli();
     }
-
-
 
 
     /**
@@ -165,8 +180,8 @@ public class Node {
             case BOOTSTRAP_REQUEST -> {
                 try {
                     MessageHandler.resolveBootstrapRequest(messageObject);
-                }catch (Exception e){
-                    System.out.println("Error in resolving in BOOTSTRAP Request "+ e.getMessage());
+                } catch (Exception e) {
+                    System.out.println("Error in resolving in BOOTSTRAP Request " + e.getMessage());
                 }
             }
             case BOOTSTRAP_RESPONSE -> MessageHandler.resolveBootstrapResponse(payload);

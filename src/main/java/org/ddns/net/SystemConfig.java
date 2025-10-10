@@ -13,6 +13,14 @@ public class SystemConfig {
         this.role = role;
     }
 
+    @Override
+    public String toString() {
+        return "SystemConfig{" +
+                "ip='" + ip + '\'' +
+                ", role=" + role +
+                '}';
+    }
+
     public String getIp() {
         return ip;
     }

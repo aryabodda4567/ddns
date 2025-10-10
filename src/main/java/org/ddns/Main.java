@@ -2,9 +2,7 @@ package org.ddns;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.ddns.chain.Node;
-import org.ddns.chain.Role;
 import org.ddns.net.Bootstrap;
-import org.ddns.net.SystemConfig;
 
 import java.security.Security;
 
@@ -14,10 +12,7 @@ import java.security.Security;
 public class Main {
     public static void main(String[] args) throws Exception {
         Security.addProvider(new BouncyCastleProvider());
-
         new Bootstrap(args[0]);
-
-
         new Node(null);
 
 

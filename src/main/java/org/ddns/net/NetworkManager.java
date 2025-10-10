@@ -3,6 +3,7 @@ package org.ddns.net;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.ddns.chain.Role;
+import org.ddns.util.NetworkUtility;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -103,7 +104,9 @@ public class NetworkManager {
         Bootstrap bootstrap = new Bootstrap();
         Set<SystemConfig> nodes = bootstrap.getNodes();
         int count = 0;
+        String selfIp = NetworkUtility.getLocalIpAddress();
         for (SystemConfig config : nodes) {
+            // if(config.getIp().equals(selfIp)) continue;
             if (role.equals(Role.ANY)) {
                 sendDirectMessage(config.getIp(), jsonMessage);
                 count++;

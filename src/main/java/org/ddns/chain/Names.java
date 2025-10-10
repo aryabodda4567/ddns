@@ -8,6 +8,6 @@ public final class Names {
     public static final String VOTING_INIT_TIME = "VOTING_INIT_TIME";
     public static final String VOTING_TIME_LIMIT = "VOTING_TIME_LIMIT";
     public static final String AVAILABLE_NODES = "AVAILABLE_NODES";
-    public static final String ROLE="ROLE";
-    public static final String BOOTSTRAP_NODE_IP="BOOTSTRAP_NODE_IP";
+    public static final String ROLE = "ROLE";
+    public static final String BOOTSTRAP_NODE_IP = "BOOTSTRAP_NODE_IP";
 }
