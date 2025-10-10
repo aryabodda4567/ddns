@@ -1,8 +1,7 @@
 package org.ddns.chain;
 
-import org.ddns.net.Message;
-import org.ddns.net.MessageType;
-import org.ddns.net.NetworkManager;
+import org.ddns.bc.SignatureUtil;
+import org.ddns.net.*;
 import org.ddns.util.ConversionUtil;
 import org.ddns.util.NetworkUtility;
 import org.ddns.util.PersistentStorage;
@@ -55,18 +54,18 @@ public class MessageHandler {
         NetworkManager.broadcast(ConversionUtil.toJson(message));
     }
 
-    /**
-     * Returns the role required to process the given message type.
-     */
-    public static Role requiredRole(Message message) {
-        if (message.type.equals(MessageType.DISCOVERY_REQUEST)
-                || message.type.equals(MessageType.JOIN_REQUEST_TX)
-                || message.type.equals(MessageType.SYNC_REQUEST)
-                || message.type.equals(MessageType.PROMOTION_REQUEST_TX)) {
-            return Role.LEADER_NODE;
-        }
-        return Role.ANY;
-    }
+//    /**
+//     * Returns the role required to process the given message type.
+//     */
+//    public static Role requiredRole(Message message) {
+//        if (message.type.equals(MessageType.DISCOVERY_REQUEST)
+//                || message.type.equals(MessageType.JOIN_REQUEST_TX)
+//                || message.type.equals(MessageType.SYNC_REQUEST)
+//                || message.type.equals(MessageType.PROMOTION_REQUEST_TX)) {
+//            return Role.LEADER_NODE;
+//        }
+//        return Role.ANY;
+//    }
 
     /**
      * Initializes node configurations from payload received in DISCOVERY_ACK.
@@ -80,4 +79,41 @@ public class MessageHandler {
         storage.put(Names.TOTAL_LEADER_COUNT,
                 Integer.parseInt(payload.get(Names.TOTAL_LEADER_COUNT)));
     }
+
+    public static void resolveBootstrapRequest(Message message) throws Exception {
+        String receiverIp = message.senderIp;
+        Bootstrap bootstrap = new Bootstrap();
+        String resultJson = ConversionUtil.toJson(bootstrap.getNodes());
+        Map<String,String> map = new HashMap<>();
+        map.put("result",resultJson);
+        Message resultMessage = new Message(
+                MessageType.BOOTSTRAP_RESPONSE,
+                NetworkUtility.getLocalIpAddress(),
+                SignatureUtil.getPublicKeyFromString(message.senderPublicKey),
+                ConversionUtil.toJson(map)
+        );
+        System.out.println("Resolving bootstrap request");
+        NetworkManager.sendDirectMessage(receiverIp,ConversionUtil.toJson(resultMessage));
+    }
+
+    public static void resolveBootstrapResponse( Map<String,String> map ){
+        Bootstrap bootstrap = new Bootstrap();
+        System.out.println("Resolving bootstrap response");
+        bootstrap.addNodes(ConversionUtil.jsonToSet(map.get("result"), SystemConfig.class));
+
+    }
+
+    public static void createBootstrapRequest(PublicKey publicKey){
+        Bootstrap bootstrap = new Bootstrap();
+        String bootstrapNodeIp = bootstrap.getBootstrapNodeIp();
+        Message message = new Message(
+                MessageType.BOOTSTRAP_REQUEST,
+                bootstrapNodeIp,
+                publicKey,
+                null
+        );
+        System.out.println("Sending bootstrap request.");
+        NetworkManager.sendDirectMessage(bootstrapNodeIp,ConversionUtil.toJson(message));
+    }
+
 }

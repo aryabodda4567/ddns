@@ -15,9 +15,8 @@ public class Main {
     public static void main(String[] args) throws Exception {
         Security.addProvider(new BouncyCastleProvider());
 
-        Bootstrap bootstrap = new Bootstrap();
-        SystemConfig systemConfig = new SystemConfig(args[0], Role.BOOTSTRAP);
-        bootstrap.addNode(systemConfig);
+        new Bootstrap(args[0]);
+
 
         new Node(null);
 

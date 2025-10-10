@@ -19,5 +19,9 @@ public enum MessageType {
     // Consensus & Governance
     BLOCK,              // A leader broadcasting a new block
     PROMOTION_REQUEST_TX,
-    PROMOTION_VOTE
+    PROMOTION_VOTE,
+
+    //Bootstrapping
+    BOOTSTRAP_REQUEST,
+    BOOTSTRAP_RESPONSE
 }

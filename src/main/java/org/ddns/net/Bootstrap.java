@@ -12,6 +12,18 @@ public class Bootstrap {
     Set<SystemConfig> nodes;
     PersistentStorage storage;
 
+    public  Bootstrap(String bootstrapNode){
+        storage = new PersistentStorage();
+        storage.put(Names.BOOTSTRAP_NODE_IP,bootstrapNode);
+        String nodesJson = storage.getString(Names.AVAILABLE_NODES);
+        if (nodesJson == null) {
+            nodes = new HashSet<>();
+        } else {
+            nodes = ConversionUtil.jsonToSet(nodesJson, SystemConfig.class);
+        }
+
+    }
+
     public Bootstrap() {
         storage = new PersistentStorage();
         String nodesJson = storage.getString(Names.AVAILABLE_NODES);
@@ -22,9 +34,17 @@ public class Bootstrap {
         }
     }
 
+    public String  getBootstrapNodeIp(){
+        return  storage.getString(Names.BOOTSTRAP_NODE_IP);
+    }
+
     public void addNode(SystemConfig systemConfig) {
-        if (nodes.contains(systemConfig)) return;
         nodes.add(systemConfig);
+        save();
+    }
+
+    public void addNodes(Set<SystemConfig> systemConfig) {
+        nodes.addAll(systemConfig);
         save();
     }
 

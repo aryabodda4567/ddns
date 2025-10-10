@@ -59,8 +59,12 @@ public class Node {
         // Start listeners in background
         networkManager.startListeners();
 
+        //Request bootstrap node
+        MessageHandler.createBootstrapRequest(this.publicKey);
+
         // Attempt to join the network
         joinNetwork();
+        cli();
     }
 
     /**
@@ -112,6 +116,23 @@ public class Node {
 
     }
 
+    /**
+     * Handles multicast messages (UDP multicast) for leader nodes.
+     */
+    private void handleMulticastMessage(String message) {
+
+    }
+
+    public void cli(){
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("1).View Votes");
+        int option = scanner.nextInt();
+        if(option ==1) Governance.votingResults();
+        cli();
+    }
+
+
+
 
     /**
      * Handles direct messages (TCP) from other nodes.
@@ -141,14 +162,17 @@ public class Node {
 
                 Governance.updateNominations(messageObject);
             }
+            case BOOTSTRAP_REQUEST -> {
+                try {
+                    MessageHandler.resolveBootstrapRequest(messageObject);
+                }catch (Exception e){
+                    System.out.println("Error in resolving in BOOTSTRAP Request "+ e.getMessage());
+                }
+            }
+            case BOOTSTRAP_RESPONSE -> MessageHandler.resolveBootstrapResponse(payload);
 
         }
     }
 
-    /**
-     * Handles multicast messages (UDP multicast) for leader nodes.
-     */
-    private void handleMulticastMessage(String message) {
 
-    }
 }

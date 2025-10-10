@@ -36,13 +36,19 @@ public class Governance {
             storage.put(Names.NOMINATIONS, ConversionUtil.toJson(list));
         }
 
+//        try{
+//            castVote(message.senderIp,true,SignatureUtil.getPublicKeyFromString(message.senderPublicKey));
+//        } catch (Exception e) {
+//                throw new RuntimeException(e);
+//        }
+
 
     }
 
     public static void castVote(String receiverIp, Boolean isAccepted, PublicKey publicKey) {
 
         Map<String, String> map = new HashMap<>();
-        map.put("VOTE", true + "");
+        map.put("VOTE", isAccepted + "");
         Message message = new Message(
                 MessageType.JOIN_VOTE,
                 NetworkUtility.getLocalIpAddress(),
@@ -79,16 +85,32 @@ public class Governance {
         MessageHandler.createJoinRequest(publicKey);
     }
 
+    private static void deleteNominations(){
+        PersistentStorage storage = new PersistentStorage();
+        storage.delete(Names.VOTE_RESULTS);
+        storage.delete(Names.VOTING_INIT_TIME);
+        storage.delete(Names.VOTING_TIME_LIMIT);
+    }
+
     public static void votingResults() {
         PersistentStorage storage = new PersistentStorage();
         long initTime = Long.parseLong(storage.getString(Names.VOTING_INIT_TIME));
         int timeLimit = storage.getInt(Names.VOTING_TIME_LIMIT);
 
+        int votes = storage.getInt(Names.VOTE_RESULTS);
+        int leaderCount = storage.getInt(Names.TOTAL_LEADER_COUNT);
+        System.out.println("Votes required: "+ leaderCount+"\nVotes obtained: "+votes);
+
         if (TimeUtil.isWithinMinutes(initTime, TimeUtil.getCurrentUnixTime(), timeLimit)) {
-            System.out.println("Voting is in progress... View after sometime.");
+            System.out.println("Voting is in progress. View after sometime.");
+            return;
         }
+
         if (isAccepted()) {
             System.out.println("Join request accepted by peers.");
+            deleteNominations();
+        }else{
+            System.out.println("Join request rejected by peers");
         }
     }
 }
