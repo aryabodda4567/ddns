@@ -1,15 +1,12 @@
 package org.ddns.db;
 
 
-
 import org.ddns.bc.DnsRecord;
 import org.ddns.bc.SignatureUtil;
 import org.ddns.bc.Transaction;
 
 import java.security.PublicKey;
 import java.sql.*;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Manages all interactions with the SQLite database for the dDNS system.
@@ -33,28 +30,28 @@ public class DatabaseManager {
      */
     private void initializeDatabase() {
         String dnsRecordsTableSql = """
-            CREATE TABLE IF NOT EXISTS dns_records (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL UNIQUE,
-                type TEXT NOT NULL,
-                class TEXT DEFAULT 'IN',
-                ttl INTEGER NOT NULL,
-                rdata TEXT NOT NULL UNIQUE,
-                owner TEXT NOT NULL,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-            );""";
+                CREATE TABLE IF NOT EXISTS dns_records (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL UNIQUE,
+                    type TEXT NOT NULL,
+                    class TEXT DEFAULT 'IN',
+                    ttl INTEGER NOT NULL,
+                    rdata TEXT NOT NULL UNIQUE,
+                    owner TEXT NOT NULL,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+                );""";
 
         String logsTableSql = """
-            CREATE TABLE IF NOT EXISTS logs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                tx_hash TEXT NOT NULL,
-                tx_type TEXT NOT NULL,
-                domain_name TEXT,
-                payload TEXT,
-                sender_key TEXT NOT NULL,
-                timestamp INTEGER NOT NULL
-            );""";
+                CREATE TABLE IF NOT EXISTS logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    tx_hash TEXT NOT NULL,
+                    tx_type TEXT NOT NULL,
+                    domain_name TEXT,
+                    payload TEXT,
+                    sender_key TEXT NOT NULL,
+                    timestamp INTEGER NOT NULL
+                );""";
 
         try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
             stmt.execute(dnsRecordsTableSql);
@@ -86,6 +83,7 @@ public class DatabaseManager {
 
     /**
      * Retrieves a DNS record by its domain name.
+     *
      * @param name The domain name to search for.
      * @return A populated DnsRecord object if found, otherwise null.
      */
@@ -178,6 +176,7 @@ public class DatabaseManager {
 
     /**
      * Prunes the logs table, deleting records older than the given timestamp.
+     *
      * @param cutoffTimestamp The Unix timestamp (milliseconds). Records older than this will be deleted.
      */
     public void pruneLogs(long cutoffTimestamp) {

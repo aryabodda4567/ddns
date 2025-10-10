@@ -11,6 +11,7 @@ public class MerkleTree {
 
     /**
      * Generates the Merkle Root for a given list of transactions.
+     *
      * @param transactions The list of transactions to include in the tree.
      * @return The Merkle Root hash as a string.
      */

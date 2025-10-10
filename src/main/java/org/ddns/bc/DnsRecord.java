@@ -20,15 +20,34 @@ public class DnsRecord {
     }
 
     // --- Getters ---
-    public String getDomainName() { return domainName; }
-    public PublicKey getOwner() { return owner; }
-    public String getIpAddress() { return ipAddress; }
-    public long getExpiryTimestamp() { return expiryTimestamp; }
+    public String getDomainName() {
+        return domainName;
+    }
+
+    public PublicKey getOwner() {
+        return owner;
+    }
 
     // --- Setters for state updates ---
-    public void setOwner(PublicKey owner) { this.owner = owner; }
-    public void setIpAddress(String ipAddress) { this.ipAddress = ipAddress; }
-    public void setExpiryTimestamp(long expiryTimestamp) { this.expiryTimestamp = expiryTimestamp; }
+    public void setOwner(PublicKey owner) {
+        this.owner = owner;
+    }
+
+    public String getIpAddress() {
+        return ipAddress;
+    }
+
+    public void setIpAddress(String ipAddress) {
+        this.ipAddress = ipAddress;
+    }
+
+    public long getExpiryTimestamp() {
+        return expiryTimestamp;
+    }
+
+    public void setExpiryTimestamp(long expiryTimestamp) {
+        this.expiryTimestamp = expiryTimestamp;
+    }
 
     @Override
     public String toString() {

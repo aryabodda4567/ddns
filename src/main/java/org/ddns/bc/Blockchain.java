@@ -26,9 +26,10 @@ public class Blockchain {
 
     /**
      * Constructor for the Blockchain.
+     *
      * @param initialLeaders A list of public keys for the initial set of leader nodes.
      */
-    public Blockchain( List<PublicKey> initialLeaders) {
+    public Blockchain(List<PublicKey> initialLeaders) {
         this.ipToDomainIndex = new HashMap<>();
         this.chain = new ArrayList<>();
         this.dnsState = new HashMap<>();
@@ -43,6 +44,7 @@ public class Blockchain {
 
     /**
      * Adds a new, validated transaction to the pending pool.
+     *
      * @param tx The transaction to add.
      * @return true if the transaction is valid and added, false otherwise.
      */
@@ -63,6 +65,7 @@ public class Blockchain {
     /**
      * Creates a new block with pending transactions, but only if it's the specified
      * leader's turn according to the round-robin schedule.
+     *
      * @param leaderKey The public key of the leader attempting to create the block.
      * @return The newly created Block, or null if it's not the leader's turn.
      */
@@ -140,6 +143,7 @@ public class Blockchain {
     /**
      * Validates the integrity of the blockchain's headers.
      * This method can run on a pruned node as it only needs block headers.
+     *
      * @return true if all hashes and links are correct, false otherwise.
      */
     public boolean isChainValid() {
@@ -165,6 +169,7 @@ public class Blockchain {
     /**
      * Resolves a domain name by looking it up in the current state map.
      * This is the primary "read" operation for the DNS.
+     *
      * @param domainName The domain to look up.
      * @return The DnsRecord if found, otherwise null.
      */
@@ -195,8 +200,10 @@ public class Blockchain {
     public List<PublicKey> getLeaderKeys() {
         return new ArrayList<>(this.leaderKeys);
     }
+
     /**
      * Finds a domain name by its associated IP address.
+     *
      * @param ip The IP address to search for.
      * @return The domain name if found, otherwise null.
      */
@@ -205,6 +212,6 @@ public class Blockchain {
     }
 
     public List<Transaction> getPendingTransactions() {
-            return pendingTransactions;
+        return pendingTransactions;
     }
 }

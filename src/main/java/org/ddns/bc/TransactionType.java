@@ -4,6 +4,7 @@ package org.ddns.bc;
  * Defines the types of transactions that can occur in the dDNS blockchain.
  * Each type corresponds to a specific DNS or governance operation.
  */
+
 /**
  * Defines the types of transactions that can occur in the dDNS blockchain.
  * Each type corresponds to a specific DNS or governance operation.

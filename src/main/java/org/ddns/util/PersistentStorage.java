@@ -17,14 +17,14 @@ import java.util.Map;
  */
 public class PersistentStorage {
 
+    private static final Gson gson = new Gson();
     private final Map<String, Object> storageMap;
     private final String filePath;
-    private static final Gson gson = new Gson();
 
     /**
      * Creates a PersistentStorage instance backed by a given JSON file
      */
-    public PersistentStorage( ) {
+    public PersistentStorage() {
         this.filePath = "storage.json";
         this.storageMap = loadFromFile();
     }
@@ -35,7 +35,7 @@ public class PersistentStorage {
      * @param key   The key for the value.
      * @param value The String value to store.
      */
-    public  void put(String key, String value) {
+    public void put(String key, String value) {
         storageMap.put(key, value);
         saveToFile();
     }
@@ -101,7 +101,8 @@ public class PersistentStorage {
      */
     private Map<String, Object> loadFromFile() {
         try (FileReader reader = new FileReader(filePath)) {
-            Type type = new TypeToken<Map<String, Object>>() {}.getType();
+            Type type = new TypeToken<Map<String, Object>>() {
+            }.getType();
             return gson.fromJson(reader, type);
         } catch (IOException e) {
             return new HashMap<>();

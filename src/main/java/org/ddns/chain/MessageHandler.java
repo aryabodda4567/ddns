@@ -1,8 +1,5 @@
 package org.ddns.chain;
 
-import org.ddns.bc.SignatureUtil;
-import org.ddns.bc.Transaction;
-import org.ddns.bc.TransactionType;
 import org.ddns.net.Message;
 import org.ddns.net.MessageType;
 import org.ddns.net.NetworkManager;
@@ -23,14 +20,14 @@ public class MessageHandler {
      * Responds to a DISCOVERY_REQUEST by sending back a DISCOVERY_ACK
      * containing current network statistics (node/leader counts).
      */
-    public static void discoveryRequest(Message message ,PublicKey publicKey) {
+    public static void discoveryRequest(Message message, PublicKey publicKey) {
         String senderIp = message.senderIp;
 
         Map<String, String> map = new HashMap<>();
         PersistentStorage storage = new PersistentStorage();
 
         map.put(Names.TOTAL_NODE_COUNT, storage.getInt(Names.TOTAL_NODE_COUNT) + "");
-        map.put(Names.TOTAL_LEADER_COUNT,new PersistentStorage().getInt(Names.TOTAL_LEADER_COUNT)+"");
+        map.put(Names.TOTAL_LEADER_COUNT, new PersistentStorage().getInt(Names.TOTAL_LEADER_COUNT) + "");
 
         Message payloadMessage = new Message(
                 MessageType.DISCOVERY_ACK,

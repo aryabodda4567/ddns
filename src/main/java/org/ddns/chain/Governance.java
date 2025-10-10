@@ -11,6 +11,7 @@ import org.ddns.util.TimeUtil;
 
 import java.security.PublicKey;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -19,12 +20,12 @@ import java.util.Map;
  */
 public class Governance {
 
-    public static void updateNominations(Message message)   {
+    public static void updateNominations(Message message) {
         PersistentStorage storage = new PersistentStorage();
 
         String listJson = storage.getString(Names.NOMINATIONS);
         List<String> list = ConversionUtil.jsonToList(listJson, String.class);
-        if(list == null){
+        if (list == null) {
             list = new ArrayList<String>();
         }
         // Avoid duplicate nominations
@@ -35,24 +36,18 @@ public class Governance {
             storage.put(Names.NOMINATIONS, ConversionUtil.toJson(list));
         }
 
-        ///
-        /// Testing
-        ///
-        try{
-            castVote(message.senderIp,true, SignatureUtil.getPublicKeyFromString(message.senderPublicKey));
-        }catch (Exception e){
-            System.out.println(e.getMessage());
-        }
-
 
     }
 
     public static void castVote(String receiverIp, Boolean isAccepted, PublicKey publicKey) {
+
+        Map<String, String> map = new HashMap<>();
+        map.put("VOTE", true + "");
         Message message = new Message(
                 MessageType.JOIN_VOTE,
                 NetworkUtility.getLocalIpAddress(),
                 publicKey,
-                isAccepted.toString()
+                ConversionUtil.toJson(map)
         );
         NetworkManager.sendDirectMessage(receiverIp, ConversionUtil.toJson(message));
     }

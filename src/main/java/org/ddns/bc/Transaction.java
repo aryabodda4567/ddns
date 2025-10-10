@@ -24,11 +24,11 @@ public class Transaction {
      * Constructor for a new Transaction.
      *
      * @param senderPublicKey The public key of the transaction creator.
-     * @param type The type of the transaction (e.g., REGISTER, TRANSFER_OWNERSHIP).
-     * @param domainName The target domain name.
-     * @param payload A map containing key-value data specific to the transaction type.
-     * - For REGISTER: {"owner": "...", "ttl": "...", "ip": "..."}
-     * - For TRANSFER: {"newOwner": "..."}
+     * @param type            The type of the transaction (e.g., REGISTER, TRANSFER_OWNERSHIP).
+     * @param domainName      The target domain name.
+     * @param payload         A map containing key-value data specific to the transaction type.
+     *                        - For REGISTER: {"owner": "...", "ttl": "...", "ip": "..."}
+     *                        - For TRANSFER: {"newOwner": "..."}
      */
     public Transaction(PublicKey senderPublicKey, TransactionType type, String domainName, Map<String, String> payload) {
         this.senderPublicKey = senderPublicKey;
@@ -42,6 +42,7 @@ public class Transaction {
     /**
      * Calculates the unique hash of the transaction's content.
      * This hash is what gets signed.
+     *
      * @return A SHA-256 hash string.
      */
     public String calculateHash() {
@@ -59,6 +60,7 @@ public class Transaction {
 
     /**
      * Signs the transaction using the sender's private key.
+     *
      * @param privateKey The private key to sign with.
      */
     public void sign(PrivateKey privateKey) {
@@ -67,6 +69,7 @@ public class Transaction {
 
     /**
      * Verifies the transaction's signature.
+     *
      * @return true if the signature is valid, false otherwise.
      */
     public boolean verifySignature() {
@@ -74,11 +77,25 @@ public class Transaction {
     }
 
     // --- Getters ---
-    public String getHash() { return hash; }
-    public PublicKey getSenderPublicKey() { return senderPublicKey; }
-    public TransactionType getType() { return type; }
-    public String getDomainName() { return domainName; }
-    public Map<String, String> getPayload() { return payload; }
+    public String getHash() {
+        return hash;
+    }
+
+    public PublicKey getSenderPublicKey() {
+        return senderPublicKey;
+    }
+
+    public TransactionType getType() {
+        return type;
+    }
+
+    public String getDomainName() {
+        return domainName;
+    }
+
+    public Map<String, String> getPayload() {
+        return payload;
+    }
 
     public long getTimestamp() {
         return timestamp;

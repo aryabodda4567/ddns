@@ -13,11 +13,10 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 
 /**
  * Represents a network node in the decentralized DNS blockchain.
- *
+ * <p>
  * Responsibilities:
  * - Maintain node's role (NORMAL, LEADER, GENESIS)
  * - Handle network communications via NetworkManager
@@ -27,8 +26,8 @@ import java.util.function.Consumer;
 public class Node {
 
     private final CompletableFuture<Boolean> discoveryResponseFuture = new CompletableFuture<>();
-    private NetworkManager networkManager;
     private final PublicKey publicKey;
+    private final NetworkManager networkManager;
     private Role role;
 
     /**
@@ -110,22 +109,9 @@ public class Node {
      * Handles broadcast messages received from the network.
      */
     private void handleBroadcastMessage(String message) {
-        Message messageObject = ConversionUtil.fromJson(message, Message.class);
-        HashMap<String, String> payload = (HashMap<String, String>) ConversionUtil.jsonToMap(messageObject.payload);
-
-//        if (MessageHandler.requiredRole(messageObject).equals(Role.LEADER_NODE)) {
-//            if (!role.equals(Role.LEADER_NODE) && !role.equals(Role.GENESIS)) return;
-//        }
-
-        switch (messageObject.type) {
-            case DISCOVERY_REQUEST -> MessageHandler.discoveryRequest(messageObject,publicKey);
-            case JOIN_REQUEST_TX -> {
-                System.out.println("Voting request received via broadcast");
-                Governance.updateNominations(messageObject);
-            }
-        }
 
     }
+
 
     /**
      * Handles direct messages (TCP) from other nodes.
@@ -133,17 +119,27 @@ public class Node {
     private void handleDirectMessage(String message) {
         Message messageObject = ConversionUtil.fromJson(message, Message.class);
         HashMap<String, String> payload = (HashMap<String, String>) ConversionUtil.jsonToMap(messageObject.payload);
+
+        if (messageObject.type.equals(Role.LEADER_NODE) && !role.equals(Role.LEADER_NODE) && !role.equals(Role.GENESIS))
+            return;
+
         switch (messageObject.type) {
             case DISCOVERY_ACK -> {
                 discoveryResponseFuture.complete(true); // signal ACK received
                 MessageHandler.initializeConfigs(payload);
             }
             case JOIN_VOTE -> {
-                System.out.println(messageObject.payload);
-                if (Boolean.parseBoolean(messageObject.payload)) {
-
+                System.out.println("Vote received from " + messageObject.senderPublicKey);
+                Boolean vote = Boolean.parseBoolean(payload.get("VOTE"));
+                if (vote.equals(true)) {
                     Governance.addVote();
                 }
+            }
+            case DISCOVERY_REQUEST -> MessageHandler.discoveryRequest(messageObject, publicKey);
+            case JOIN_REQUEST_TX -> {
+                System.out.println("Voting request received via broadcast");
+
+                Governance.updateNominations(messageObject);
             }
 
         }
@@ -153,12 +149,6 @@ public class Node {
      * Handles multicast messages (UDP multicast) for leader nodes.
      */
     private void handleMulticastMessage(String message) {
-        Message messageObject = ConversionUtil.fromJson(message, Message.class);
-        HashMap<String, String> payload = (HashMap<String, String>) ConversionUtil.jsonToMap(messageObject.payload);
 
-        if (messageObject.type.equals(MessageType.JOIN_REQUEST_TX)) {
-            System.out.println("Voting request received via multicast");
-            Governance.updateNominations(messageObject);
-        }
     }
 }

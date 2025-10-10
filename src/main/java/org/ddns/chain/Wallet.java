@@ -23,6 +23,7 @@ public class Wallet {
     public static KeyPair getKeyPair() {
         return SignatureUtil.generateKeyPair();
     }
+
     /**
      * Derives the corresponding PublicKey from a given PrivateKey.
      *
@@ -54,7 +55,7 @@ public class Wallet {
         BigInteger privateValue = ecPrivateKey.getS();
 
         // Multiply private scalar (d) with generator (G)
-         ECPoint w = multiplyECPoint(generator, privateValue, params);
+        ECPoint w = multiplyECPoint(generator, privateValue, params);
 
         // Build public key spec
         ECPublicKeySpec pubSpec = new ECPublicKeySpec(w, params);
@@ -66,16 +67,16 @@ public class Wallet {
      * This uses Bouncy Castle EC math to perform point multiplication.
      */
     private static ECPoint multiplyECPoint(
-             ECPoint generator,
-             BigInteger scalar,
+            ECPoint generator,
+            BigInteger scalar,
             ECParameterSpec params) throws Exception {
 
         // Use BouncyCastle EC math for point multiplication
-         ECNamedCurveParameterSpec bcSpec =
+        ECNamedCurveParameterSpec bcSpec =
                 ECNamedCurveTable.getParameterSpec("prime256v1");
 
-         org.bouncycastle.math.ec.ECPoint g = bcSpec.getG();
-         org.bouncycastle.math.ec.ECPoint q = g.multiply(scalar).normalize();
+        org.bouncycastle.math.ec.ECPoint g = bcSpec.getG();
+        org.bouncycastle.math.ec.ECPoint q = g.multiply(scalar).normalize();
 
         return new ECPoint(
                 q.getAffineXCoord().toBigInteger(),

@@ -1,5 +1,6 @@
 package org.ddns.bc;
 
+import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.spec.ECGenParameterSpec;
 import java.security.spec.PKCS8EncodedKeySpec;
@@ -17,13 +18,14 @@ public class SignatureUtil {
 
     /**
      * Applies the SHA-256 hash algorithm to a given string.
+     *
      * @param input The string to be hashed.
      * @return The calculated SHA-256 hash as a hex string.
      */
     public static String applySha256(String input) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(input.getBytes("UTF-8"));
+            byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
             StringBuilder hexString = new StringBuilder();
             for (byte b : hash) {
                 String hex = Integer.toHexString(0xff & b);
@@ -38,6 +40,7 @@ public class SignatureUtil {
 
     /**
      * Generates a new Elliptic Curve KeyPair (public and private key).
+     *
      * @return A new KeyPair object.
      */
     public static KeyPair generateKeyPair() {
@@ -54,8 +57,9 @@ public class SignatureUtil {
 
     /**
      * Signs a string of data using a private key.
+     *
      * @param privateKey The private key to sign with.
-     * @param data The data to be signed.
+     * @param data       The data to be signed.
      * @return An array of bytes representing the signature.
      */
     public static byte[] sign(PrivateKey privateKey, String data) {
@@ -71,9 +75,10 @@ public class SignatureUtil {
 
     /**
      * Verifies a digital signature.
+     *
      * @param publicKey The public key corresponding to the private key used for signing.
      * @param signature The signature to be verified.
-     * @param data The original data that was signed.
+     * @param data      The original data that was signed.
      * @return true if the signature is valid, false otherwise.
      */
     public static boolean verify(PublicKey publicKey, byte[] signature, String data) {
@@ -90,6 +95,7 @@ public class SignatureUtil {
 
     /**
      * A helper method to get a Base64 encoded string from a Key object.
+     *
      * @param key The Key (PublicKey or PrivateKey) to encode.
      * @return A Base64 encoded string representation of the key.
      */
@@ -99,18 +105,21 @@ public class SignatureUtil {
 
     /**
      * A helper method to convert a public key string into PublicKey object
+     *
      * @param key The Public key string to convert
-     * @return  PublicKey Object
+     * @return PublicKey Object
      */
     public static PublicKey getPublicKeyFromString(String key) throws Exception {
         byte[] keyBytes = Base64.getDecoder().decode(key);
         KeyFactory keyFactory = KeyFactory.getInstance("ECDSA", "BC");
         return keyFactory.generatePublic(new X509EncodedKeySpec(keyBytes));
     }
+
     /**
      * A helper method to convert a private key string into PrivateKey object
+     *
      * @param key The Private key string to convert
-     * @return  PrivateKey  Object
+     * @return PrivateKey  Object
      */
     public static PrivateKey getPrivateKeyFromString(String key) throws Exception {
         byte[] keyBytes = Base64.getDecoder().decode(key);

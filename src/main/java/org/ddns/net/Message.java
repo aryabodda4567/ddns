@@ -1,7 +1,8 @@
 package org.ddns.net;
 
+import org.ddns.bc.SignatureUtil;
+
 import java.security.PublicKey;
-import org.ddns.bc.SignatureUtil; // Your SignatureUtil class
 
 /**
  * A universal wrapper for all network messages.

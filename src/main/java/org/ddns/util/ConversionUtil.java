@@ -7,6 +7,7 @@ import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Utility class for converting between Java objects and JSON strings.
@@ -38,8 +39,8 @@ public class ConversionUtil {
      * Converts a JSON string into an object of the specified class type.
      *
      * @param jsonString The JSON string to convert.
-     * @param tClass The class type to deserialize into.
-     * @param <T> The generic type parameter representing the object type.
+     * @param tClass     The class type to deserialize into.
+     * @param <T>        The generic type parameter representing the object type.
      * @return An instance of the specified class type, or {@code null} if input is invalid.
      */
     public static <T> T fromJson(String jsonString, Class<T> tClass) {
@@ -48,7 +49,6 @@ public class ConversionUtil {
         }
         return gson.fromJson(jsonString, tClass);
     }
-
 
 
     /**
@@ -66,8 +66,8 @@ public class ConversionUtil {
      * </pre>
      *
      * @param jsonString The JSON string to deserialize.
-     * @param type The {@link Type} describing the object structure (e.g., from {@link TypeToken}).
-     * @param <T> The generic type parameter representing the target object type.
+     * @param type       The {@link Type} describing the object structure (e.g., from {@link TypeToken}).
+     * @param <T>        The generic type parameter representing the target object type.
      * @return The deserialized object of the specified type, or {@code null} if input is invalid.
      */
     public static <T> T fromJson(String jsonString, Type type) {
@@ -87,13 +87,14 @@ public class ConversionUtil {
      *
      * @param jsonString The JSON string to convert.
      * @return A {@code Map<String, String>} representation of the JSON,
-     *         or {@code null} if input is invalid.
+     * or {@code null} if input is invalid.
      */
     public static Map<String, String> jsonToMap(String jsonString) {
         if (jsonString == null || jsonString.isEmpty()) {
             return null;
         }
-        Type type = new TypeToken<HashMap<String, String>>() {}.getType();
+        Type type = new TypeToken<HashMap<String, String>>() {
+        }.getType();
         return gson.fromJson(jsonString, type);
     }
 
@@ -108,8 +109,8 @@ public class ConversionUtil {
      * </p>
      *
      * @param jsonString The JSON string to convert.
-     * @param tClass The class of elements in the list.
-     * @param <T> The type of the list elements.
+     * @param tClass     The class of elements in the list.
+     * @param <T>        The type of the list elements.
      * @return A list of objects of the given type, or {@code null} if input is invalid.
      */
     public static <T> List<T> jsonToList(String jsonString, Class<T> tClass) {
@@ -119,5 +120,29 @@ public class ConversionUtil {
         Type type = TypeToken.getParameterized(List.class, tClass).getType();
         return gson.fromJson(jsonString, type);
     }
+
+    /**
+     * Converts a JSON string into a {@code Set<T>} of objects.
+     *
+     * <p>
+     * Example usage:
+     * <pre>
+     * Set<String> names = ConversionUtil.jsonToSet(jsonString, String.class);
+     * </pre>
+     * </p>
+     *
+     * @param jsonString The JSON string to convert.
+     * @param tClass     The class of elements in the set.
+     * @param <T>        The type of the set elements.
+     * @return A set of objects of the given type, or {@code null} if input is invalid.
+     */
+    public static <T> Set<T> jsonToSet(String jsonString, Class<T> tClass) {
+        if (jsonString == null || jsonString.isEmpty() || tClass == null) {
+            return null;
+        }
+        Type type = TypeToken.getParameterized(Set.class, tClass).getType();
+        return gson.fromJson(jsonString, type);
+    }
+
 
 }

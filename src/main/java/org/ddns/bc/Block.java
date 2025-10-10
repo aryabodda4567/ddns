@@ -45,8 +45,19 @@ public class Block {
     }
 
     // --- Getters ---
-    public String getHash() { return hash; }
-    public String getPreviousHash() { return previousHash; }
-    public String getMerkleRoot() { return merkleRoot; }
-    public List<Transaction> getTransactions() { return transactions; }
+    public String getHash() {
+        return hash;
+    }
+
+    public String getPreviousHash() {
+        return previousHash;
+    }
+
+    public String getMerkleRoot() {
+        return merkleRoot;
+    }
+
+    public List<Transaction> getTransactions() {
+        return transactions;
+    }
 }

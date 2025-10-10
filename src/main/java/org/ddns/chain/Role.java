@@ -5,5 +5,6 @@ public enum Role {
     LEADER_NODE,
     ANY,
     NONE,
-    GENESIS
+    GENESIS,
+    BOOTSTRAP
 }
