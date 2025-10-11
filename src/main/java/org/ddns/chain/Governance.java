@@ -109,7 +109,7 @@ public class Governance {
         PersistentStorage.put(Names.VOTE_RESULTS, current + 1);
     }
 
-    public static boolean isAccepted() {
+    private static boolean isAccepted() {
 
         int votes = PersistentStorage.getInt(Names.VOTE_RESULTS);
         int leaderCount = PersistentStorage.getInt(Names.TOTAL_LEADER_COUNT);
@@ -165,7 +165,8 @@ public class Governance {
 
         if (isAccepted()) {
             System.out.println("Join request accepted by peers.");
-            MessageHandler.addLeaderRequest();
+            PersistentStorage.put(Names.ROLE, Role.NORMAL_NODE);
+            MessageHandler.addNodeRequest(Role.NORMAL_NODE);
         } else {
             System.out.println("Join request rejected by peers");
         }

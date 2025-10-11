@@ -1,9 +1,12 @@
 package org.ddns.util;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+import org.ddns.bc.PublicKeyAdapter;
 
 import java.lang.reflect.Type;
+import java.security.PublicKey;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,7 +23,9 @@ import java.util.Set;
 public class ConversionUtil {
 
     // Use a single shared Gson instance for efficiency
-    private static final Gson gson = new Gson();
+    private static final Gson gson = new GsonBuilder()
+            .registerTypeAdapter(PublicKey.class, new PublicKeyAdapter())
+            .create();
 
     /**
      * Converts any Java object into its JSON string representation.

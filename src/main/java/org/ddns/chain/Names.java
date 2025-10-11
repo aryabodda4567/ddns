@@ -10,9 +10,10 @@ public final class Names {
     public static final String AVAILABLE_NODES = "AVAILABLE_NODES";
     public static final String ROLE = "ROLE";
     public static final String BOOTSTRAP_NODE_IP = "BOOTSTRAP_NODE_IP";
-    public static final String PUBLIC_KEY ="PUBLIC_KEY";
-    public static final String PRIVATE_KEY ="PRIVATE_KEY";
-    public static final String DB_FILE_NAME ="DB_FILE_NAME";
-    public static final String LEADER_NODES="LEADER_NODES";
+    public static final String PUBLIC_KEY = "PUBLIC_KEY";
+    public static final String PRIVATE_KEY = "PRIVATE_KEY";
+    public static final String DB_FILE_NAME = "DB_FILE_NAME";
+    public static final String LEADER_NODES = "LEADER_NODES";
+    public static final String ADD_NORMAL_NODE = "ADD_NORMAL_NODE";
 
 }

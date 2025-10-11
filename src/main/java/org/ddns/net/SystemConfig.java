@@ -10,6 +10,12 @@ public class SystemConfig {
     private Role role;
     private PublicKey publicKey;
 
+    public SystemConfig(String ip, Role role, PublicKey publicKey) {
+        this.ip = ip;
+        this.role = role;
+        this.publicKey = publicKey;
+    }
+
     public PublicKey getPublicKey() {
         return publicKey;
     }
@@ -18,20 +24,12 @@ public class SystemConfig {
         this.publicKey = publicKey;
     }
 
-
-
-    public SystemConfig(String ip, Role role, PublicKey publicKey) {
-        this.ip = ip;
-        this.role = role;
-        this.publicKey = publicKey;
-    }
-
     @Override
     public String toString() {
         return "SystemConfig{" +
                 "ip='" + ip + '\'' +
                 ", role=" + role +
-                ", public key="+publicKey+
+                ", public key=" + publicKey +
                 '}';
     }
 
@@ -55,11 +53,11 @@ public class SystemConfig {
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         SystemConfig that = (SystemConfig) o;
-        return Objects.equals(getIp(), that.getIp()) && getRole() == that.getRole();
+        return Objects.equals(getIp(), that.getIp()) && getRole() == that.getRole() && getPublicKey().equals(that.getPublicKey());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getIp(), getRole());
+        return Objects.hash(getIp(), getRole(), getPublicKey());
     }
 }

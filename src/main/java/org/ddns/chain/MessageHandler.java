@@ -52,10 +52,8 @@ public class MessageHandler {
                 null
         );
         System.out.println("Sending broadcast");
-        NetworkManager.sendToNodes(ConversionUtil.toJson(message),Role.LEADER_NODE);
-        NetworkManager.sendToNodes(ConversionUtil.toJson(message),Role.GENESIS);
+        NetworkManager.broadcast(ConversionUtil.toJson(message));
     }
-
 
 
     /**
@@ -107,22 +105,22 @@ public class MessageHandler {
         NetworkManager.sendDirectMessage(bootstrapNodeIp, ConversionUtil.toJson(message));
     }
 
-    public static void broadcastTransaction(Transaction transaction){
+    public static void broadcastTransaction(Transaction transaction) {
         PublicKey publicKey = null;
-        try{
+        try {
             publicKey = SignatureUtil.getPublicKeyFromString(PersistentStorage.getString(Names.PUBLIC_KEY));
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
 
-        if(publicKey == null){
+        if (publicKey == null) {
             System.out.println("No public key found");
             return;
         }
 
-        Map<String,String> payloadMap = new HashMap<>();
-        payloadMap.put("TRANSACTION",ConversionUtil.toJson(transaction));
-        Message message =new Message(
+        Map<String, String> payloadMap = new HashMap<>();
+        payloadMap.put("TRANSACTION", ConversionUtil.toJson(transaction));
+        Message message = new Message(
                 MessageType.TRANSACTION,
                 NetworkUtility.getLocalIpAddress(),
                 publicKey,
@@ -132,18 +130,23 @@ public class MessageHandler {
         );
 
         NetworkManager.sendToNodes(ConversionUtil.toJson(message), Role.LEADER_NODE);
-        NetworkManager.sendToNodes(ConversionUtil.toJson(message),Role.GENESIS);
+        NetworkManager.sendToNodes(ConversionUtil.toJson(message), Role.GENESIS);
     }
 
-    public static void addLeaderRequest() throws Exception {
+    public static void addNodeRequest(Role role) throws Exception {
         String ip = NetworkUtility.getLocalIpAddress();
-        PublicKey publicKey =  SignatureUtil.getPublicKeyFromString(PersistentStorage.getString(Names.PUBLIC_KEY));
-        Role role = ConversionUtil.fromJson(PersistentStorage.getString(Names.ROLE), Role.class);
-        SystemConfig systemConfig = new SystemConfig(ip,role,publicKey);
-        Map<String , String> map = new HashMap<>();
-        map.put("NODE",ConversionUtil.toJson(systemConfig));
+        PublicKey publicKey = SignatureUtil.getPublicKeyFromString(PersistentStorage.getString(Names.PUBLIC_KEY));
+
+        System.out.println(ip + " " + role + " " + publicKey + " hbj");
+
+        SystemConfig systemConfig = new SystemConfig(ip, role, publicKey);
+
+        Map<String, String> map = new HashMap<>();
+
+        map.put("NODE", ConversionUtil.toJson(systemConfig));
+
         Message message = new Message(
-                MessageType.ADD_LEADER,
+                MessageType.ADD_NODE,
                 NetworkUtility.getLocalIpAddress(),
                 publicKey,
                 ConversionUtil.toJson(map)
@@ -151,10 +154,16 @@ public class MessageHandler {
         );
         NetworkManager.broadcast(ConversionUtil.toJson(message));
     }
-    public static void addLeaderResolve(Map<String,String> payLoad){
+
+    public static void addNodeResolve(Map<String, String> payLoad) {
+        System.out.println("Adding new leader" + payLoad);
         SystemConfig systemConfig = ConversionUtil.fromJson(payLoad.get("NODE"), SystemConfig.class);
         Bootstrap bootstrap = new Bootstrap();
-        bootstrap.addLeaderNode(systemConfig);
+
+        if (systemConfig.getRole().equals(Role.LEADER_NODE))
+            bootstrap.addLeaderNode(systemConfig);
+        if (systemConfig.getRole().equals(Role.NORMAL_NODE))
+            bootstrap.addNode(systemConfig);
     }
 
 }

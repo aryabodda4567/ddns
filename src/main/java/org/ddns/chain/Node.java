@@ -1,6 +1,5 @@
 package org.ddns.chain;
 
-import org.ddns.bc.Blockchain;
 import org.ddns.bc.SignatureUtil;
 import org.ddns.bc.Transaction;
 import org.ddns.net.Message;
@@ -48,14 +47,14 @@ public class Node {
         if (privateKey == null) {
             KeyPair keyPair = Wallet.getKeyPair();
             this.publicKey = keyPair.getPublic();
-            PersistentStorage.put(Names.PRIVATE_KEY,keyPair.getPrivate().toString());
+            PersistentStorage.put(Names.PRIVATE_KEY, SignatureUtil.getStringFromKey(keyPair.getPrivate()));
         } else {
             this.publicKey = Wallet.getPublicKeyFromPrivateKey(
                     SignatureUtil.getPrivateKeyFromString(privateKey)
             );
-            PersistentStorage.put(Names.PRIVATE_KEY,SignatureUtil.getPrivateKeyFromString(privateKey) );
+            PersistentStorage.put(Names.PRIVATE_KEY, privateKey);
         }
-        PersistentStorage.put(Names.PUBLIC_KEY,this.publicKey.toString());
+        PersistentStorage.put(Names.PUBLIC_KEY, SignatureUtil.getStringFromKey(publicKey));
         // Initialize network manager with custom message handlers
         NetworkManager networkManager = new NetworkManager(
                 this::handleBroadcastMessage,
@@ -105,9 +104,11 @@ public class Node {
 
             } else {
                 System.out.println("⚠️ No ACK received within 3 seconds. This node is now Genesis Node.");
-                this.role = Role.GENESIS;
-                MessageHandler.addLeaderRequest();
                 // Genesis node initialization logic can go here
+                this.role = Role.GENESIS;
+                PersistentStorage.put(Names.ROLE, Role.GENESIS);
+                MessageHandler.addNodeRequest(Role.LEADER_NODE);
+
             }
 
         } catch (Exception e) {
@@ -163,7 +164,6 @@ public class Node {
     private void handleDirectMessage(String message) {
         Message messageObject = ConversionUtil.fromJson(message, Message.class);
         HashMap<String, String> payload = (HashMap<String, String>) ConversionUtil.jsonToMap(messageObject.payload);
-
         if (messageObject.type.equals(Role.LEADER_NODE) && !role.equals(Role.LEADER_NODE) && !role.equals(Role.GENESIS))
             return;
 
@@ -194,7 +194,7 @@ public class Node {
             }
             case BOOTSTRAP_RESPONSE -> MessageHandler.resolveBootstrapResponse(payload);
 
-            case ADD_LEADER -> MessageHandler.addLeaderResolve(payload);
+            case ADD_NODE -> MessageHandler.addNodeResolve(payload);
             case TRANSACTION -> {
                 Transaction transaction = ConversionUtil.fromJson(payload.get("TRANSACTION"), Transaction.class);
                 new ChainManager().handleRegisterTransaction(transaction);

@@ -35,9 +35,9 @@ public class Bootstrap {
         }
 
         String leaderNodeJson = PersistentStorage.getString(Names.LEADER_NODES);
-        if(leaderNodeJson == null){
+        if (leaderNodeJson == null) {
             leaders = new HashSet<>();
-        }else{
+        } else {
             leaders = ConversionUtil.jsonToSet(leaderNodeJson, SystemConfig.class);
         }
     }
@@ -55,7 +55,10 @@ public class Bootstrap {
         leaders.add(systemConfig);
         save();
     }
-    public Set<SystemConfig> getLeaders(){return leaders;}
+
+    public Set<SystemConfig> getLeaders() {
+        return leaders;
+    }
 
     public void addNodes(Set<SystemConfig> systemConfig) {
         nodes.addAll(systemConfig);
@@ -64,6 +67,7 @@ public class Bootstrap {
 
     private void save() {
         PersistentStorage.put(Names.AVAILABLE_NODES, ConversionUtil.toJson(nodes));
+        PersistentStorage.put(Names.LEADER_NODES, ConversionUtil.toJson(leaders));
     }
 
     public Set<SystemConfig> getNodes() {

@@ -1,6 +1,5 @@
 package org.ddns.chain;
 
-import org.ddns.bc.Blockchain;
 import org.ddns.bc.SignatureUtil;
 import org.ddns.bc.Transaction;
 import org.ddns.bc.TransactionType;
@@ -15,21 +14,20 @@ import java.util.Map;
 public class ChainManager {
 
 
-
     public static void setupGenesisNode() {
         PersistentStorage.put(Names.ROLE, Role.GENESIS + "");
     }
 
-///
-///
-/// Under implementation
-///
-///
-    public  void handleRegisterTransaction(Transaction transaction){
-        TransactionType type =transaction.getType();
-        if(!transaction.verifySignature()){
-            System.out.println("Transaction verification failed\nHash: "+transaction.getHash()+"\n" +
-                    "Public key "+ transaction.getSenderPublicKey());
+    ///
+    ///
+    /// Under implementation
+    ///
+    ///
+    public void handleRegisterTransaction(Transaction transaction) {
+        TransactionType type = transaction.getType();
+        if (!transaction.verifySignature()) {
+            System.out.println("Transaction verification failed\nHash: " + transaction.getHash() + "\n" +
+                    "Public key " + transaction.getSenderPublicKey());
             return;
         }
 
@@ -37,11 +35,11 @@ public class ChainManager {
         databaseManager.logTransaction(transaction);
 
 
-        switch (type){
+        switch (type) {
             case REGISTER -> {
-                Map<String,String> payloadMap = transaction.getPayload();
+                Map<String, String> payloadMap = transaction.getPayload();
                 String ip = payloadMap.get("IP");
-                String domainName  = payloadMap.get("DOMAIN");
+                String domainName = payloadMap.get("DOMAIN");
                 String owner = payloadMap.get("OWNER");
 
 
@@ -49,13 +47,13 @@ public class ChainManager {
         }
     }
 
-    public    void createRegisterTransaction(String domainName  , String ip, String owner ) throws Exception {
+    public void createRegisterTransaction(String domainName, String ip, String owner) throws Exception {
         PublicKey publicKey = SignatureUtil.getPublicKeyFromString(PersistentStorage.getString(Names.PUBLIC_KEY));
 
-        Map<String,String> payloadMap = new HashMap<>();
-        payloadMap.put("IP",ip);
-        payloadMap.put("DOMAIN",domainName);
-        payloadMap.put("OWNER",owner);
+        Map<String, String> payloadMap = new HashMap<>();
+        payloadMap.put("IP", ip);
+        payloadMap.put("DOMAIN", domainName);
+        payloadMap.put("OWNER", owner);
         Transaction transaction = new Transaction(
                 publicKey,
                 TransactionType.REGISTER,
@@ -63,7 +61,7 @@ public class ChainManager {
                 payloadMap
         );
         //Verify transaction
-        if(!transaction.verifySignature()) {
+        if (!transaction.verifySignature()) {
             System.out.println("Transaction verification failed.\n");
             return;
         }
@@ -73,10 +71,6 @@ public class ChainManager {
         //Broadcast
         MessageHandler.broadcastTransaction(transaction);
     }
-
-
-
-
 
 
 }

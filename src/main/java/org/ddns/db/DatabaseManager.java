@@ -62,13 +62,13 @@ public class DatabaseManager {
                 );""";
 
         String blocksTableSql = """
-        CREATE TABLE IF NOT EXISTS blocks (
-            hash TEXT PRIMARY KEY,
-            previous_hash TEXT NOT NULL,
-            merkle_root TEXT NOT NULL,
-            timestamp INTEGER NOT NULL,
-            transactions TEXT NOT NULL
-        );""";
+                CREATE TABLE IF NOT EXISTS blocks (
+                    hash TEXT PRIMARY KEY,
+                    previous_hash TEXT NOT NULL,
+                    merkle_root TEXT NOT NULL,
+                    timestamp INTEGER NOT NULL,
+                    transactions TEXT NOT NULL
+                );""";
 
         try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
             stmt.execute(dnsRecordsTableSql);
@@ -250,7 +250,8 @@ public class DatabaseManager {
                 String transactionsJson = rs.getString("transactions");
 
                 // Define the type for deserializing the list of transactions
-                Type transactionListType = new TypeToken<ArrayList<Transaction>>() {}.getType();
+                Type transactionListType = new TypeToken<ArrayList<Transaction>>() {
+                }.getType();
                 List<Transaction> transactions = gson.fromJson(transactionsJson, transactionListType);
 
                 // Reconstruct the Block object.
@@ -260,7 +261,7 @@ public class DatabaseManager {
                 return new Block(previousHash, transactions);
             }
         } catch (SQLException e) {
-            System.err.println("Error retrieving block by hash: "  + e.getMessage());
+            System.err.println("Error retrieving block by hash: " + e.getMessage());
         }
         return null;
     }
