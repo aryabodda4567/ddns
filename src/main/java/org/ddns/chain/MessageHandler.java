@@ -1,6 +1,7 @@
 package org.ddns.chain;
 
 import org.ddns.bc.SignatureUtil;
+import org.ddns.bc.Transaction;
 import org.ddns.net.*;
 import org.ddns.util.ConversionUtil;
 import org.ddns.util.NetworkUtility;
@@ -51,27 +52,17 @@ public class MessageHandler {
                 null
         );
         System.out.println("Sending broadcast");
-        NetworkManager.broadcast(ConversionUtil.toJson(message));
+        NetworkManager.sendToNodes(ConversionUtil.toJson(message),Role.LEADER_NODE);
+        NetworkManager.sendToNodes(ConversionUtil.toJson(message),Role.GENESIS);
     }
 
-//    /**
-//     * Returns the role required to process the given message type.
-//     */
-//    public static Role requiredRole(Message message) {
-//        if (message.type.equals(MessageType.DISCOVERY_REQUEST)
-//                || message.type.equals(MessageType.JOIN_REQUEST_TX)
-//                || message.type.equals(MessageType.SYNC_REQUEST)
-//                || message.type.equals(MessageType.PROMOTION_REQUEST_TX)) {
-//            return Role.LEADER_NODE;
-//        }
-//        return Role.ANY;
-//    }
+
 
     /**
      * Initializes node configurations from payload received in DISCOVERY_ACK.
      */
     public static void initializeConfigs(Map<String, String> payload) {
-        PersistentStorage storage = new PersistentStorage();
+
 
         PersistentStorage.put(Names.TOTAL_NODE_COUNT,
                 Integer.parseInt(payload.get(Names.TOTAL_NODE_COUNT)));
@@ -108,12 +99,62 @@ public class MessageHandler {
         String bootstrapNodeIp = bootstrap.getBootstrapNodeIp();
         Message message = new Message(
                 MessageType.BOOTSTRAP_REQUEST,
-                bootstrapNodeIp,
+                NetworkUtility.getLocalIpAddress(),
                 publicKey,
                 null
         );
         System.out.println("Sending bootstrap request.");
         NetworkManager.sendDirectMessage(bootstrapNodeIp, ConversionUtil.toJson(message));
+    }
+
+    public static void broadcastTransaction(Transaction transaction){
+        PublicKey publicKey = null;
+        try{
+            publicKey = SignatureUtil.getPublicKeyFromString(PersistentStorage.getString(Names.PUBLIC_KEY));
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+        if(publicKey == null){
+            System.out.println("No public key found");
+            return;
+        }
+
+        Map<String,String> payloadMap = new HashMap<>();
+        payloadMap.put("TRANSACTION",ConversionUtil.toJson(transaction));
+        Message message =new Message(
+                MessageType.TRANSACTION,
+                NetworkUtility.getLocalIpAddress(),
+                publicKey,
+                ConversionUtil.toJson(payloadMap)
+
+
+        );
+
+        NetworkManager.sendToNodes(ConversionUtil.toJson(message), Role.LEADER_NODE);
+        NetworkManager.sendToNodes(ConversionUtil.toJson(message),Role.GENESIS);
+    }
+
+    public static void addLeaderRequest() throws Exception {
+        String ip = NetworkUtility.getLocalIpAddress();
+        PublicKey publicKey =  SignatureUtil.getPublicKeyFromString(PersistentStorage.getString(Names.PUBLIC_KEY));
+        Role role = ConversionUtil.fromJson(PersistentStorage.getString(Names.ROLE), Role.class);
+        SystemConfig systemConfig = new SystemConfig(ip,role,publicKey);
+        Map<String , String> map = new HashMap<>();
+        map.put("NODE",ConversionUtil.toJson(systemConfig));
+        Message message = new Message(
+                MessageType.ADD_LEADER,
+                NetworkUtility.getLocalIpAddress(),
+                publicKey,
+                ConversionUtil.toJson(map)
+
+        );
+        NetworkManager.broadcast(ConversionUtil.toJson(message));
+    }
+    public static void addLeaderResolve(Map<String,String> payLoad){
+        SystemConfig systemConfig = ConversionUtil.fromJson(payLoad.get("NODE"), SystemConfig.class);
+        Bootstrap bootstrap = new Bootstrap();
+        bootstrap.addLeaderNode(systemConfig);
     }
 
 }

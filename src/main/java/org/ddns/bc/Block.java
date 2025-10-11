@@ -60,4 +60,8 @@ public class Block {
     public List<Transaction> getTransactions() {
         return transactions;
     }
+
+    public long getTimestamp() {
+        return timestamp;
+    }
 }

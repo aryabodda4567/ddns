@@ -10,6 +10,7 @@ import java.util.Set;
 
 public class Bootstrap {
     Set<SystemConfig> nodes;
+    Set<SystemConfig> leaders;
 
 
     public Bootstrap(String bootstrapNode) {
@@ -32,6 +33,13 @@ public class Bootstrap {
         } else {
             nodes = ConversionUtil.jsonToSet(nodesJson, SystemConfig.class);
         }
+
+        String leaderNodeJson = PersistentStorage.getString(Names.LEADER_NODES);
+        if(leaderNodeJson == null){
+            leaders = new HashSet<>();
+        }else{
+            leaders = ConversionUtil.jsonToSet(leaderNodeJson, SystemConfig.class);
+        }
     }
 
     public String getBootstrapNodeIp() {
@@ -42,6 +50,12 @@ public class Bootstrap {
         nodes.add(systemConfig);
         save();
     }
+
+    public void addLeaderNode(SystemConfig systemConfig) {
+        leaders.add(systemConfig);
+        save();
+    }
+    public Set<SystemConfig> getLeaders(){return leaders;}
 
     public void addNodes(Set<SystemConfig> systemConfig) {
         nodes.addAll(systemConfig);

@@ -134,7 +134,7 @@ public class Governance {
         PersistentStorage.delete(Names.NOMINATIONS);
     }
 
-    public static void votingResults() {
+    public static void votingResults() throws Exception {
 
 
         String initTimeStr = PersistentStorage.getString(Names.VOTING_INIT_TIME);
@@ -165,6 +165,7 @@ public class Governance {
 
         if (isAccepted()) {
             System.out.println("Join request accepted by peers.");
+            MessageHandler.addLeaderRequest();
         } else {
             System.out.println("Join request rejected by peers");
         }

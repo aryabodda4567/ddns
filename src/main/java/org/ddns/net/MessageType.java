@@ -6,6 +6,7 @@ public enum MessageType {
     DISCOVERY_ACK,      // A leader node replying directly to a new node
     JOIN_REQUEST_TX,    // A new node broadcasting a formal transaction to join
     JOIN_VOTE,          // A leader sending a "yes/no" vote directly to the new node
+    ADD_LEADER,         
 
     // Data Synchronization
     SYNC_REQUEST,       // A new node asking a leader for the latest DNS state
@@ -23,5 +24,8 @@ public enum MessageType {
 
     //Bootstrapping
     BOOTSTRAP_REQUEST,
-    BOOTSTRAP_RESPONSE
+    BOOTSTRAP_RESPONSE,
+
+//    Blockchain transactions
+    TRANSACTION
 }

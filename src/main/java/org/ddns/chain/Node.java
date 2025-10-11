@@ -1,12 +1,16 @@
 package org.ddns.chain;
 
+import org.ddns.bc.Blockchain;
 import org.ddns.bc.SignatureUtil;
+import org.ddns.bc.Transaction;
 import org.ddns.net.Message;
 import org.ddns.net.MessageType;
 import org.ddns.net.NetworkManager;
 import org.ddns.util.ConversionUtil;
 import org.ddns.util.NetworkUtility;
+import org.ddns.util.PersistentStorage;
 
+import java.security.KeyPair;
 import java.security.PublicKey;
 import java.util.HashMap;
 import java.util.List;
@@ -30,6 +34,7 @@ public class Node {
     private final PublicKey publicKey;
     private Role role;
 
+
     /**
      * Constructs a new Node.
      * Initializes public key from provided private key (or generates a new keypair if null)
@@ -40,15 +45,17 @@ public class Node {
      */
     public Node(String privateKey) throws Exception {
         this.role = Role.NONE;
-
         if (privateKey == null) {
-            this.publicKey = Wallet.getKeyPair().getPublic();
+            KeyPair keyPair = Wallet.getKeyPair();
+            this.publicKey = keyPair.getPublic();
+            PersistentStorage.put(Names.PRIVATE_KEY,keyPair.getPrivate().toString());
         } else {
             this.publicKey = Wallet.getPublicKeyFromPrivateKey(
                     SignatureUtil.getPrivateKeyFromString(privateKey)
             );
+            PersistentStorage.put(Names.PRIVATE_KEY,SignatureUtil.getPrivateKeyFromString(privateKey) );
         }
-
+        PersistentStorage.put(Names.PUBLIC_KEY,this.publicKey.toString());
         // Initialize network manager with custom message handlers
         NetworkManager networkManager = new NetworkManager(
                 this::handleBroadcastMessage,
@@ -99,6 +106,7 @@ public class Node {
             } else {
                 System.out.println("⚠️ No ACK received within 3 seconds. This node is now Genesis Node.");
                 this.role = Role.GENESIS;
+                MessageHandler.addLeaderRequest();
                 // Genesis node initialization logic can go here
             }
 
@@ -123,7 +131,7 @@ public class Node {
 
     }
 
-    public void cli() {
+    public void cli() throws Exception {
         Scanner scanner = new Scanner(System.in);
         System.out.println("1).View Votes\n2).Show nominations");
         int option = scanner.nextInt();
@@ -185,6 +193,12 @@ public class Node {
                 }
             }
             case BOOTSTRAP_RESPONSE -> MessageHandler.resolveBootstrapResponse(payload);
+
+            case ADD_LEADER -> MessageHandler.addLeaderResolve(payload);
+            case TRANSACTION -> {
+                Transaction transaction = ConversionUtil.fromJson(payload.get("TRANSACTION"), Transaction.class);
+                new ChainManager().handleRegisterTransaction(transaction);
+            }
 
         }
     }

@@ -2,15 +2,28 @@ package org.ddns.net;
 
 import org.ddns.chain.Role;
 
+import java.security.PublicKey;
 import java.util.Objects;
 
 public class SystemConfig {
     private String ip;
     private Role role;
+    private PublicKey publicKey;
 
-    public SystemConfig(String ip, Role role) {
+    public PublicKey getPublicKey() {
+        return publicKey;
+    }
+
+    public void setPublicKey(PublicKey publicKey) {
+        this.publicKey = publicKey;
+    }
+
+
+
+    public SystemConfig(String ip, Role role, PublicKey publicKey) {
         this.ip = ip;
         this.role = role;
+        this.publicKey = publicKey;
     }
 
     @Override
@@ -18,6 +31,7 @@ public class SystemConfig {
         return "SystemConfig{" +
                 "ip='" + ip + '\'' +
                 ", role=" + role +
+                ", public key="+publicKey+
                 '}';
     }
 

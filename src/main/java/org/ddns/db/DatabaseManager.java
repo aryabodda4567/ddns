@@ -1,19 +1,27 @@
 package org.ddns.db;
 
 
-import org.ddns.bc.DnsRecord;
-import org.ddns.bc.SignatureUtil;
-import org.ddns.bc.Transaction;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+import org.ddns.bc.*;
 
+import java.lang.reflect.Type;
+import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Manages all interactions with the SQLite database for the dDNS system.
  * This class handles the DNS state table and the transaction logs table.
  */
 public class DatabaseManager {
-
+    private static final Gson gson = new GsonBuilder()
+            .registerTypeAdapter(PublicKey.class, new PublicKeyAdapter())
+            .registerTypeAdapter(PrivateKey.class, new PrivateKeyAdapter())
+            .create();
     private final String dbUrl;
 
     public DatabaseManager(String dbFileName) {
@@ -53,9 +61,19 @@ public class DatabaseManager {
                     timestamp INTEGER NOT NULL
                 );""";
 
+        String blocksTableSql = """
+        CREATE TABLE IF NOT EXISTS blocks (
+            hash TEXT PRIMARY KEY,
+            previous_hash TEXT NOT NULL,
+            merkle_root TEXT NOT NULL,
+            timestamp INTEGER NOT NULL,
+            transactions TEXT NOT NULL
+        );""";
+
         try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
             stmt.execute(dnsRecordsTableSql);
             stmt.execute(logsTableSql);
+            stmt.execute(blocksTableSql);
             System.out.println("Database and tables initialized successfully.");
         } catch (SQLException e) {
             System.err.println("Error initializing database: " + e.getMessage());
@@ -188,5 +206,62 @@ public class DatabaseManager {
         } catch (SQLException e) {
             System.err.println("Error pruning logs: " + e.getMessage());
         }
+    }
+    // --- NEW: Methods for Block persistence ---
+
+    /**
+     * Saves a Block object to the 'blocks' table in the database.
+     * The list of transactions within the block is serialized to a JSON string.
+     *
+     * @param block The Block object to save.
+     */
+    public void saveBlock(Block block) {
+        String sql = "INSERT INTO blocks(hash, previous_hash, merkle_root, timestamp, transactions) VALUES(?,?,?,?,?)";
+
+        try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, block.getHash());
+            pstmt.setString(2, block.getPreviousHash());
+            pstmt.setString(3, block.getMerkleRoot());
+            pstmt.setLong(4, block.getTimestamp());
+            // Serialize the list of transactions into a JSON string
+            pstmt.setString(5, gson.toJson(block.getTransactions()));
+
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Error saving block to database: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Retrieves a Block from the database using its hash.
+     *
+     * @param hash The hash of the block to retrieve.
+     * @return The reconstructed Block object if found, otherwise null.
+     */
+    public Block getBlockByHash(String hash) {
+        String sql = "SELECT * FROM blocks WHERE hash = ?";
+
+        try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, hash);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                String previousHash = rs.getString("previous_hash");
+                String transactionsJson = rs.getString("transactions");
+
+                // Define the type for deserializing the list of transactions
+                Type transactionListType = new TypeToken<ArrayList<Transaction>>() {}.getType();
+                List<Transaction> transactions = gson.fromJson(transactionsJson, transactionListType);
+
+                // Reconstruct the Block object.
+                // Note: The constructor recalculates the hash and merkle root.
+                // In a production system, you might have a constructor that accepts all fields
+                // to avoid re-computation and verify against the stored hash.
+                return new Block(previousHash, transactions);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error retrieving block by hash: "  + e.getMessage());
+        }
+        return null;
     }
 }

@@ -167,6 +167,29 @@ public class Blockchain {
     }
 
     /**
+     * Adds a block to the chain after validating it.
+     * This is used by nodes when they receive a new block from the network.
+     *
+     * @param newBlock The block to be added.
+     */
+    public void addBlock(Block newBlock) {
+        // 1. Validate the new block
+        if (!newBlock.getPreviousHash().equals(getLatestBlock().getHash())) {
+            System.err.println("Validation Failed: New block's previousHash does not match the latest block's hash.");
+            return;
+        }
+
+        // (You can add more validation here, like checking the block's own hash)
+
+        // 2. Add the block to the chain
+        this.chain.add(newBlock);
+
+        // 3. CRUCIAL: Process the transactions to update the DNS state
+        processTransactionsInBlock(newBlock);
+
+    }
+
+    /**
      * Resolves a domain name by looking it up in the current state map.
      * This is the primary "read" operation for the DNS.
      *
