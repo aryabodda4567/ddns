@@ -14,6 +14,5 @@ public final class Names {
     public static final String PRIVATE_KEY = "PRIVATE_KEY";
     public static final String DB_FILE_NAME = "DB_FILE_NAME";
     public static final String LEADER_NODES = "LEADER_NODES";
-    public static final String ADD_NORMAL_NODE = "ADD_NORMAL_NODE";
 
 }

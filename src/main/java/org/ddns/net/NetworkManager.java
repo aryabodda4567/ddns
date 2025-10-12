@@ -106,7 +106,7 @@ public class NetworkManager {
         int count = 0;
         String selfIp = NetworkUtility.getLocalIpAddress();
         for (SystemConfig config : nodes) {
-            // if(config.getIp().equals(selfIp)) continue;
+            if(config.getIp().equals(selfIp)) continue;
             if (role.equals(Role.ANY)) {
                 sendDirectMessage(config.getIp(), jsonMessage);
                 count++;

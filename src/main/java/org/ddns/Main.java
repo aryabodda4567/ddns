@@ -3,6 +3,7 @@ package org.ddns;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.ddns.chain.Node;
 import org.ddns.net.Bootstrap;
+import org.ddns.util.PersistentStorage;
 
 import java.security.Security;
 
@@ -13,7 +14,9 @@ public class Main {
     public static void main(String[] args) throws Exception {
         Security.addProvider(new BouncyCastleProvider());
         new Bootstrap(args[0]);
-        new Node(null);
+//        PersistentStorage.clear();
+        Node node =new Node(null);
+        node.start();
 
 
     }

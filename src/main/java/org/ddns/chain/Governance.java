@@ -3,6 +3,7 @@ package org.ddns.chain;
 import org.ddns.net.Message;
 import org.ddns.net.MessageType;
 import org.ddns.net.NetworkManager;
+import org.ddns.util.ConsolePrinter; // Import the printer utility
 import org.ddns.util.ConversionUtil;
 import org.ddns.util.NetworkUtility;
 import org.ddns.util.PersistentStorage;
@@ -16,39 +17,35 @@ import java.util.Map;
 
 /**
  * Handles voting, nominations, and governance rules in the network.
- * Defensive: checks for null/missing storage values and avoids throwing
- * NumberFormatException / NPE from bad/missing storage.
  */
 public class Governance {
 
     public static void updateNominations(Message message) {
         if (message == null || message.senderIp == null || message.senderIp.trim().isEmpty()) {
-            System.err.println("updateNominations: invalid message or sender IP; skipping.");
+            ConsolePrinter.printFail("updateNominations: Invalid message or sender IP. Skipping nomination.");
             return;
         }
-
 
         String listJson = PersistentStorage.getString(Names.NOMINATIONS);
         List<String> list = ConversionUtil.jsonToList(listJson, String.class);
         if (list == null) {
             list = new ArrayList<>();
         }
-        // Avoid duplicate nominations
+
         if (!list.contains(message.senderIp)) {
             list.add(message.senderIp);
             PersistentStorage.put(Names.NOMINATIONS, ConversionUtil.toJson(list));
+            ConsolePrinter.printInfo("New join nomination received from: " + message.senderIp);
         }
     }
 
     public static void updateNominations(List<String> list, String nomineeIp) {
         if (list == null) return;
         list.remove(nomineeIp);
-
         PersistentStorage.put(Names.NOMINATIONS, ConversionUtil.toJson(list));
     }
 
     public static List<String> getNominations() {
-
         String listJson = PersistentStorage.getString(Names.NOMINATIONS);
         List<String> list = ConversionUtil.jsonToList(listJson, String.class);
         return (list == null) ? new ArrayList<>() : list;
@@ -56,11 +53,11 @@ public class Governance {
 
     public static void castVote(String receiverIp, Boolean isAccepted, PublicKey publicKey) {
         if (receiverIp == null || receiverIp.trim().isEmpty()) {
-            System.err.println("castVote: receiverIp is null/empty; skipping.");
+            ConsolePrinter.printFail("castVote: Receiver IP is invalid. Cannot send vote.");
             return;
         }
         if (isAccepted == null) {
-            System.err.println("castVote: isAccepted is null; skipping.");
+            ConsolePrinter.printFail("castVote: Vote status (accepted/rejected) is null. Cannot send vote.");
             return;
         }
 
@@ -72,22 +69,19 @@ public class Governance {
                 publicKey,
                 ConversionUtil.toJson(map)
         );
-        System.out.println("Sending vote to " + receiverIp);
+        ConsolePrinter.printInfo("--> Sending vote to " + receiverIp + "...");
         try {
             NetworkManager.sendDirectMessage(receiverIp, ConversionUtil.toJson(message));
-
-
+            ConsolePrinter.printSuccess("✓ Vote sent successfully.");
         } catch (Exception e) {
-            System.err.println("Failed to send vote to " + receiverIp + ": " + e.getMessage());
+            ConsolePrinter.printFail("✗ Failed to send vote to " + receiverIp + ": " + e.getMessage());
         }
     }
 
     public static void addVote() {
-
-
         String initTimeStr = PersistentStorage.getString(Names.VOTING_INIT_TIME);
         if (initTimeStr == null) {
-            System.err.println("addVote: no voting init time present; ignoring vote.");
+            ConsolePrinter.printWarning("No active voting session found. Ignoring received vote.");
             return;
         }
 
@@ -95,30 +89,28 @@ public class Governance {
         try {
             initTime = Long.parseLong(initTimeStr);
         } catch (NumberFormatException e) {
-            System.err.println("addVote: invalid init time format; ignoring vote.");
+            ConsolePrinter.printFail("Corrupt voting data (init time). Ignoring vote.");
             return;
         }
 
         int timeLimit = PersistentStorage.getInt(Names.VOTING_TIME_LIMIT);
         if (!TimeUtil.isWithinMinutes(initTime, TimeUtil.getCurrentUnixTime(), timeLimit)) {
-            System.out.println("addVote: vote outside allowed time window; ignoring.");
+            ConsolePrinter.printWarning("Vote received outside the allowed time window. Ignoring.");
             return;
         }
 
         int current = PersistentStorage.getInt(Names.VOTE_RESULTS);
         PersistentStorage.put(Names.VOTE_RESULTS, current + 1);
+        ConsolePrinter.printSuccess("✓ Vote successfully counted.");
     }
 
     private static boolean isAccepted() {
-
         int votes = PersistentStorage.getInt(Names.VOTE_RESULTS);
         int leaderCount = PersistentStorage.getInt(Names.TOTAL_LEADER_COUNT);
-        // Use >= to tolerate slight mismatches or if leaderCount decreased
         return (leaderCount > 0) && (votes == leaderCount);
     }
 
     public static void createNomination(PublicKey publicKey, int timeLimitInMinutes) throws Exception {
-
         PersistentStorage.put(Names.VOTE_RESULTS, 0);
         PersistentStorage.put(Names.VOTING_INIT_TIME, Long.toString(TimeUtil.getCurrentUnixTime()));
         PersistentStorage.put(Names.VOTING_TIME_LIMIT, timeLimitInMinutes);
@@ -127,19 +119,17 @@ public class Governance {
     }
 
     private static void deleteNominations() {
-
         PersistentStorage.delete(Names.VOTE_RESULTS);
         PersistentStorage.delete(Names.VOTING_INIT_TIME);
         PersistentStorage.delete(Names.VOTING_TIME_LIMIT);
         PersistentStorage.delete(Names.NOMINATIONS);
+        ConsolePrinter.printInfo("Voting session data has been cleared.");
     }
 
     public static void votingResults() throws Exception {
-
-
         String initTimeStr = PersistentStorage.getString(Names.VOTING_INIT_TIME);
         if (initTimeStr == null) {
-            System.out.println("No voting session found.");
+            ConsolePrinter.printWarning("No voting session found.");
             return;
         }
 
@@ -147,7 +137,7 @@ public class Governance {
         try {
             initTime = Long.parseLong(initTimeStr);
         } catch (NumberFormatException e) {
-            System.err.println("votingResults: invalid init time format; cleaning up and returning.");
+            ConsolePrinter.printFail("Corrupt voting session data found. Cleaning up...");
             deleteNominations();
             return;
         }
@@ -156,19 +146,21 @@ public class Governance {
         int votes = PersistentStorage.getInt(Names.VOTE_RESULTS);
         int leaderCount = PersistentStorage.getInt(Names.TOTAL_LEADER_COUNT);
 
-        System.out.println("Votes required: " + leaderCount + "\nVotes obtained: " + votes);
+        ConsolePrinter.printInfo("--- Voting Results ---");
+        ConsolePrinter.printInfo("  Votes Required: " + leaderCount);
+        ConsolePrinter.printInfo("  Votes Received: " + votes);
 
         if (TimeUtil.isWithinMinutes(initTime, TimeUtil.getCurrentUnixTime(), timeLimit)) {
-            System.out.println("Voting is in progress. View after sometime.");
+            ConsolePrinter.printWarning("Voting is still in progress. Please check back later.");
             return;
         }
 
         if (isAccepted()) {
-            System.out.println("Join request accepted by peers.");
+            ConsolePrinter.printSuccess("✓ Congratulations! Join request ACCEPTED by the network.");
             PersistentStorage.put(Names.ROLE, Role.NORMAL_NODE);
             MessageHandler.addNodeRequest(Role.NORMAL_NODE);
         } else {
-            System.out.println("Join request rejected by peers");
+            ConsolePrinter.printFail("✗ Join request REJECTED by the network (did not meet 100% threshold).");
         }
 
         deleteNominations();
