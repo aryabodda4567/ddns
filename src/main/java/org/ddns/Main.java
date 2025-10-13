@@ -2,7 +2,12 @@ package org.ddns;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.ddns.chain.Node;
+import org.ddns.chain.Role;
+import org.ddns.chain.Wallet;
+import org.ddns.chain.governance.Nomination;
 import org.ddns.net.Bootstrap;
+import org.ddns.net.NodeConfig;
+import org.ddns.util.NetworkUtility;
 import org.ddns.util.PersistentStorage;
 
 import java.security.Security;
@@ -13,10 +18,19 @@ import java.security.Security;
 public class Main {
     public static void main(String[] args) throws Exception {
         Security.addProvider(new BouncyCastleProvider());
-        new Bootstrap(args[0]);
-//        PersistentStorage.clear();
+
+        PersistentStorage.clear();
+        Bootstrap bootstrap = new Bootstrap(args[0]);
+        bootstrap.saveNode(new NodeConfig(
+                NetworkUtility.getLocalIpAddress(),
+                Role.LEADER_NODE,
+                Wallet.getKeyPair().getPublic()
+        ));
+
         Node node =new Node(null);
-        node.start();
+        node.startBootstrapProcess();
+
+
 
 
     }

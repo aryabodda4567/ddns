@@ -1,16 +1,18 @@
 package org.ddns.net;
 
+import org.ddns.bc.SignatureUtil;
 import org.ddns.chain.Role;
 
 import java.security.PublicKey;
+import java.util.Arrays;
 import java.util.Objects;
 
-public class SystemConfig {
+public class NodeConfig {
     private String ip;
     private Role role;
     private PublicKey publicKey;
 
-    public SystemConfig(String ip, Role role, PublicKey publicKey) {
+    public NodeConfig(String ip, Role role, PublicKey publicKey) {
         this.ip = ip;
         this.role = role;
         this.publicKey = publicKey;
@@ -51,13 +53,28 @@ public class SystemConfig {
 
     @Override
     public boolean equals(Object o) {
+        if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        SystemConfig that = (SystemConfig) o;
-        return Objects.equals(getIp(), that.getIp()) && getRole() == that.getRole() && getPublicKey().equals(that.getPublicKey());
+
+        NodeConfig that = (NodeConfig) o;
+
+        boolean ipEquals = Objects.equals(this.ip, that.ip);
+        boolean roleEquals = this.role == that.role;
+
+        // Normalize keys (remove whitespace and newlines)
+//        String thisKey = this.publicKey != null ? SignatureUtil.getStringFromKey(this.publicKey).replaceAll("\\s+", "") : null;
+//        String thatKey = that.publicKey != null ? SignatureUtil.getStringFromKey(that.publicKey).replaceAll("\\s+", "") : null;
+//        boolean keyEquals = Objects.equals(thisKey, thatKey);
+
+        return ipEquals && roleEquals ;//&& keyEquals;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getIp(), getRole(), getPublicKey());
+//        String keyStr = publicKey != null ? SignatureUtil.getStringFromKey(publicKey).replaceAll("\\s+", "") : null;
+        return Objects.hash(ip, role);
     }
+
+
+
 }

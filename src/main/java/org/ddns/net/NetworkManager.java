@@ -3,91 +3,107 @@ package org.ddns.net;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.ddns.chain.Role;
-import org.ddns.util.NetworkUtility;
+import org.ddns.util.ConsolePrinter;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.*;
+import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.Consumer;
 
 /**
- * A self-contained, low-coupled manager for all peer-to-peer network communications.
- * It handles UDP broadcasts, UDP multicast for leaders, and TCP direct messaging.
- * All listening activities are run in a background thread pool.
+ * The {@code NetworkManager} class manages all peer-to-peer network communication
+ * across the decentralized dDNS network.
+ *
+ * <p>
+ * Features:
+ * <ul>
+ *   <li>UDP broadcast for node discovery</li>
+ *   <li>UDP multicast for leader communication</li>
+ *   <li>TCP direct messaging for one-to-one communication</li>
+ *   <li>Extensible MessageHandler registration for modular event handling</li>
+ * </ul>
  */
 public class NetworkManager {
 
     // --- Network Configuration ---
-    public static final int BROADCAST_PORT = 6969; // Port for UDP broadcast and multicast
-    public static final int DIRECT_MESSAGE_PORT = 6970; // Port for TCP direct messages
+    public static final int BROADCAST_PORT = 6969;
+    public static final int DIRECT_MESSAGE_PORT = 6970;
+    private static final String MULTICAST_GROUP_IP = "230.0.0.1";
     public static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
-    private static final String MULTICAST_GROUP_IP = "230.0.0.1"; // Special IP for leader communication
+
+    // Thread pool
     private final ExecutorService executor = Executors.newCachedThreadPool();
-    // --- Callbacks for Decoupling ---
-    // These functions will be provided by the main application to handle incoming messages.
-    private final Consumer<String> onBroadcastReceived;
-    private final Consumer<String> onDirectMessageReceived;
-    private final Consumer<String> onMulticastReceived;
+
+    // Handlers registered for message events
+    private final List<MessageHandler> handlers = new CopyOnWriteArrayList<>();
+
     private volatile boolean running = true;
 
+
+
+    // ---------------------------------------------------------------------
+    //                         HANDLER MANAGEMENT
+    // ---------------------------------------------------------------------
+
     /**
-     * Constructs the NetworkManager.
-     *
-     * @param onBroadcastReceived     A function to call when a broadcast message is received.
-     * @param onDirectMessageReceived A function to call when a direct TCP message is received.
-     * @param onMulticastReceived     A function to call when a leader-only multicast is received.
+     * Registers a message handler that will receive network messages.
      */
-    public NetworkManager(Consumer<String> onBroadcastReceived,
-                          Consumer<String> onDirectMessageReceived,
-                          Consumer<String> onMulticastReceived) {
-        this.onBroadcastReceived = onBroadcastReceived;
-        this.onDirectMessageReceived = onDirectMessageReceived;
-        this.onMulticastReceived = onMulticastReceived;
+    public void registerHandler(MessageHandler handler) {
+        handlers.add(handler);
+        ConsolePrinter.printInfo("[NetworkManager] Registered handler: " + handler.getClass().getSimpleName());
     }
 
     /**
-     * Sends a message to everyone on the local network using UDP broadcast.
-     *
-     * @param jsonMessage The message to send, in JSON format.
+     * Unregisters a previously registered message handler.
+     */
+    public void unregisterHandler(MessageHandler handler) {
+        handlers.remove(handler);
+        ConsolePrinter.printWarning("[NetworkManager] Unregistered handler: " + handler.getClass().getSimpleName());
+    }
+
+    // ---------------------------------------------------------------------
+    //                         SENDING METHODS
+    // ---------------------------------------------------------------------
+
+    /**
+     * Sends a JSON message to all devices on the local network using UDP broadcast.
      */
     public static void broadcast(String jsonMessage) {
-        sendToNodes(jsonMessage, Role.ANY);
-//        try (MulticastSocket socket = new MulticastSocket()) {
-//            byte[] buffer = jsonMessage.getBytes();
-//            InetAddress broadcastAddress = InetAddress.getByName("255.255.255.255");
-//            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, broadcastAddress, BROADCAST_PORT);
-//            socket.send(packet);
-//        } catch (Exception e) {
-//            System.err.println("Failed to send broadcast: " + e.getMessage());
-//        }
-    }
+        try (MulticastSocket socket = new MulticastSocket()) {
+            byte[] buffer = jsonMessage.getBytes();
+            InetAddress broadcastAddress = InetAddress.getByName("255.255.255.255");
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, broadcastAddress, BROADCAST_PORT);
+            socket.send(packet);
 
-    /**
-     * Sends a message directly to a specific peer using a reliable TCP connection.
-     *
-     * @param peerIp      The IP address of the recipient.
-     * @param jsonMessage The message to send, in JSON format.
-     */
-    public static void sendDirectMessage(String peerIp, String jsonMessage) {
-        try (Socket socket = new Socket(peerIp, DIRECT_MESSAGE_PORT);
-             PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
-            out.println(jsonMessage);
+            ConsolePrinter.printSuccess("[NetworkManager] Broadcast message sent to all nodes.");
         } catch (Exception e) {
-            System.err.println("Failed to send direct message to " + peerIp + ": " + e.getMessage());
+            ConsolePrinter.printFail("[NetworkManager] Failed to send broadcast: " + e.getMessage());
         }
     }
 
-    // --- Sending Methods ---
+    /**
+     * Sends a JSON message directly to a specific peer via TCP.
+     */
+    public static boolean sendDirectMessage(String peerIp, String jsonMessage) {
+        try (Socket socket = new Socket(peerIp, DIRECT_MESSAGE_PORT);
+             PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
+            out.println(jsonMessage);
+            ConsolePrinter.printInfo("[NetworkManager] Sent direct message to " + peerIp);
+            return true;
+        } catch (Exception e) {
+            ConsolePrinter.printFail("[NetworkManager] Failed to send direct message to " + peerIp + ": " + e.getMessage());
+            return false;
+        }
+    }
 
     /**
-     * Sends a message to only the subscribed leaders using UDP multicast.
-     *
-     * @param jsonMessage The message to send, in JSON format.
+     * Sends a JSON message to all subscribed leader nodes using UDP multicast.
      */
     public static void sendMulticast(String jsonMessage) {
         try (MulticastSocket socket = new MulticastSocket()) {
@@ -95,56 +111,93 @@ public class NetworkManager {
             InetAddress group = InetAddress.getByName(MULTICAST_GROUP_IP);
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, BROADCAST_PORT);
             socket.send(packet);
-        } catch (Exception e) {
-            System.err.println("Failed to send multicast: " + e.getMessage());
-        }
-    }
 
-    public static void sendToNodes(String jsonMessage, Role role) {
-        Bootstrap bootstrap = new Bootstrap();
-        Set<SystemConfig> nodes = bootstrap.getNodes();
-        int count = 0;
-        String selfIp = NetworkUtility.getLocalIpAddress();
-        for (SystemConfig config : nodes) {
-            if(config.getIp().equals(selfIp)) continue;
-            if (role.equals(Role.ANY)) {
-                sendDirectMessage(config.getIp(), jsonMessage);
-                count++;
-            } else if (config.getRole().equals(role)) {
-                sendDirectMessage(config.getIp(), jsonMessage);
-                count++;
-            }
+            ConsolePrinter.printSuccess("[NetworkManager] Multicast message sent to leader group.");
+        } catch (Exception e) {
+            ConsolePrinter.printFail("[NetworkManager] Failed to send multicast: " + e.getMessage());
         }
-        System.out.println("Sent messages to " + count + " nodes");
     }
 
     /**
-     * Starts all background listener threads.
+     * Broadcasts a JSON message to specific roles among known nodes.
+     */
+    public static boolean broadcast(String jsonMessage, Set<NodeConfig> nodeConfigSet, Set<Role> roles) {
+        if (nodeConfigSet == null || nodeConfigSet.isEmpty()) {
+            ConsolePrinter.printFail("[NetworkManager] No nodes found to send broadcast message.");
+            return false;
+        }
+
+        int sentCount = 0;
+        for (NodeConfig nodeConfig : nodeConfigSet) {
+            if (roles.contains(nodeConfig.getRole())) {
+                boolean success = sendDirectMessage(nodeConfig.getIp(), jsonMessage);
+                if (success) sentCount++;
+            }
+        }
+
+        if (sentCount > 0) {
+            ConsolePrinter.printSuccess("[NetworkManager] Broadcasted message to " + sentCount + " nodes.");
+        } else {
+            ConsolePrinter.printWarning("[NetworkManager] No nodes matched the specified roles for broadcast.");
+        }
+        return true;
+    }
+
+    // ---------------------------------------------------------------------
+    //                         LISTENER MANAGEMENT
+    // ---------------------------------------------------------------------
+
+    /**
+     * Starts background listener threads for UDP broadcasts, multicasts, and TCP messages.
      */
     public void startListeners() {
-        System.out.println("Starting network listeners...");
+        ConsolePrinter.printInfo("[NetworkManager] Starting network listeners...");
         executor.submit(this::listenForUdpBroadcastsAndMulticasts);
         executor.submit(this::listenForTcpDirectMessages);
     }
 
-    // --- Listening Methods (Run in background threads) ---
-
     /**
-     * Stops all network listeners and shuts down the thread pool.
+     * Stops all active listeners and shuts down the thread pool.
      */
     public void stop() {
         this.running = false;
         executor.shutdownNow();
-        System.out.println("Network listeners stopped.");
+        ConsolePrinter.printWarning("[NetworkManager] Network listeners stopped.");
     }
+
+    // ---------------------------------------------------------------------
+    //                         INTERNAL HANDLERS
+    // ---------------------------------------------------------------------
+
+    private void dispatchBroadcast(String message) {
+        for (MessageHandler handler : handlers) {
+            handler.onBroadcastMessage(message);
+        }
+    }
+
+    private void dispatchDirect(String message) {
+        for (MessageHandler handler : handlers) {
+            handler.onDirectMessage(message);
+        }
+    }
+
+    private void dispatchMulticast(String message) {
+        for (MessageHandler handler : handlers) {
+            handler.onMulticastMessage(message);
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    //                         LISTENING THREADS
+    // ---------------------------------------------------------------------
 
     private void listenForUdpBroadcastsAndMulticasts() {
         try (MulticastSocket socket = new MulticastSocket(BROADCAST_PORT)) {
-            socket.setReuseAddress(true); // Allow other services to use the port
+            socket.setReuseAddress(true);
             InetAddress group = InetAddress.getByName(MULTICAST_GROUP_IP);
-            socket.joinGroup(group); // Join the leader-only multicast group
+            socket.joinGroup(group);
 
-            System.out.println("Listening for UDP Broadcasts and Multicasts on port " + BROADCAST_PORT);
+            ConsolePrinter.printInfo("[NetworkManager] Listening for UDP Broadcasts and Multicasts on port " + BROADCAST_PORT);
 
             while (running) {
                 byte[] buffer = new byte[65535];
@@ -153,37 +206,38 @@ public class NetworkManager {
                 String message = new String(packet.getData(), 0, packet.getLength());
 
                 if (packet.getAddress().isMulticastAddress()) {
-                    onMulticastReceived.accept(message);
+                    dispatchMulticast(message);
                 } else {
-                    onBroadcastReceived.accept(message);
+                    dispatchBroadcast(message);
                 }
             }
         } catch (Exception e) {
-            if (running) System.err.println("UDP listener error: " + e.getMessage());
+            if (running) {
+                ConsolePrinter.printFail("[NetworkManager] UDP listener error: " + e.getMessage());
+            }
         }
     }
 
     private void listenForTcpDirectMessages() {
         try (ServerSocket serverSocket = new ServerSocket(DIRECT_MESSAGE_PORT)) {
-            System.out.println("Listening for TCP Direct Messages on port " + DIRECT_MESSAGE_PORT);
+            ConsolePrinter.printInfo("[NetworkManager] Listening for TCP Direct Messages on port " + DIRECT_MESSAGE_PORT);
             while (running) {
                 Socket clientSocket = serverSocket.accept();
-                // Handle each client in a new thread to avoid blocking the listener
                 executor.submit(() -> {
                     try (BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()))) {
                         String message = in.readLine();
                         if (message != null) {
-                            onDirectMessageReceived.accept(message);
+                            dispatchDirect(message);
                         }
                     } catch (IOException e) {
-                        System.err.println("Error reading direct message: " + e.getMessage());
+                        ConsolePrinter.printFail("[NetworkManager] Error reading direct message: " + e.getMessage());
                     }
                 });
             }
         } catch (Exception e) {
-            if (running) System.err.println("TCP listener error: " + e.getMessage());
+            if (running) {
+                ConsolePrinter.printFail("[NetworkManager] TCP listener error: " + e.getMessage());
+            }
         }
     }
-
-
 }
