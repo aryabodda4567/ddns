@@ -28,7 +28,9 @@ public class NodeJoin implements Voting,MessageHandler {
     private NodeJoinListener listener;
 
     public interface NodeJoinListener {
-        void onBootstrapNodesReceived(Set<NodeConfig> nodes);
+        void onNodeJoinWin();
+        void onNodeJoinLose();
+        void onNodeJoinProgress();
     }
     /**
      * Creates a nomination request for joining the network.
@@ -64,7 +66,7 @@ public class NodeJoin implements Voting,MessageHandler {
 
                 boolean broadcastSuccess = NetworkManager.broadcast(
                         ConversionUtil.toJson(message),
-                        new Bootstrap().getNodes(),
+                        Bootstrap.getInstance().getNodes(),
                         roles
                 );
 
@@ -203,7 +205,7 @@ public class NodeJoin implements Voting,MessageHandler {
     public int getRequiredVotes() {
         try {
             int count = 0;
-            for (NodeConfig node : new Bootstrap().getNodes()) {
+            for (NodeConfig node : Bootstrap.getInstance().getNodes()) {
                 if (!node.getRole().equals(Role.NORMAL_NODE)) count++;
             }
             return count;
@@ -235,9 +237,19 @@ public class NodeJoin implements Voting,MessageHandler {
             try {
                 int result = Nomination.getResult();
                 switch (result) {
-                    case 0 -> ConsolePrinter.printSuccess("[NodeJoin]: Nomination approved (All votes received).");
-                    case 2 -> ConsolePrinter.printFail("[NodeJoin]: Nomination rejected (Insufficient votes).");
-                    case -1 -> ConsolePrinter.printInfo("[NodeJoin]: Voting is still in progress.");
+                    case 0 -> {
+                        ConsolePrinter.printSuccess("[NodeJoin]: Nomination approved (All votes received).");
+                        listener.onNodeJoinWin();
+                    }
+                    case 2 -> {
+                        ConsolePrinter.printFail("[NodeJoin]: Nomination rejected (Insufficient votes).");
+                        listener.onNodeJoinLose();
+                    }
+                    case -1 -> {
+                        ConsolePrinter.printInfo("[NodeJoin]: Voting is still in progress.");
+                        listener.onNodeJoinProgress();
+                    }
+
                 }
             } catch (Exception e) {
                 ConsolePrinter.printFail("[NodeJoin]: Error processing result - " + e.getMessage());

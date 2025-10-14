@@ -15,9 +15,11 @@ public class NodeCLI {
 
     private final Node node;
     private final NodeJoin nodeJoin;
+    private final Bootstrap bootstrap;
 
     public NodeCLI(Node node, NodeJoin nodeJoin) {
         this.node = node;
+        this.bootstrap = Bootstrap.getInstance();
         this.nodeJoin = nodeJoin;
     }
 
@@ -108,7 +110,7 @@ public class NodeCLI {
         System.out.println("Votes obtained: " + votes);
 
         int votesRequired = 0;
-        for (NodeConfig nodeConfig : new Bootstrap().getNodes()) {
+        for (NodeConfig nodeConfig :  Bootstrap.getInstance().getNodes()) {
             if (!nodeConfig.getRole().equals(Role.NORMAL_NODE)) votesRequired++;
         }
         System.out.println("Votes required: " + votesRequired);
@@ -117,14 +119,20 @@ public class NodeCLI {
     private void showElectionResult() {
         int result = Nomination.getResult();
         switch (result) {
-            case 0 -> ConsolePrinter.printSuccess("Nomination approved (All votes received).");
+            case 0 -> {
+                ConsolePrinter.printSuccess("Nomination approved (All votes received).");
+                NodeInitializer nodeInitializer = new NodeInitializer();
+                nodeInitializer.initNormalNode();
+                nodeInitializer.initPromoteNode();
+
+            }
             case 2 -> ConsolePrinter.printFail("Nomination rejected (Insufficient votes).");
             case -1 -> ConsolePrinter.printInfo("Voting is still in progress.");
         }
     }
 
     private void showNodeStatus() {
-        Set<NodeConfig> nodes = new Bootstrap().getNodes();
+        Set<NodeConfig> nodes = Bootstrap.getInstance().getNodes();
         if (nodes.isEmpty()) {
             ConsolePrinter.printInfo("No nodes available.");
             return;

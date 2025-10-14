@@ -28,5 +28,6 @@ public enum MessageType {
 
     //    Blockchain transactions
     TRANSACTION,
+    PROMOTE_TO_LEADER,
     ADD_NODE_TO_BOOTSTRAP
 }

@@ -18,10 +18,10 @@ import java.security.Security;
 public class Main {
     public static void main(String[] args) throws Exception {
         Security.addProvider(new BouncyCastleProvider());
+        Bootstrap.initialize(args[0]);
 
-        PersistentStorage.clear();
-        Bootstrap bootstrap = new Bootstrap(args[0]);
-        bootstrap.saveNode(new NodeConfig(
+        Bootstrap bootstrap = Bootstrap.getInstance();
+        bootstrap.saveOrUpdateNode(new NodeConfig(
                 NetworkUtility.getLocalIpAddress(),
                 Role.LEADER_NODE,
                 Wallet.getKeyPair().getPublic()

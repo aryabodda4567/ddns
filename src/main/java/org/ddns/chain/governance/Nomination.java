@@ -120,7 +120,7 @@ public class Nomination {
             PersistentStorage.put(Names.VOTES, 0);
 
             int count = 0;
-            for (NodeConfig node : new Bootstrap().getNodes()) {
+            for (NodeConfig node : Bootstrap.getInstance().getNodes()) {
                 if (!node.getRole().equals(Role.NORMAL_NODE)) count++;
             }
             PersistentStorage.put(Names.VOTES_REQUIRED, count);
@@ -176,7 +176,7 @@ public class Nomination {
             }
 
             int votesRequired = 0;
-            for (NodeConfig node : new Bootstrap().getNodes()) {
+            for (NodeConfig node : Bootstrap.getInstance().getNodes()) {
                 if (!node.getRole().equals(Role.NORMAL_NODE)) votesRequired++;
             }
 

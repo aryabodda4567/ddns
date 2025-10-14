@@ -21,6 +21,8 @@ import java.util.Set;
  */
 public class Bootstrap implements MessageHandler {
 
+    private  static Bootstrap INSTANCE = null;
+
     private NetworkManager networkManager ;
     // Lock object for write operations
     private final Object NODE_LOCK = new Object();
@@ -30,7 +32,8 @@ public class Bootstrap implements MessageHandler {
     static {
         allowedTypes = Set.of(MessageType.BOOTSTRAP_REQUEST,
                 MessageType.BOOTSTRAP_RESPONSE,
-                MessageType.ADD_NODE_TO_BOOTSTRAP
+                MessageType.ADD_NODE_TO_BOOTSTRAP,
+                MessageType.PROMOTE_TO_LEADER
                 );
     }
 
@@ -43,19 +46,26 @@ public class Bootstrap implements MessageHandler {
 
 
     // Constructors
-    public Bootstrap(String bootstrapNodeIp) {
+    private Bootstrap(String bootstrapNodeIp) {
         if (bootstrapNodeIp == null || bootstrapNodeIp.isEmpty()) {
             ConsolePrinter.printFail("[Bootstrap] Invalid bootstrap node IP.");
             throw new IllegalArgumentException("Bootstrap node IP cannot be null or empty.");
         }
         PersistentStorage.put(Names.BOOTSTRAP_NODE_IP, bootstrapNodeIp);
         ConsolePrinter.printInfo("[Bootstrap] Bootstrap node initialized with IP: " + bootstrapNodeIp);
-
+        INSTANCE = new Bootstrap();
     }
 
     public Bootstrap() {
 //        ConsolePrinter.printInfo("[Bootstrap] Node initialized in standard mode.");
 
+    }
+    public static Bootstrap initialize(String bootstrapNodeIp){
+        return new Bootstrap(bootstrapNodeIp);
+    }
+
+    public static Bootstrap getInstance(){
+        return INSTANCE;
     }
 
     // --- Node Requests / Responses ---
@@ -174,18 +184,74 @@ public class Bootstrap implements MessageHandler {
                     ConversionUtil.toJson(resultMap)
             );
 
-            boolean result = NetworkManager.sendDirectMessage(bootstrapNodeIp, ConversionUtil.toJson(message));
-            if (result)
+//            Send to all nodes
+            boolean result1 = NetworkManager.broadcast(ConversionUtil.toJson(message),getNodes(), Set.of(Role.NORMAL_NODE,Role.LEADER_NODE,Role.GENESIS));
+//            send to bootstrap node
+            boolean result2 = NetworkManager.sendDirectMessage(bootstrapNodeIp,ConversionUtil.toJson(message));
+
+            if (result1 && result2)
                 ConsolePrinter.printSuccess("[Bootstrap] Node registration request sent successfully.");
             else
                 ConsolePrinter.printFail("[Bootstrap] Failed to send registration request.");
 
-            return result;
+            return result2 && result1;
         } catch (Exception e) {
             ConsolePrinter.printFail("[Bootstrap] Error creating add node request: " + e.getMessage());
             return false;
         }
     }
+
+
+
+    public boolean createPromoteNodeRequest(){
+        try {
+            PublicKey publicKey = PersistentStorage.getPublicKey();
+            String selfIp = NetworkUtility.getLocalIpAddress();
+            String bootstrapNodeIp = PersistentStorage.getString(Names.BOOTSTRAP_NODE_IP);
+            String roleStr = PersistentStorage.getString(Names.ROLE);
+
+            if (bootstrapNodeIp == null || bootstrapNodeIp.isEmpty()) {
+                ConsolePrinter.printFail("[Bootstrap] Bootstrap IP not found.");
+                return false;
+            }
+
+            Role role;
+            try {
+                role = Role.valueOf(roleStr);
+            } catch (Exception e) {
+                ConsolePrinter.printFail("[Bootstrap] Invalid or missing node role.");
+                return false;
+            }
+
+            NodeConfig nodeConfig = new NodeConfig(selfIp, role, publicKey);
+            Map<String, String> resultMap = Map.of("NODE", ConversionUtil.toJson(nodeConfig));
+
+            Message message = new Message(
+                    MessageType.PROMOTE_TO_LEADER,
+                    selfIp,
+                    publicKey,
+                    ConversionUtil.toJson(resultMap)
+            );
+
+            //         Send to all nodes
+            boolean result1 = NetworkManager.broadcast(ConversionUtil.toJson(message),getNodes(), Set.of(Role.NORMAL_NODE,Role.LEADER_NODE,Role.GENESIS));
+//            send to bootstrap node
+            boolean result2 = NetworkManager.sendDirectMessage(bootstrapNodeIp,ConversionUtil.toJson(message));
+            if (result1 && result2)
+                ConsolePrinter.printSuccess("[Bootstrap] Node promotion request sent successfully.");
+            else
+                ConsolePrinter.printFail("[Bootstrap] Failed to send promotion request.");
+
+            return result1  && result2;
+        } catch (Exception e) {
+            ConsolePrinter.printFail("[Bootstrap] Error creating promote node request: " + e.getMessage());
+            return false;
+        }
+    }
+
+
+
+
 
     public boolean resolveAddNewNodeRequest(Map<String, String> payloadMap) {
         if (payloadMap == null || !payloadMap.containsKey("NODE")) {
@@ -199,10 +265,28 @@ public class Bootstrap implements MessageHandler {
             return false;
         }
 
-        saveNode(nodeConfig);
-        ConsolePrinter.printSuccess("[Bootstrap] Node added successfully: " + nodeConfig.getIp());
+        saveOrUpdateNode(nodeConfig);
+        ConsolePrinter.printSuccess("[Bootstrap] Node added or updated successfully: " + nodeConfig.getIp());
         return true;
     }
+
+    public boolean resolvePromoteNodeRequest(Map<String, String> payloadMap) {
+        if (payloadMap == null || !payloadMap.containsKey("NODE")) {
+            ConsolePrinter.printWarning("[Bootstrap] Invalid payload in promote node request.");
+            return false;
+        }
+
+        NodeConfig nodeConfig = ConversionUtil.fromJson(payloadMap.get("NODE"), NodeConfig.class);
+        if (nodeConfig == null) {
+            ConsolePrinter.printFail("[Bootstrap] Failed to deserialize node configuration.");
+            return false;
+        }
+
+        saveOrUpdateNode(nodeConfig);
+        ConsolePrinter.printSuccess("[Bootstrap] Node promoted successfully: " + nodeConfig.getIp());
+        return true;
+    }
+
 
     // --- Node management ---
 
@@ -212,20 +296,33 @@ public class Bootstrap implements MessageHandler {
         Set<NodeConfig> nodes = ConversionUtil.jsonToSet(nodesJsonString, NodeConfig.class);
         return nodes != null ? nodes : new HashSet<>();
     }
-
-    /** Save or update a node (atomic operation) */
-    public void saveNode(NodeConfig nodeConfig) {
+    /** Save or update a node atomically */
+    public void saveOrUpdateNode(NodeConfig nodeConfig) {
         if (nodeConfig == null || nodeConfig.getIp() == null) {
-            ConsolePrinter.printWarning("[Bootstrap] Attempted to save invalid node configuration.");
+            ConsolePrinter.printWarning("[Bootstrap] Attempted to save/update invalid node configuration.");
             return;
         }
 
-        synchronized (NODE_LOCK) {
+        {
             Set<NodeConfig> nodeConfigSet = getNodes();
-            nodeConfigSet.add(nodeConfig);
+            boolean found = false;
+            Set<NodeConfig> updatedNodes = new HashSet<>();
 
-            PersistentStorage.put(Names.AVAILABLE_NODES, ConversionUtil.toJson(nodeConfigSet));
-            ConsolePrinter.printInfo("[Bootstrap] Node list updated. Total nodes: " + nodeConfigSet.size());
+            for (NodeConfig existing : nodeConfigSet) {
+                if (existing.getIp().equals(nodeConfig.getIp())) {
+                    updatedNodes.add(nodeConfig); // replace existing node
+                    found = true;
+                } else {
+                    updatedNodes.add(existing);
+                }
+            }
+
+            if (!found) {
+                updatedNodes.add(nodeConfig); // add new node if not found
+            }
+
+            PersistentStorage.put(Names.AVAILABLE_NODES, ConversionUtil.toJson(updatedNodes));
+            ConsolePrinter.printInfo("[Bootstrap] Node list updated. Total nodes: " + updatedNodes.size());
         }
     }
 
@@ -279,6 +376,12 @@ public class Bootstrap implements MessageHandler {
                         ConsolePrinter.printSuccess("[Bootstrap] Node " + msg.senderIp + " registered successfully.");
                     else
                         ConsolePrinter.printFail("[Bootstrap] Failed to register node " + msg.senderIp);
+                }
+
+                // --------------------------------------------------------
+                case PROMOTE_TO_LEADER -> {
+                    ConsolePrinter.printInfo("[Bootstrap] Received promotion request from " + msg.senderIp);
+                    resolvePromoteNodeRequest(payloadMap);
                 }
 
                 // --------------------------------------------------------
