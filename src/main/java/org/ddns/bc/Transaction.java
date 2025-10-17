@@ -43,7 +43,7 @@ public class Transaction {
      * Calculates the unique hash of the transaction's content.
      * This hash is what gets signed.
      *
-     * @return A SHA-256 hash string.
+     * @return  SHA-256 hash string.
      */
     public String calculateHash() {
         // The sorted nature of a TreeMap ensures the hash is always consistent

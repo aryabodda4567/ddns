@@ -125,6 +125,7 @@ public class NodeCLI {
                 nodeInitializer.initNormalNode();
                 nodeInitializer.initPromoteNode();
 
+
             }
             case 2 -> ConsolePrinter.printFail("Nomination rejected (Insufficient votes).");
             case -1 -> ConsolePrinter.printInfo("Voting is still in progress.");

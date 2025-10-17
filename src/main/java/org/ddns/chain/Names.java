@@ -13,7 +13,8 @@ public final class Names {
     public static final String BOOTSTRAP_NODE_IP = "BOOTSTRAP_NODE_IP";
     public static final String PUBLIC_KEY = "PUBLIC_KEY";
     public static final String PRIVATE_KEY = "PRIVATE_KEY";
-    public static final String DB_FILE_NAME = "DB_FILE_NAME";
-    public static final String LEADER_NODES = "LEADER_NODES";
+    public static final String DB_FILE_NAME = "db_data.json";
+    public static final String SYNC_FULL = "SYNC_FULL";
+    public static final String SYNC_FROM_TIME="SYNC_FROM_TIME";
 
 }
