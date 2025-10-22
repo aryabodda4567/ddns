@@ -100,4 +100,8 @@ public class Transaction {
     public long getTimestamp() {
         return timestamp;
     }
+
+    public byte[] getSignature() {
+        return signature;
+    }
 }
