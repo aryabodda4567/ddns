@@ -47,5 +47,20 @@ public class TimeUtil {
         long threshold = minutes * 60L;
         return difference <= threshold;
     }
+
+
+    /**
+     * Makes the program wait for the given number of seconds.
+     *
+     * @param seconds Number of seconds to wait.
+     */
+    public static void waitForSeconds(int seconds) {
+        try {
+            Thread.sleep(seconds * 1000L); // Convert seconds to milliseconds
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); // restore interrupted status
+            System.err.println("Thread was interrupted while sleeping.");
+        }
+    }
 }
 
