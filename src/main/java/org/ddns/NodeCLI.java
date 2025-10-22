@@ -3,10 +3,10 @@ package org.ddns;
 import org.ddns.chain.*;
 import org.ddns.chain.governance.Nomination;
 import org.ddns.chain.governance.NodeJoin;
+import org.ddns.db.DBUtil;
 import org.ddns.net.Bootstrap;
 import org.ddns.net.NodeConfig;
 import org.ddns.util.ConsolePrinter;
-import org.ddns.util.TimeUtil;
 
 import java.util.List;
 import java.util.Set;
@@ -15,11 +15,10 @@ public class NodeCLI {
 
     private final Node node;
     private final NodeJoin nodeJoin;
-    private final Bootstrap bootstrap;
 
     public NodeCLI(Node node, NodeJoin nodeJoin) {
         this.node = node;
-        this.bootstrap = Bootstrap.getInstance();
+        Bootstrap bootstrap = Bootstrap.getInstance();
         this.nodeJoin = nodeJoin;
     }
 
@@ -124,6 +123,16 @@ public class NodeCLI {
                 NodeInitializer nodeInitializer = new NodeInitializer();
                 nodeInitializer.initNormalNode();
                 nodeInitializer.initPromoteNode();
+                try{
+                    DBUtil dbUtil = DBUtil.getInstance();
+                    System.out.println(dbUtil.getAllNodes());
+                    System.out.println(dbUtil.getPublicKey());
+                    System.out.println(dbUtil.getBootstrapIp());
+                    System.out.println(dbUtil.getRole());
+                    System.out.println(dbUtil.getPrivateKey());
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
 
 
             }

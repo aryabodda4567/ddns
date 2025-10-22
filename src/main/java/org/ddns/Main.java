@@ -8,7 +8,6 @@ import org.ddns.chain.governance.Nomination;
 import org.ddns.net.Bootstrap;
 import org.ddns.net.NodeConfig;
 import org.ddns.util.NetworkUtility;
-import org.ddns.util.PersistentStorage;
 
 import java.security.Security;
 
