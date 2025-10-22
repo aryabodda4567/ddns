@@ -140,7 +140,8 @@ public class Bootstrap implements MessageHandler {
         Set<NodeConfig> nodes = ConversionUtil.jsonToSet(nodesJsonString, NodeConfig.class);
         if (nodes == null || nodes.isEmpty()) {
             ConsolePrinter.printInfo("[Bootstrap] No nodes found in response.");
-            return;
+            listener.onBootstrapNodesReceived(nodes);
+           // return;
         }
 
         // --- Use DBUtil to save the received nodes ---

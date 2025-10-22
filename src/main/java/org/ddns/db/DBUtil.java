@@ -331,4 +331,46 @@ public class DBUtil {
         delete(Names.VOTING_INIT_TIME);
         delete(Names.VOTING_TIME_LIMIT);
     }
+
+    /**
+     * Deletes all stored data from every table.
+     * Keeps the database schema intact.
+     */
+    public synchronized void clearAllStorage() {
+        String[] tables = { "config_store", "nodes", "nominations" };
+        try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
+            conn.setAutoCommit(false);
+
+            for (String table : tables) {
+                try {
+                    stmt.executeUpdate("DELETE FROM " + table + ";");
+                    stmt.executeUpdate("DELETE FROM sqlite_sequence WHERE name='" + table + "';"); // Reset AUTOINCREMENT counters
+                    ConsolePrinter.printInfo("[DBUtil] Cleared table: " + table);
+                } catch (SQLException e) {
+                    ConsolePrinter.printWarning("[DBUtil] Failed to clear table '" + table + "': " + e.getMessage());
+                }
+            }
+
+            conn.commit();
+            ConsolePrinter.printSuccess("[DBUtil] All stored data cleared successfully.");
+        } catch (SQLException e) {
+            ConsolePrinter.printFail("[DBUtil] Error clearing all storage: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Deletes the entire SQLite database file.
+     * Use with extreme caution — this cannot be undone.
+     */
+    public synchronized void deleteDatabaseFile() {
+        java.io.File dbFile = new java.io.File(dbUrl.replace("jdbc:sqlite:", ""));
+        if (dbFile.exists() && dbFile.delete()) {
+            ConsolePrinter.printSuccess("[DBUtil] Database file deleted successfully.");
+        } else {
+            ConsolePrinter.printFail("[DBUtil] Failed to delete database file or file not found.");
+        }
+    }
+
+
+
 }

@@ -98,6 +98,14 @@ public class NodeJoin implements Voting, MessageHandler {
                 // Use static Nomination method which now uses DBUtil
                 Nomination.addNomination(nomination);
                 ConsolePrinter.printInfo("[NodeJoin]: Nomination resolved successfully for " + nomination.getIpAddress());
+//                ///
+//            ///
+//            ///
+//            /// Testing
+//                createCastVoteRequest(true,nomination);
+//            /// Testing
+//            ///
+
             } catch (Exception e) {
                 ConsolePrinter.printFail("[NodeJoin]: Error resolving nomination request - " + e.getMessage());
             }

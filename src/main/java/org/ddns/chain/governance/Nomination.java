@@ -165,16 +165,19 @@ public class Nomination {
                 ConsolePrinter.printWarning("[Nomination]: No voting session data found.");
                 return -2; // Indicate no session found
             }
+            // Voting has ended, determine result
+            int votesRequired = dbUtil.getInt(Names.VOTES_REQUIRED);
+            int votesObtained = getVotes(); // Use our getter
 
             // Use TimeUtil.isWithinMinutes consistently
             if (TimeUtil.isWithinMinutes(startTime, TimeUtil.getCurrentUnixTime(), limit)) {
                 // Voting still in progress
+                boolean accepted = (votesRequired > 0) && (votesObtained >= votesRequired);
+                if(accepted) return 0;
                 return -1;
             }
 
-            // Voting has ended, determine result
-            int votesRequired = dbUtil.getInt(Names.VOTES_REQUIRED);
-            int votesObtained = getVotes(); // Use our getter
+
 
             // Your original logic used == leaderCount which might be too strict?
             // Using >= votesRequired is safer if leader count changes mid-vote.

@@ -5,6 +5,7 @@ import org.ddns.chain.Node;
 import org.ddns.chain.Role;
 import org.ddns.chain.Wallet;
 import org.ddns.chain.governance.Nomination;
+import org.ddns.db.DBUtil;
 import org.ddns.net.Bootstrap;
 import org.ddns.net.NodeConfig;
 import org.ddns.util.NetworkUtility;
@@ -17,8 +18,8 @@ import java.security.Security;
 public class Main {
     public static void main(String[] args) throws Exception {
         Security.addProvider(new BouncyCastleProvider());
+       DBUtil.getInstance().clearAllStorage();
         Bootstrap.initialize(args[0]);
-
         Bootstrap bootstrap = Bootstrap.getInstance();
         bootstrap.saveOrUpdateNode(new NodeConfig(
                 NetworkUtility.getLocalIpAddress(),

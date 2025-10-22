@@ -171,21 +171,29 @@ public class Blockchain {
      * This is used by nodes when they receive a new block from the network.
      *
      * @param newBlock The block to be added.
+     * @return
      */
-    public void addBlock(Block newBlock) {
+    public boolean addBlock(Block newBlock) {
         // 1. Validate the new block
-        if (!newBlock.getPreviousHash().equals(getLatestBlock().getHash())) {
-            System.err.println("Validation Failed: New block's previousHash does not match the latest block's hash.");
-            return;
+        try{
+            if (!newBlock.getPreviousHash().equals(getLatestBlock().getHash())) {
+                System.err.println("Validation Failed: New block's previousHash does not match the latest block's hash.");
+                return false;
+            }
+
+            // (You can add more validation here, like checking the block's own hash)
+
+            // 2. Add the block to the chain
+            this.chain.add(newBlock);
+
+            // 3. CRUCIAL: Process the transactions to update the DNS state
+            processTransactionsInBlock(newBlock);
+            return  true;
+        } catch (Exception e) {
+            return false;
         }
 
-        // (You can add more validation here, like checking the block's own hash)
 
-        // 2. Add the block to the chain
-        this.chain.add(newBlock);
-
-        // 3. CRUCIAL: Process the transactions to update the DNS state
-        processTransactionsInBlock(newBlock);
 
     }
 

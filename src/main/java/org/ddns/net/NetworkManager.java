@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.ddns.chain.Role;
 import org.ddns.util.ConsolePrinter;
+import org.ddns.util.NetworkUtility;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -126,10 +127,11 @@ public class NetworkManager {
             ConsolePrinter.printFail("[NetworkManager] No nodes found to send broadcast message.");
             return false;
         }
-
+        String localIp = NetworkUtility.getLocalIpAddress();
         int sentCount = 0;
         for (NodeConfig nodeConfig : nodeConfigSet) {
             if (roles.contains(nodeConfig.getRole())) {
+//                if(localIp.equals(nodeConfig.getIp()))continue;
                 boolean success = sendDirectMessage(nodeConfig.getIp(), jsonMessage);
                 if (success) sentCount++;
             }
