@@ -27,6 +27,7 @@ public class DNSServer {
 
     // Default constants
     public static final int DEFAULT_PORT = 53;
+    public static final String ORIGIN ="anits.in.";
     public static final String DEFAULT_BIND_ADDR = "0.0.0.0"; // listen on all interfaces
     public static final int DEFAULT_THREAD_POOL = 64;
     public static final int DEFAULT_MAX_UDP_PACKET = 4096; // safe common size
@@ -64,7 +65,7 @@ public class DNSServer {
         if (args.length >= 3) threads = Integer.parseInt(args[2]);
 
         InMemoryDNSPersistence persistence = new InMemoryDNSPersistence();
-        DNSHandler handler = new DNSHandler(persistence, "example.com.");
+        DNSHandler handler = new DNSHandler(persistence, ORIGIN);
         DNSServer server = new DNSServer(handler, bind, port, port, threads);
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {

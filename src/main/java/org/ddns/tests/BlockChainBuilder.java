@@ -32,7 +32,7 @@ public class BlockChainBuilder {
         try {
 
 
-            final int BLOCK_COUNT = 300;
+            final int BLOCK_COUNT = 500;
             final int TXS_PER_BLOCK = 5;
 
             List<Block> chain = new ArrayList<>();
@@ -71,88 +71,88 @@ public class BlockChainBuilder {
                 previousHash = block.getHash();
             }
 
-            NetworkManager.sendFile(NetworkUtility.getLocalIpAddress(), BlockDb.getInstance().exportSnapshot());
-
-
-            TimeUtil.waitForSeconds(2);
-            BlockDb.getInstance().truncateDatabase(false);
-
-
-            System.out.println("Hash after deletion: " + BlockDb.getInstance().getLatestBlockHash());
-
-            List<String> blockStrings = BlockDb.getInstance().extractInsertStatementsFromDbFile(FileNames.BLOCK_DB_TEMP);
-
-
-            for (String block : blockStrings) {
-                BlockDb.getInstance().executeInsertSQL(block);
-                List<Transaction> transactions = Objects.requireNonNull(BlockDb.getInstance().readBlockByHash(
-                        BlockDb.getInstance().getLatestBlockHash()
-                )).getTransactions();
-                TransactionDb.getInstance().insertTransaction(transactions);
-            }
-
-
-            chain.clear();
-
-            String lastHash = BlockDb.getInstance().getLatestBlockHash();
-            System.out.println(lastHash);
-
-            while (true) {
-                assert lastHash != null;
-                if (lastHash.equals("0")) break;
-                Block block = BlockDb.getInstance().readBlockByHash(lastHash);
-//                System.out.println(block);
-                chain.add(block);
-                lastHash = block.getPreviousHash();
-            }
+//            //NetworkManager.sendFile(NetworkUtility.getLocalIpAddress(), BlockDb.getInstance().exportSnapshot());
+//
+//
+//            TimeUtil.waitForSeconds(2);
+//            BlockDb.getInstance().truncateDatabase(false);
+//
+//
+//            System.out.println("Hash after deletion: " + BlockDb.getInstance().getLatestBlockHash());
+//
+//            List<String> blockStrings = BlockDb.getInstance().extractInsertStatementsFromDbFile(FileNames.BLOCK_DB_TEMP);
+//
+//
+//            for (String block : blockStrings) {
+//                BlockDb.getInstance().executeInsertSQL(block);
+//                List<Transaction> transactions = Objects.requireNonNull(BlockDb.getInstance().readBlockByHash(
+//                        BlockDb.getInstance().getLatestBlockHash()
+//                )).getTransactions();
+//                TransactionDb.getInstance().insertTransaction(transactions);
+//            }
+//
+//
+//            chain.clear();
+//
+//            String lastHash = BlockDb.getInstance().getLatestBlockHash();
+//            System.out.println(lastHash);
+//
+//            while (true) {
+//                assert lastHash != null;
+//                if (lastHash.equals("0")) break;
+//                Block block = BlockDb.getInstance().readBlockByHash(lastHash);
+////                System.out.println(block);
+//                chain.add(block);
+//                lastHash = block.getPreviousHash();
+//            }
 
 
             // === Display chain in order ===
             System.out.println("=== Blockchain Details ===\n");
 
-            for (int i = 0; i < chain.size(); i++) {
-                Block block = chain.get(i);
-
-                System.out.println("----------------------------------------------------");
-                System.out.println("Block #" + i);
-                System.out.println("----------------------------------------------------");
-                System.out.println("Block Hash       : " + block.getHash());
-                System.out.println("Previous Hash    : " + block.getPreviousHash());
-                System.out.println("Merkle Root      : " + block.getMerkleRoot());
-                System.out.println("Timestamp        : " + block.getTimestamp());
-                System.out.println("Transaction Count: " + block.getTransactions().size());
-                System.out.println();
-
-                int txIndex = 0;
-                for (Transaction tx : block.getTransactions()) {
-                    System.out.println("  --- Transaction #" + txIndex + " ---");
-                    System.out.println("  Hash         : " + tx.getHash());
-                    System.out.println("  Type         : " + tx.getType());
-                    System.out.println("  Timestamp    : " + tx.getTimestamp());
-                    System.out.println("  Sender PubKey: " +
-                            tx.getSenderPublicKey().hashCode() + " (short hash)");
-                    System.out.println("  Signature    : " +
-                            (tx.getSignature() != null ? tx.getSignature().length + " bytes" : "null"));
-                    System.out.println("  Payload:");
-
-                    for (DNSModel record : tx.getPayload()) {
-                        System.out.println("     ▪ Name           : " + record.getName());
-                        System.out.println("     ▪ Type           : " + record.getType());
-                        System.out.println("     ▪ TTL            : " + record.getTtl());
-                        System.out.println("     ▪ RDATA          : " + record.getRdata());
-                        System.out.println("     ▪ Owner PubKey   : " + record.getOwner().hashCode());
-                        System.out.println("     ▪ TransactionHash: " + record.getTransactionHash());
-                        System.out.println("     ▪ Timestamp      : " + record.getTimestamp());
-                    }
-                    txIndex++;
-                    System.out.println();
-                }
-
-                // JSON representation (optional)
-                System.out.println("  JSON Representation:");
-                System.out.println(ConversionUtil.toJson(block));
-                System.out.println();
-            }
+//            for (int i = 0; i < chain.size(); i++) {
+//                Block block = chain.get(i);
+//
+//                System.out.println("----------------------------------------------------");
+//                System.out.println("Block #" + i);
+//                System.out.println("----------------------------------------------------");
+//                System.out.println("Block Hash       : " + block.getHash());
+//                System.out.println("Previous Hash    : " + block.getPreviousHash());
+//                System.out.println("Merkle Root      : " + block.getMerkleRoot());
+//                System.out.println("Timestamp        : " + block.getTimestamp());
+//                System.out.println("Transaction Count: " + block.getTransactions().size());
+//                System.out.println();
+//
+//                int txIndex = 0;
+//                for (Transaction tx : block.getTransactions()) {
+//                    System.out.println("  --- Transaction #" + txIndex + " ---");
+//                    System.out.println("  Hash         : " + tx.getHash());
+//                    System.out.println("  Type         : " + tx.getType());
+//                    System.out.println("  Timestamp    : " + tx.getTimestamp());
+//                    System.out.println("  Sender PubKey: " +
+//                            tx.getSenderPublicKey().hashCode() + " (short hash)");
+//                    System.out.println("  Signature    : " +
+//                            (tx.getSignature() != null ? tx.getSignature().length + " bytes" : "null"));
+//                    System.out.println("  Payload:");
+//
+//                    for (DNSModel record : tx.getPayload()) {
+//                        System.out.println("     ▪ Name           : " + record.getName());
+//                        System.out.println("     ▪ Type           : " + record.getType());
+//                        System.out.println("     ▪ TTL            : " + record.getTtl());
+//                        System.out.println("     ▪ RDATA          : " + record.getRdata());
+//                        System.out.println("     ▪ Owner PubKey   : " + record.getOwner().hashCode());
+//                        System.out.println("     ▪ TransactionHash: " + record.getTransactionHash());
+//                        System.out.println("     ▪ Timestamp      : " + record.getTimestamp());
+//                    }
+//                    txIndex++;
+//                    System.out.println();
+//                }
+//
+//                // JSON representation (optional)
+//                System.out.println("  JSON Representation:");
+//                System.out.println(ConversionUtil.toJson(block));
+//                System.out.println();
+//            }
 
         } catch (Exception e) {
             e.printStackTrace();

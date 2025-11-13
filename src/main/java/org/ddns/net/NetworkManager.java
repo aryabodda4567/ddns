@@ -4,6 +4,7 @@ package org.ddns.net;
 import org.ddns.constants.FileNames;
 import org.ddns.constants.Role;
 import org.ddns.node.NodeConfig;
+import org.ddns.node.NodesManager;
 import org.ddns.util.ConsolePrinter;
 import org.ddns.util.NetworkUtility;
 
@@ -336,7 +337,7 @@ public class NetworkManager {
      */
     private void handleIncomingFile(Socket clientSocket) {
         try (DataInputStream dis = new DataInputStream(new BufferedInputStream(clientSocket.getInputStream()))) {
-
+            ConsolePrinter.printInfo("[NetworkManager] Receiving file from "+ clientSocket.getInetAddress().toString());
             String originalFileName = dis.readUTF();
             long fileSize = dis.readLong();
 
@@ -358,6 +359,7 @@ public class NetworkManager {
                 bos.flush();
 
                 ConsolePrinter.printSuccess("[NetworkManager] Received file '" + originalFileName + "' (" + received + " bytes) and saved to: " + outputPath);
+                NodesManager.sync();
             }
 
         } catch (IOException e) {

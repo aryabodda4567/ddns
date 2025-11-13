@@ -2,7 +2,9 @@ package org.ddns.node;
 
 import org.ddns.bc.SignatureUtil;
 import org.ddns.constants.ElectionType;
+import org.ddns.constants.FileNames;
 import org.ddns.constants.Role;
+import org.ddns.db.BlockDb;
 import org.ddns.db.DBUtil;
 import org.ddns.governance.Election;
 import org.ddns.net.Message;
@@ -12,12 +14,10 @@ import org.ddns.net.NetworkManager;
 import org.ddns.util.ConsolePrinter;
 import org.ddns.util.ConversionUtil;
 import org.ddns.util.NetworkUtility;
+import org.ddns.util.TimeUtil;
 
 import java.security.PublicKey;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Manages the node's view of the network.
@@ -81,8 +81,9 @@ public class NodesManager implements MessageHandler {
             case DELETE_NODE -> resolveRemoveNode(payload);
             case PROMOTE_NODE -> resolvePromoteNode(payload);
             case FETCH_NODES_RESPONSE -> resolveFetchResponse(payload);
+            case SYNC_REQUEST -> resolveSyncRequest(incoming);
             default -> {
-                ConsolePrinter.printInfo("[NodesManager] Ignored message type: " + incoming.type);
+//                ConsolePrinter.printInfo("[NodesManager] Ignored message type: " + incoming.type);
             }
         }
     }
@@ -112,6 +113,14 @@ public class NodesManager implements MessageHandler {
 
             DBUtil.getInstance().addNode(nodeConfig); // This is an upsert
             ConsolePrinter.printSuccess("[NodesManager] Added/Updated node in local DB: " + nodeConfig.getIp());
+
+            // If bootstrap announces a GENESIS node and that happens to be this node, reuse helper
+            NodeConfig self = DBUtil.getInstance().getSelfNode();
+            if (self != null && SignatureUtil.getStringFromKey(self.getPublicKey()).equals(SignatureUtil.getStringFromKey(nodeConfig.getPublicKey()))) {
+                if (nodeConfig.getRole() != null && nodeConfig.getRole().equals(Role.GENESIS)) {
+                    setupGenesisNode();
+                }
+            }
 
         } catch (Exception e) {
             ConsolePrinter.printFail("[NodesManager] Error resolving ADD_NODE: " + e.getMessage());
@@ -158,18 +167,19 @@ public class NodesManager implements MessageHandler {
                 return;
             }
 
-            // *** BUG FIX ***
-            // The DBUtil.updateNodeRole method expects a PublicKeyString, not an IP.
-            // We must call updateNode, which finds by PublicKey.
+            // Update role in DB by public key string
             String pubKeyStr = SignatureUtil.getStringFromKey(nodeConfig.getPublicKey());
-            boolean success = DBUtil.getInstance().updateNode(
-                    pubKeyStr,
-                    Role.LEADER_NODE,
-                    null // We only update the role, not the IP
-            );
+            boolean success = DBUtil.getInstance().updateNode(pubKeyStr, Role.LEADER_NODE, null);
 
             if (success) {
                 ConsolePrinter.printSuccess("[NodesManager] Promoted node in local DB: " + nodeConfig.getIp());
+
+                // If the promoted node is this node, run the local setup to ensure role/state consistency
+                NodeConfig self = DBUtil.getInstance().getSelfNode();
+                if (self != null && SignatureUtil.getStringFromKey(self.getPublicKey()).equals(pubKeyStr)) {
+                    ConsolePrinter.printInfo("[NodesManager] Promotion applies to self — configuring local role as LEADER_NODE.");
+                    setupLeaderNode();
+                }
             } else {
                 ConsolePrinter.printWarning("[NodesManager] Failed to promote node (not found?): " + nodeConfig.getIp());
             }
@@ -205,46 +215,25 @@ public class NodesManager implements MessageHandler {
             if (nodeConfigSet == null || nodeConfigSet.isEmpty()) {
                 // No nodes returned -> this node should be the genesis node
                 ConsolePrinter.printInfo("[NodesManager] FETCH_NODES_RESPONSE: no nodes returned. Promoting self to GENESIS.");
-                createAddNodeRequest();
+
                 NodeConfig self = DBUtil.getInstance().getSelfNode();
+
                 if (self == null) {
                     ConsolePrinter.printFail("[NodesManager] Self node not configured; cannot promote to GENESIS.");
                     return;
                 }
 
-                // Update role to GENESIS and persist to both config store and nodes table
-                self.setRole(Role.GENESIS);
-                DBUtil.getInstance().setSelfNode(self);
-                DBUtil.getInstance().saveRole(Role.GENESIS);
-
-                // Ensure the nodes table contains this genesis node
-                DBUtil.getInstance().addNode(self);
+                // Reuse existing method to configure genesis state and persist it
+                setupGenesisNode();
 
                 ConsolePrinter.printSuccess("[NodesManager] Node promoted to GENESIS and persisted locally: " + self.getIp());
                 return;
             }
 
             // There are existing nodes in the network: sync them into local DB
+            System.out.println(nodeConfigSet);
             DBUtil.getInstance().addNodes(nodeConfigSet);
             ConsolePrinter.printSuccess("[NodesManager] Synced " + nodeConfigSet.size() + " nodes from Bootstrap.");
-
-            // Create JOIN election so this node may be accepted into the chain.
-            // createElection will broadcast a Nomination representing this node.
-            if (this.election == null) {
-                ConsolePrinter.printFail("[NodesManager] Election subsystem not initialized; cannot create JOIN election.");
-                return;
-            }
-
-            // Determine a friendly node name (use self node ip if available)
-            NodeConfig selfNode = DBUtil.getInstance().getSelfNode();
-            String friendlyName = (selfNode != null && selfNode.getIp() != null) ? selfNode.getIp() : NetworkUtility.getLocalIpAddress();
-
-            // Voting window: 5 minutes by default (adjust as needed)
-            final int votingMinutes = 5;
-            String description = "Request to join network (JOIN election)";
-
-            ConsolePrinter.printInfo("[NodesManager] Creating JOIN election to join the existing network.");
-            election.createElection(ElectionType.JOIN, votingMinutes, friendlyName, description);
 
         } catch (Exception e) {
             ConsolePrinter.printFail("[NodesManager] Error resolving FETCH_NODES_RESPONSE: " + e.getMessage());
@@ -350,7 +339,7 @@ public class NodesManager implements MessageHandler {
     public void createSyncRequest() {
         Set<NodeConfig> nodeConfigSet = DBUtil.getInstance().getAllNodes();
         NodeConfig genesisNode = null;
-
+        System.out.println(nodeConfigSet);
         for (NodeConfig nodeConfig : nodeConfigSet) {
             if (nodeConfig.getRole().equals(Role.GENESIS)) {
                 genesisNode = nodeConfig;
@@ -363,15 +352,15 @@ public class NodesManager implements MessageHandler {
                     MessageType.SYNC_REQUEST,
                     NetworkUtility.getLocalIpAddress(),
                     DBUtil.getInstance().getPublicKey(),
-                    null
+                    ""
             );
             if (genesisNode != null)
                 NetworkManager.sendDirectMessage(genesisNode.getIp(), ConversionUtil.toJson(message));
             else {
-                ConsolePrinter.printFail("No genesis node found");
+                ConsolePrinter.printFail("[Node Manager] No genesis node found");
                 return;
             }
-            ConsolePrinter.printInfo("Sync request is sent to Genesis node");
+            ConsolePrinter.printInfo("[Node Manager] Sync request is sent to Genesis node");
 
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -380,14 +369,73 @@ public class NodesManager implements MessageHandler {
 
     public void resolveSyncRequest(Message message) {
         String requestNodeIp = message.senderIp;
-
-        ///TODO  We need to create database snapshot of transactions and DNS records DB
+//        share current db snapshot
+        ConsolePrinter.printInfo("[Node Manager] Sending db snapshot to "+requestNodeIp);
+        NetworkManager.sendFile(
+                requestNodeIp,
+                BlockDb.getInstance().exportSnapshot()
+        );
     }
 
     public void resolveSyncResponse(String payload) {
 //        TODO Network manager has a method to receive the files.
 //        TODO access that file and create sql insert statements and insert them into respective dbs with correct time stamp
 //
+    }
+
+    public void setupGenesisNode(){
+        NodeConfig nodeConfig = DBUtil.getInstance().getSelfNode();
+
+        nodeConfig.setRole(Role.GENESIS);
+        DBUtil.getInstance().saveRole(Role.GENESIS);
+        DBUtil.getInstance().setSelfNode(nodeConfig);
+        DBUtil.getInstance().addNode(nodeConfig);
+        TimeUtil.waitForSeconds(1);
+        try{
+            createAddNodeRequest();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
+    public void setupNormalNode(){
+        NodeConfig nodeConfig = DBUtil.getInstance().getSelfNode();
+        nodeConfig.setRole(Role.NORMAL_NODE);
+        DBUtil.getInstance().saveRole(Role.NORMAL_NODE);
+        DBUtil.getInstance().setSelfNode(nodeConfig);
+        DBUtil.getInstance().addNode(nodeConfig);
+        TimeUtil.waitForSeconds(1);
+        try{
+            createAddNodeRequest();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+    public void setupLeaderNode(){
+        NodeConfig nodeConfig = DBUtil.getInstance().getSelfNode();
+        nodeConfig.setRole(Role.LEADER_NODE);
+
+        DBUtil.getInstance().saveRole(Role.LEADER_NODE);
+
+        DBUtil.getInstance().setSelfNode(nodeConfig);
+        // Ensure the nodes table contains this genesis node
+        DBUtil.getInstance().addNode(nodeConfig);
+        TimeUtil.waitForSeconds(1);
+        try{
+            createAddNodeRequest();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
+    public static void sync(){
+        List<String> insertStatements = BlockDb.getInstance().
+                extractInsertStatementsFromDbFile(FileNames.BLOCK_DB_TEMP);
+        for (String stmt: insertStatements){
+            BlockDb.getInstance().executeInsertSQL(stmt);
+        }
     }
 
 
