@@ -77,9 +77,9 @@ public class NodesManager implements MessageHandler {
 
         // Route message to the appropriate handler
         switch (incoming.type) {
-            case ADD_NODE -> resolveAddNode(payload);
-            case DELETE_NODE -> resolveRemoveNode(payload);
-            case PROMOTE_NODE -> resolvePromoteNode(payload);
+            case ADD -> resolveAddNode(payload);
+            case DELETE -> resolveRemoveNode(payload);
+            case PROMOTE -> resolvePromoteNode(payload);
             case FETCH_NODES_RESPONSE -> resolveFetchResponse(payload);
             case SYNC_REQUEST -> resolveSyncRequest(incoming);
             default -> {

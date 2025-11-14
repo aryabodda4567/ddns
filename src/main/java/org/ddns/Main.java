@@ -57,6 +57,14 @@ public class Main {
     public static void main(String[] args) throws Exception {
         Security.addProvider(new BouncyCastleProvider());
 
+//        BootstrapDB.getInstance().saveNode(new NodeConfig(
+//                NetworkUtility.getLocalIpAddress(),
+//                Role.GENESIS,
+//                Wallet.getKeyPair().getPublic()
+//        ));
+
+
+
         // Print basic state (safe debug)
         ConsolePrinter.printInfo("Bootstrap nodes: " + BootstrapDB.getInstance().getAllNodes());
         ConsolePrinter.printInfo("Local node: " + DBUtil.getInstance().getSelfNode());
@@ -108,7 +116,7 @@ public class Main {
 
     public void bootstrap() {
         ConsolePrinter.printInfo("This system is running as bootstrap node");
-        node();
+//        node();
     }
 
     /**

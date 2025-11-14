@@ -12,6 +12,11 @@ public enum MessageType {
     CASTE_VOTE,
 
     SYNC_REQUEST,
-    SYNC_RESPONSE
+    SYNC_RESPONSE,
+
+    ADD,
+    DELETE,
+    PROMOTE
+
 
 }

@@ -118,7 +118,7 @@ public class BootstrapNode implements MessageHandler {
             // --- CHANGE ---
             // Pass the *current* full node list to the broadcast helper
             broadcastNodeUpdate(
-                    MessageType.ADD_NODE,
+                    MessageType.ADD,
                     nodeConfig,
                     BootstrapDB.getInstance().getAllNodes() // Get the list AFTER adding
             );
@@ -147,7 +147,7 @@ public class BootstrapNode implements MessageHandler {
             ConsolePrinter.printSuccess("[BootstrapNode] Deleted node: " + nodeConfig.getIp());
 
             // 3. Broadcast the update using the list from step 1.
-            broadcastNodeUpdate(MessageType.DELETE_NODE, nodeConfig, nodesToInform);
+            broadcastNodeUpdate(MessageType.DELETE, nodeConfig, nodesToInform);
             // --- END FIX ---
 
         } catch (Exception e) {
@@ -171,7 +171,7 @@ public class BootstrapNode implements MessageHandler {
             // --- CHANGE ---
             // Pass the *current* full node list to the broadcast helper
             broadcastNodeUpdate(
-                    MessageType.PROMOTE_NODE,
+                    MessageType.PROMOTE,
                     nodeConfig,
                     BootstrapDB.getInstance().getAllNodes()
             );
