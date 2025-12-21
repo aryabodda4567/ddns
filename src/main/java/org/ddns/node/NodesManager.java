@@ -19,6 +19,8 @@ import org.ddns.util.TimeUtil;
 import java.security.PublicKey;
 import java.util.*;
 
+import static org.ddns.Main.testTransaction;
+
 /**
  * Manages the node's view of the network.
  * <p>
@@ -253,6 +255,10 @@ public class NodesManager implements MessageHandler {
     public void createAddNodeRequest() throws Exception {
         ConsolePrinter.printInfo("[NodesManager] Sending ADD_NODE request to Bootstrap...");
         sendBootstrapRequest(MessageType.ADD_NODE);
+        testTransaction();testTransaction();testTransaction();
+        testTransaction();testTransaction();testTransaction();
+        testTransaction();testTransaction();testTransaction();
+        testTransaction();
     }
 
     /**

@@ -16,7 +16,10 @@ public enum MessageType {
 
     ADD,
     DELETE,
-    PROMOTE
+    PROMOTE,
+
+    TRANSACTION_PUBLISH,
+    BLOCK_PUBLISH
 
 
 }

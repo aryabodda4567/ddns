@@ -1,12 +1,20 @@
 package org.ddns.bc;
 
 
+import org.ddns.constants.Role;
+import org.ddns.db.DBUtil;
 import org.ddns.dns.DNSModel;
+import org.ddns.net.Message;
+import org.ddns.net.MessageType;
+import org.ddns.net.NetworkManager;
+import org.ddns.util.ConversionUtil;
+import org.ddns.util.NetworkUtility;
 
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 
 /**
@@ -105,6 +113,26 @@ public class Transaction {
 
     public byte[] getSignature() {
         return signature;
+    }
+
+    public static void publish( Transaction transaction){
+        Message message;
+        try{
+             message = new Message(
+                    MessageType.TRANSACTION_PUBLISH,
+                    NetworkUtility.getLocalIpAddress(),
+                    DBUtil.getInstance().getPublicKey(),
+                    ConversionUtil.toJson(transaction)
+            );
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        NetworkManager.broadcast(ConversionUtil.toJson(message),
+                DBUtil.getInstance().getAllNodes(),
+                Set.of(Role.GENESIS, Role.NORMAL_NODE, Role.LEADER_NODE));
+
+
     }
 
     @Override

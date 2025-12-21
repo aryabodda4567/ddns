@@ -65,7 +65,7 @@ public class BlockChainBuilder {
                 // --- Create the block ---
                 Block block = new Block(previousHash, transactions);
 
-                BlockDb.getInstance().insertBlock(block);
+                BlockDb.getInstance().insertBlock(block,true);
 
                 chain.add(block);
                 previousHash = block.getHash();

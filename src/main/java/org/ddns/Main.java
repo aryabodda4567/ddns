@@ -2,8 +2,11 @@ package org.ddns;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.ddns.bc.SignatureUtil;
+import org.ddns.bc.Transaction;
+import org.ddns.bc.TransactionType;
 import org.ddns.bootstrap.BootstrapNode;
 import org.ddns.chain.Wallet;
+import org.ddns.consensus.ConsensusEngine;
 import org.ddns.constants.ElectionType;
 import org.ddns.constants.Role;
 import org.ddns.db.*;
@@ -57,17 +60,18 @@ public class Main {
     public static void main(String[] args) throws Exception {
         Security.addProvider(new BouncyCastleProvider());
 
-//        BootstrapDB.getInstance().saveNode(new NodeConfig(
-//                NetworkUtility.getLocalIpAddress(),
-//                Role.GENESIS,
-//                Wallet.getKeyPair().getPublic()
-//        ));
+        BootstrapDB.getInstance().saveNode(new NodeConfig(
+                NetworkUtility.getLocalIpAddress(),
+                Role.GENESIS,
+                Wallet.getKeyPair().getPublic()
+        ));
 
         // Print basic state (safe debug)
 //        try{
 //            BootstrapDB.getInstance().clearConfig();;
 //            BootstrapDB.getInstance().dropDatabase();
-//            DBUtil.getInstance().deleteDatabaseFile();
+  //      DBUtil.getInstance().deleteDatabaseFile();
+//
 //        }catch (Exception e){
 //            e.printStackTrace();
 //        }
@@ -91,6 +95,7 @@ public class Main {
         bootstrapNode = new BootstrapNode(networkManager);
         election = new Election(networkManager);
         nodesManager = new NodesManager(networkManager, election);
+        networkManager.registerHandler(new ConsensusEngine());
         networkManager.startListeners();
 
         // Print short fingerprint for debug - avoid leaking private key
@@ -591,5 +596,15 @@ public class Main {
         StringBuilder sb = new StringBuilder(bytes.length * 2);
         for (byte b : bytes) sb.append(String.format("%02x", b & 0xff));
         return sb.toString();
+    }
+
+    public static void testTransaction(){
+        Transaction transaction = new Transaction(
+                Wallet.getKeyPair().getPublic(),
+                TransactionType.REGISTER,
+                new ArrayList<>()
+        );
+        ConsensusEngine consensusEngine = new ConsensusEngine();
+        consensusEngine.publishTransaction(transaction);
     }
 }

@@ -1,6 +1,15 @@
 package org.ddns.bc;
 
+import org.ddns.constants.Role;
+import org.ddns.db.DBUtil;
+import org.ddns.net.Message;
+import org.ddns.net.MessageType;
+import org.ddns.net.NetworkManager;
+import org.ddns.util.ConversionUtil;
+import org.ddns.util.NetworkUtility;
+
 import java.util.List;
+import java.util.Set;
 
 /**
  * Represents a block in a pruning-enabled blockchain.
@@ -85,6 +94,24 @@ public class Block {
         this.timestamp = timestamp;
     }
 
+    public static void publish(Block block){
+        Message message;
+        try{
+            message = new Message(
+                    MessageType.BLOCK_PUBLISH,
+                    NetworkUtility.getLocalIpAddress(),
+                    DBUtil.getInstance().getPublicKey(),
+                    ConversionUtil.toJson(block)
+            );
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        NetworkManager.broadcast(ConversionUtil.toJson(message),
+                DBUtil.getInstance().getAllNodes(),
+                Set.of(Role.GENESIS, Role.NORMAL_NODE, Role.LEADER_NODE));
+
+    }
     @Override
     public String toString() {
         return "Block{" +

@@ -107,14 +107,14 @@ public final class BlockDb {
     /**
      * Inserts a block into the database.
      */
-    public boolean insertBlock(Block block) {
+    public boolean insertBlock(Block block, boolean isTransfer) {
         if (block == null) {
             ConsolePrinter.printFail("[BlockDb] insertBlock failed: block is null.");
             return false;
         }
 
 //      Save transactions
-        if (!TransactionDb.getInstance().insertTransaction(block.getTransactions())) return false;
+        if (isTransfer && !TransactionDb.getInstance().insertTransaction(block.getTransactions())) return false;
 
         final String txJson;
         try {
@@ -217,7 +217,7 @@ public final class BlockDb {
                     ConsolePrinter.printInfo("[BlockDb] Latest block hash: " + latestHash);
                     return latestHash;
                 }
-                return null;
+                return "0";
             }
         } catch (SQLException e) {
             ConsolePrinter.printFail("[BlockDb] getLatestBlockHash failed: " + e.getMessage());

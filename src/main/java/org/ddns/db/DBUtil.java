@@ -5,6 +5,8 @@ import com.google.gson.GsonBuilder;
 import org.ddns.bc.PrivateKeyAdapter;
 import org.ddns.bc.PublicKeyAdapter;
 import org.ddns.bc.SignatureUtil;
+import org.ddns.consensus.CircularQueue;
+import org.ddns.consensus.QueueNode;
 import org.ddns.constants.ConfigKey;
 import org.ddns.constants.FileNames;
 import org.ddns.constants.Role;
@@ -335,6 +337,11 @@ public class DBUtil {
 
     public void addNode(NodeConfig node) {
         if (node == null) return;
+//        Update RR Queue
+        System.out.println(CircularQueue.getInstance().size());
+        CircularQueue.getInstance().addNode(new QueueNode(node,
+                CircularQueue.getInstance().size()+1));
+        System.out.println(CircularQueue.getInstance().size());
 
         withWrite(() -> {
             try (Connection conn = connect()) {
