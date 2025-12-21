@@ -53,8 +53,8 @@ public final class CircularQueue {
 
         lock.lock();
         try {
-            if (queue.contains(node)) {
-                return;
+            for(QueueNode queueNode: CircularQueue.getInstance().queue){
+                if(queueNode.nodeConfig.equals(node.nodeConfig)) return;
             }
 
             if (queue.isEmpty()) {
