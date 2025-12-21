@@ -71,6 +71,7 @@ public class NetworkManager {
      * Sends a JSON message directly to a specific peer via TCP.
      */
     public static boolean sendDirectMessage(String peerIp, String jsonMessage) {
+
         try (Socket socket = new Socket(peerIp, DIRECT_MESSAGE_PORT);
              PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
             out.println(jsonMessage);
@@ -366,6 +367,4 @@ public class NetworkManager {
             ConsolePrinter.printFail("[NetworkManager] Error receiving file: " + e.getMessage());
         }
     }
-
-
 }

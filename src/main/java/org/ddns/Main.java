@@ -63,9 +63,16 @@ public class Main {
 //                Wallet.getKeyPair().getPublic()
 //        ));
 
-
-
         // Print basic state (safe debug)
+//        try{
+//            BootstrapDB.getInstance().clearConfig();;
+//            BootstrapDB.getInstance().dropDatabase();
+//            DBUtil.getInstance().deleteDatabaseFile();
+//        }catch (Exception e){
+//            e.printStackTrace();
+//        }
+
+//
         ConsolePrinter.printInfo("Bootstrap nodes: " + BootstrapDB.getInstance().getAllNodes());
         ConsolePrinter.printInfo("Local node: " + DBUtil.getInstance().getSelfNode());
         ConsolePrinter.printInfo("Known nodes: " + DBUtil.getInstance().getAllNodes());

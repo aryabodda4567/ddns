@@ -87,5 +87,14 @@ public class TimeUtil {
         return currentTimestamp > expireTimestamp;
     }
 
+    /**
+     * Returns the current Unix time in milliseconds.
+     *
+     * @return current time in milliseconds since Unix epoch
+     */
+    public static long getCurrentUnixTimeMillis() {
+        return Instant.now().toEpochMilli();
+    }
+
 }
 

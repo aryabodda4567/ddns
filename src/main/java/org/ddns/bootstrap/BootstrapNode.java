@@ -35,6 +35,10 @@ public class BootstrapNode implements MessageHandler {
     @Override
     public void onDirectMessage(String message) {
         Message requestMessage;
+        if (message == null || message.isEmpty()) {
+            ConsolePrinter.printWarning("[BootstrapNode] Received null or empty direct message.");
+            return;
+        }
         try {
             requestMessage = ConversionUtil.fromJson(message, Message.class);
         } catch (Exception e) {
