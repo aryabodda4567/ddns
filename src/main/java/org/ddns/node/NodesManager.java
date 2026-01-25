@@ -119,7 +119,8 @@ public class NodesManager implements MessageHandler {
             // If bootstrap announces a GENESIS node and that happens to be this node, reuse helper
             NodeConfig self = DBUtil.getInstance().getSelfNode();
             if (self != null && SignatureUtil.getStringFromKey(self.getPublicKey()).equals(SignatureUtil.getStringFromKey(nodeConfig.getPublicKey()))) {
-                if (nodeConfig.getRole() != null && nodeConfig.getRole().equals(Role.GENESIS)) {
+                if (nodeConfig.getRole() != null && nodeConfig.getRole().equals(Role.GENESIS) &&
+                DBUtil.getInstance().getSelfNode().getRole()!=Role.GENESIS) {
                     setupGenesisNode();
                 }
             }

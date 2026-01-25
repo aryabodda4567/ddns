@@ -201,7 +201,7 @@ public class BootstrapNode implements MessageHandler {
             Message message = new Message(
                     type,
                     NetworkUtility.getLocalIpAddress(),
-                    DBUtil.getInstance().getPublicKey(), // Signed by the Bootstrap node
+                    null, // Signed by the Bootstrap node
                     ConversionUtil.toJson(nodeConfig)
             );
 

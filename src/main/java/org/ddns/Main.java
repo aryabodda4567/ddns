@@ -155,7 +155,7 @@ public class Main {
             return;
         }
 
-        TimeUtil.waitForSeconds(2);
+        TimeUtil.waitForSeconds(3);
         Role role = DBUtil.getInstance().getRole();
         if (role == null || role.equals(Role.NONE)) {
             createElection();

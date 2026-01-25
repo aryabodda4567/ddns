@@ -23,7 +23,9 @@ public class Message {
     public Message(MessageType type, String senderIp, PublicKey senderPublicKey, String payload) {
         this.type = type;
         this.senderIp = senderIp;
+        if(senderPublicKey!=null)
         this.senderPublicKey = SignatureUtil.getStringFromKey(senderPublicKey);
+        else this.senderPublicKey=null;
         this.payload = payload;
         initTime = TimeUtil.getCurrentUnixTimeMillis();
     }
