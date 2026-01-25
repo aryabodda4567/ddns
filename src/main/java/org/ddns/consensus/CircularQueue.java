@@ -1,6 +1,7 @@
 package org.ddns.consensus;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -91,4 +92,18 @@ public final class CircularQueue {
             lock.unlock();
         }
     }
+    public void resetWith(List<QueueNode> nodes) {
+        lock.lock();
+        try {
+            queue.clear();
+            head = 0;
+
+            nodes.sort(Comparator.comparingInt(QueueNode::getSno));
+
+            queue.addAll(nodes);
+        } finally {
+            lock.unlock();
+        }
+    }
+
 }

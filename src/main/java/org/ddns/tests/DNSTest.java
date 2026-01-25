@@ -227,6 +227,7 @@ public class DNSTest {
                 boolean ptrOk = retry(() -> {
                     Lookup.getDefaultCache(DClass.IN).clearCache();
                     Record[] recs = client.reverseLookup(ip);
+                    System.out.println(ip);
                     return recs != null && recs.length >= 1 && recs[0].rdataToString().equals(host);
                 }, 6, 100);
                 recordTest("Reverse lookup for " + ip, ptrOk, ptrOk ? null : ("Expected PTR target " + host));

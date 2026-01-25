@@ -1,5 +1,6 @@
 package org.ddns.bootstrap;
 
+import org.ddns.consensus.QueueNode;
 import org.ddns.constants.Role;
 import org.ddns.db.BootstrapDB;
 import org.ddns.db.DBUtil;
@@ -13,6 +14,7 @@ import org.ddns.util.ConversionUtil;
 import org.ddns.util.NetworkUtility;
 
 import java.security.PublicKey;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 
@@ -119,6 +121,11 @@ public class BootstrapNode implements MessageHandler {
             BootstrapDB.getInstance().saveNode(nodeConfig);
             ConsolePrinter.printSuccess("[BootstrapNode] Added/Updated node: " + nodeConfig.getIp());
 
+            // Update the queue
+            int next = BootstrapDB.getInstance().getNextQueueSequence();
+            QueueNode queueNode = new QueueNode(nodeConfig, next);
+            BootstrapDB.getInstance().insertQueueNode(queueNode);
+
             // --- CHANGE ---
             // Pass the *current* full node list to the broadcast helper
             broadcastNodeUpdate(
@@ -126,6 +133,22 @@ public class BootstrapNode implements MessageHandler {
                     nodeConfig,
                     BootstrapDB.getInstance().getAllNodes() // Get the list AFTER adding
             );
+
+//            Broadcast queue update
+            if(nodeConfig.getRole().equals(Role.GENESIS) || nodeConfig.getRole().equals(Role.LEADER_NODE))
+            {
+                Set<QueueNode> queueNodeSet = BootstrapDB.getInstance().getAllQueueNodes();
+                Message message = new Message(
+                        MessageType.QUEUE_UPDATE,
+                        NetworkUtility.getLocalIpAddress(),
+                        null,
+                        ConversionUtil.toJson(queueNodeSet)
+                );
+
+                NetworkManager.broadcast(ConversionUtil.toJson(message),
+                        BootstrapDB.getInstance().getAllNodes(),
+                       Set.of(Role.LEADER_NODE,Role.NORMAL_NODE,Role.GENESIS) );
+            }
 
         } catch (Exception e) {
             ConsolePrinter.printFail("[BootstrapNode] Error processing ADD_NODE request: " + e.getMessage());

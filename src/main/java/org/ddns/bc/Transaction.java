@@ -7,6 +7,7 @@ import org.ddns.dns.DNSModel;
 import org.ddns.net.Message;
 import org.ddns.net.MessageType;
 import org.ddns.net.NetworkManager;
+import org.ddns.util.ConsolePrinter;
 import org.ddns.util.ConversionUtil;
 import org.ddns.util.NetworkUtility;
 
@@ -128,6 +129,7 @@ public class Transaction {
             throw new RuntimeException(e);
         }
 
+        ConsolePrinter.printInfo("[Transaction] Sending transaction ");
         NetworkManager.broadcast(ConversionUtil.toJson(message),
                 DBUtil.getInstance().getAllNodes(),
                 Set.of(Role.GENESIS, Role.NORMAL_NODE, Role.LEADER_NODE));

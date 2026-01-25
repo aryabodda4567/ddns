@@ -285,7 +285,7 @@ public final class DNSDb implements DNSPersistence {
     public List<DNSModel> reverseLookup(String ipOrInAddr) {
         if (ipOrInAddr == null) return List.of();
         String nameNorm = normalize(ipOrInAddr);
-        String sql = "SELECT name, type, ttl, rdata, owner, transaction_hash, timestamp FROM dns_records WHERE name_norm = ?;";
+        String sql = "SELECT name, type, ttl, rdata, owner, transaction_hash, timestamp FROM dns_records WHERE rdata = ?;";
 
         List<DNSModel> out = new ArrayList<>();
         try (Connection conn = connect(); PreparedStatement ps = conn.prepareStatement(sql)) {

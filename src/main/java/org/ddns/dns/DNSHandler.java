@@ -273,6 +273,7 @@ public class DNSHandler {
     private Message handleReverseLookupCommand(Message query, Map<String, Object> cmd) {
         try {
             String ip = getString(cmd, "ip");
+            System.out.println(ip);
 //            List<DNSModel> result = persistence.reverseLookup(ip);
             List<DNSModel> result = DNSDb.getInstance().reverseLookup(ip);
 

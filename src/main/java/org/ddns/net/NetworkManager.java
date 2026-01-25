@@ -116,7 +116,6 @@ public class NetworkManager {
             ConsolePrinter.printWarning("[NetworkManager] No roles specified for broadcast.");
             return;
         }
-
         String localIp = NetworkUtility.getLocalIpAddress();
         boolean broadcastAll = roles.contains(Role.ANY);
         int sentCount = 0;
@@ -129,7 +128,7 @@ public class NetworkManager {
 
         for (NodeConfig nodeConfig : nodeConfigSet) {
             if (nodeConfig == null || nodeConfig.getIp() == null) continue;
-            if (localIp != null && localIp.equals(nodeConfig.getIp())) continue; // Skip self
+          //  if (localIp != null && localIp.equals(nodeConfig.getIp())) continue; // Skip self
 
             Role nodeRole = nodeConfig.getRole();
             boolean match = false;

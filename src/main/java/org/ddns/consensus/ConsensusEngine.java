@@ -6,6 +6,7 @@ import org.ddns.db.BlockDb;
 import org.ddns.db.DBUtil;
 import org.ddns.net.Message;
 import org.ddns.net.MessageHandler;
+import org.ddns.node.NodesManager;
 import org.ddns.util.ConsolePrinter;
 import org.ddns.util.ConversionUtil;
 
@@ -93,12 +94,14 @@ public final class ConsensusEngine implements MessageHandler {
     // ================= Logic =================
 
     private void appendTransaction(Message message) {
+        ConsolePrinter.printInfo("[ConsensusEngine] Transaction received");
         Transaction tx = ConversionUtil.fromJson(message.payload, Transaction.class);
         if (!tx.verifySignature(tx.getSenderPublicKey())) return;
         transactions.add(tx);
     }
 
     private void onBlockReceived(Message message) {
+        ConsolePrinter.printInfo("[ConsensusEngine] Block received");
         Block block = ConversionUtil.fromJson(message.payload, Block.class);
 
 //        if (BlockDb.getInstance().hasBlock(block.getHash())) return;
@@ -109,7 +112,8 @@ public final class ConsensusEngine implements MessageHandler {
             return;
         }
 
-        BlockDb.getInstance().insertBlock(block, false);
+        BlockDb.getInstance().insertBlock(block);
+        NodesManager.applyBlock(true);
         transactions.clear();
 
         CircularQueue.getInstance().rotate();
@@ -117,6 +121,7 @@ public final class ConsensusEngine implements MessageHandler {
     }
 
     public void publishBlock() {
+        ConsolePrinter.printInfo("[ConsensusEngine] Publishing block");
         Block block = new Block(
                 BlockDb.getInstance().getLatestBlockHash(),
                 new ArrayList<>(transactions)
@@ -125,7 +130,8 @@ public final class ConsensusEngine implements MessageHandler {
         Block.publish(block);
 
         // Apply locally
-        BlockDb.getInstance().insertBlock(block, false);
+        BlockDb.getInstance().insertBlock(block);
+        NodesManager.applyBlock(true);
         transactions.clear();
 
         CircularQueue.getInstance().rotate();

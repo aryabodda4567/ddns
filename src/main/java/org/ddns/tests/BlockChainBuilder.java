@@ -10,6 +10,7 @@ import org.ddns.db.BlockDb;
 import org.ddns.db.TransactionDb;
 import org.ddns.dns.DNSModel;
 import org.ddns.net.NetworkManager;
+import org.ddns.node.NodesManager;
 import org.ddns.util.ConversionUtil;
 import org.ddns.util.NetworkUtility;
 import org.ddns.util.TimeUtil;
@@ -65,7 +66,8 @@ public class BlockChainBuilder {
                 // --- Create the block ---
                 Block block = new Block(previousHash, transactions);
 
-                BlockDb.getInstance().insertBlock(block,true);
+                BlockDb.getInstance().insertBlock(block);
+                NodesManager.applyBlock(false);
 
                 chain.add(block);
                 previousHash = block.getHash();

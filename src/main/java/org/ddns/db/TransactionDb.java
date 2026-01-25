@@ -139,10 +139,9 @@ public final class TransactionDb {
      * @param transactions Insert a transaction row into the DB.
      *                     This implementation serializes writes via a single-writer executor to avoid
      *                     SQLITE_BUSY under heavy concurrent writers. Caller blocks until write completes.
-     * @return true if inserted (rows affected > 0), false otherwise
      */
 
-    public boolean insertTransaction(List<Transaction> transactions) {
+    public void insertTransaction(List<Transaction> transactions) {
 
         for (Transaction transaction : transactions) {
             boolean success = insertTransaction(
@@ -153,9 +152,8 @@ public final class TransactionDb {
                     transaction.getSignature()
             );
 
-            if (!success) return false;
+            if (!success) return;
         }
-        return true;
 
     }
 
@@ -174,12 +172,6 @@ public final class TransactionDb {
         if (txHash == null || type == null || payload == null) {
             ConsolePrinter.printFail("[TransactionDb] insertTransaction failed: txHash/type/payload required.");
             return false;
-        }
-
-//        Save DNSRecords
-        for (DNSModel dnsModel : payload) {
-            boolean success = DNSDb.getInstance().addRecord(dnsModel);
-            if (!success) return false;
         }
 
 

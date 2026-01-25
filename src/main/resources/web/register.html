@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Register Domain</title>
+</head>
+<body>
+<h2>Register Domain</h2>
+
+<form id="f">
+    Domain: <input name="domain"><br><br>
+    Type:
+    <select name="type">
+        <option>A</option>
+        <option>AAAA</option>
+        <option>TXT</option>
+    </select><br><br>
+    Value: <input name="value"><br><br>
+    <button type="submit">Register</button>
+</form>
+
+<pre id="out"></pre>
+
+<script>
+    document.getElementById("f").onsubmit = async (e) => {
+        e.preventDefault();
+        const data = new URLSearchParams(new FormData(e.target));
+        const res = await fetch("/api/register", {
+            method: "POST",
+            body: data
+        });
+        document.getElementById("out").textContent = await res.text();
+    };
+</script>
+
+</body>
+</html>

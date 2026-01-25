@@ -1,6 +1,7 @@
 package org.ddns.db;
 
 import org.ddns.bc.SignatureUtil;
+import org.ddns.consensus.QueueNode;
 import org.ddns.constants.Role;
 import org.ddns.node.NodeConfig;
 import org.ddns.util.ConsolePrinter;
@@ -56,10 +57,21 @@ public final class BootstrapDB {
                         value TEXT
                     );
                 """;
+        String queueTable = """
+    CREATE TABLE IF NOT EXISTS consensus_queue (
+        sno INTEGER PRIMARY KEY,
+        ip TEXT NOT NULL,
+        role TEXT NOT NULL,
+        public_key TEXT NOT NULL
+    );
+""";
+
 
         try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
             stmt.execute(nodesTable);
             stmt.execute(configTable);
+            stmt.execute(queueTable);
+
             ConsolePrinter.printSuccess("[BootstrapDB] bootstrap.db initialized.");
         } catch (SQLException e) {
             ConsolePrinter.printFail("[BootstrapDB] Init failed: " + e.getMessage());
@@ -273,4 +285,126 @@ public final class BootstrapDB {
             ConsolePrinter.printFail("[BootstrapDB] Drop DB error: " + e.getMessage());
         }
     }
+
+    public synchronized void insertQueueNode(QueueNode node) {
+        if (node == null || node.getNodeConfig() == null) return;
+
+        String sql = """
+        INSERT OR REPLACE INTO consensus_queue (sno, ip, role, public_key)
+        VALUES (?, ?, ?, ?);
+    """;
+
+        try (Connection conn = connect(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, node.getSno());
+            ps.setString(2, node.getNodeConfig().getIp());
+            ps.setString(3, node.getNodeConfig().getRole().name());
+            ps.setString(4, SignatureUtil.getStringFromKey(node.getNodeConfig().getPublicKey()));
+            ps.executeUpdate();
+        } catch (Exception e) {
+            ConsolePrinter.printFail("[BootstrapDB] insertQueueNode failed: " + e.getMessage());
+        }
+    }
+
+    public synchronized Set<QueueNode> getAllQueueNodes() {
+        Set<QueueNode> set = new HashSet<>();
+
+        String sql = "SELECT sno, ip, role, public_key FROM consensus_queue ORDER BY sno ASC";
+
+        try (Connection conn = connect(); Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                int sno = rs.getInt("sno");
+                String ip = rs.getString("ip");
+                Role role = Role.valueOf(rs.getString("role"));
+                PublicKey pk = SignatureUtil.getPublicKeyFromString(rs.getString("public_key"));
+
+                NodeConfig nc = new NodeConfig(ip, role, pk);
+                set.add(new QueueNode(nc, sno));
+            }
+        } catch (Exception e) {
+            ConsolePrinter.printFail("[BootstrapDB] getAllQueueNodes failed: " + e.getMessage());
+        }
+
+        return set;
+    }
+    public synchronized QueueNode getQueueNodeBySno(int sno) {
+        String sql = "SELECT sno, ip, role, public_key FROM consensus_queue WHERE sno = ?";
+
+        try (Connection conn = connect(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, sno);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                String ip = rs.getString("ip");
+                Role role = Role.valueOf(rs.getString("role"));
+                PublicKey pk = SignatureUtil.getPublicKeyFromString(rs.getString("public_key"));
+
+                NodeConfig nc = new NodeConfig(ip, role, pk);
+                return new QueueNode(nc, sno);
+            }
+        } catch (Exception e) {
+            ConsolePrinter.printFail("[BootstrapDB] getQueueNodeBySno failed: " + e.getMessage());
+        }
+
+        return null;
+    }
+
+    public synchronized void deleteQueueNode(int sno) {
+        String sql = "DELETE FROM consensus_queue WHERE sno = ?";
+
+        try (Connection conn = connect(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, sno);
+            ps.executeUpdate();
+        } catch (Exception e) {
+            ConsolePrinter.printFail("[BootstrapDB] deleteQueueNode failed: " + e.getMessage());
+        }
+    }
+
+    public synchronized void clearQueue() {
+        try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
+            stmt.execute("DELETE FROM consensus_queue");
+        } catch (Exception e) {
+            ConsolePrinter.printFail("[BootstrapDB] clearQueue failed: " + e.getMessage());
+        }
+    }
+    public synchronized void updateQueueNode(QueueNode node) {
+        if (node == null || node.getNodeConfig() == null) return;
+
+        String sql = """
+        UPDATE consensus_queue
+        SET ip = ?, role = ?, public_key = ?
+        WHERE sno = ?;
+    """;
+
+        try (Connection conn = connect(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, node.getNodeConfig().getIp());
+            ps.setString(2, node.getNodeConfig().getRole().name());
+            ps.setString(3, SignatureUtil.getStringFromKey(node.getNodeConfig().getPublicKey()));
+            ps.setInt(4, node.getSno());
+            ps.executeUpdate();
+        } catch (Exception e) {
+            ConsolePrinter.printFail("[BootstrapDB] updateQueueNode failed: " + e.getMessage());
+        }
+    }
+    public synchronized int getNextQueueSequence() {
+        String sql = "SELECT MAX(sno) AS max_sno FROM consensus_queue";
+
+        try (Connection conn = connect(); Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
+            if (rs.next()) {
+                int max = rs.getInt("max_sno");
+                if (rs.wasNull()) {
+                    return 0; // table empty
+                }
+                return max + 1;
+            }
+        } catch (Exception e) {
+            ConsolePrinter.printFail("[BootstrapDB] getNextQueueSequence failed: " + e.getMessage());
+        }
+
+        return 0;
+    }
+
+
+
+
+
 }

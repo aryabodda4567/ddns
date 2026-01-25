@@ -107,14 +107,12 @@ public final class BlockDb {
     /**
      * Inserts a block into the database.
      */
-    public boolean insertBlock(Block block, boolean isTransfer) {
+    public void insertBlock(Block block ) {
         if (block == null) {
             ConsolePrinter.printFail("[BlockDb] insertBlock failed: block is null.");
-            return false;
+            return;
         }
 
-//      Save transactions
-        if (isTransfer && !TransactionDb.getInstance().insertTransaction(block.getTransactions())) return false;
 
         final String txJson;
         try {
@@ -122,7 +120,7 @@ public final class BlockDb {
             txJson = (txs == null) ? null : ConversionUtil.toJson(txs);
         } catch (Exception e) {
             ConsolePrinter.printFail("[BlockDb] insertBlock: failed to serialize transactions: " + e.getMessage());
-            return false;
+            return;
         }
 
         Callable<Boolean> task = () -> {
@@ -171,10 +169,9 @@ public final class BlockDb {
 
         Future<Boolean> f = writer.submit(task);
         try {
-            return f.get();
+            f.get();
         } catch (Exception e) {
             ConsolePrinter.printFail("[BlockDb] insertBlock writer failure: " + e.getMessage());
-            return false;
         }
     }
 
@@ -362,21 +359,20 @@ public final class BlockDb {
      * The statement is executed on the single-writer executor for safety.
      *
      * @param insertSQL a valid INSERT statement targeting the blocks table.
-     * @return true if the insert executed successfully, false otherwise.
      */
-    public synchronized boolean executeInsertSQL(String insertSQL) {
+    public synchronized void executeInsertSQL(String insertSQL) {
         if (insertSQL == null || insertSQL.trim().isEmpty()) {
             ConsolePrinter.printFail("[BlockDb] executeInsertSQL failed: SQL is null/empty.");
-            return false;
+            return;
         }
         String trimmed = insertSQL.trim().toUpperCase();
         if (!trimmed.startsWith("INSERT")) {
             ConsolePrinter.printFail("[BlockDb] executeInsertSQL rejected: only INSERT statements are allowed.");
-            return false;
+            return;
         }
         if (!trimmed.contains("BLOCKS")) {
             ConsolePrinter.printFail("[BlockDb] executeInsertSQL rejected: statement must target 'blocks' table.");
-            return false;
+            return;
         }
 
         Callable<Boolean> task = () -> {
@@ -394,10 +390,9 @@ public final class BlockDb {
 
         Future<Boolean> f = writer.submit(task);
         try {
-            return f.get();
+            f.get();
         } catch (Exception e) {
             ConsolePrinter.printFail("[BlockDb] executeInsertSQL writer failure: " + e.getMessage());
-            return false;
         }
     }
 
@@ -426,4 +421,74 @@ public final class BlockDb {
                     hash, previousHash, merkleRoot, timestamp, shortTx);
         }
     }
+
+    /**
+     * Reads all blocks from database ordered by timestamp ASC.
+     */
+    public synchronized List<Block> readAllBlocks() {
+        List<Block> blocks = new ArrayList<>();
+
+        String sql = """
+        SELECT hash, previous_hash, merkle_root, timestamp, transactions_json
+        FROM blocks
+        ORDER BY timestamp ASC;
+    """;
+
+        try (Connection conn = connect();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+
+                String hash = rs.getString("hash");
+                String previousHash = rs.getString("previous_hash");
+                String merkleRoot = rs.getString("merkle_root");
+                long timestamp = rs.getLong("timestamp");
+                String txJson = rs.getString("transactions_json");
+
+                List<Transaction> txs;
+                if (txJson != null && !txJson.isBlank()) {
+                    txs = ConversionUtil.jsonToList(txJson, Transaction.class);
+                } else {
+                    txs = new ArrayList<>();
+                }
+
+                Block block = new Block(previousHash, txs);
+                block.setHash(hash);
+                block.setMerkleRoot(merkleRoot);
+                block.setTimestamp(timestamp);
+
+                blocks.add(block);
+            }
+
+            ConsolePrinter.printSuccess("[BlockDb] readAllBlocks loaded " + blocks.size() + " blocks.");
+
+        } catch (Exception e) {
+            ConsolePrinter.printFail("[BlockDb] readAllBlocks failed: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        return blocks;
+    }
+
+    public List<Block> readAllBlocksOrdered() {
+        String sql = "SELECT hash FROM blocks ORDER BY timestamp ASC;";
+        List<Block> out = new ArrayList<>();
+
+        try (Connection conn = connect();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                String hash = rs.getString("hash");
+                Block b = readBlockByHash(hash);
+                if (b != null) out.add(b);
+            }
+        } catch (Exception e) {
+            ConsolePrinter.printFail("[BlockDb] readAllBlocksOrdered failed: " + e.getMessage());
+        }
+        return out;
+    }
+
+
 }

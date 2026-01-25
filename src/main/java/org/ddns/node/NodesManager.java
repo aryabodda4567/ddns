@@ -1,11 +1,19 @@
 package org.ddns.node;
 
+import org.ddns.bc.Block;
 import org.ddns.bc.SignatureUtil;
+import org.ddns.bc.Transaction;
+import org.ddns.bc.TransactionType;
+import org.ddns.consensus.*;
 import org.ddns.constants.ElectionType;
 import org.ddns.constants.FileNames;
 import org.ddns.constants.Role;
 import org.ddns.db.BlockDb;
 import org.ddns.db.DBUtil;
+import org.ddns.db.DNSDb;
+import org.ddns.db.TransactionDb;
+import org.ddns.dns.DNSModel;
+import org.ddns.dns.DNSPersistence;
 import org.ddns.governance.Election;
 import org.ddns.net.Message;
 import org.ddns.net.MessageHandler;
@@ -15,6 +23,7 @@ import org.ddns.util.ConsolePrinter;
 import org.ddns.util.ConversionUtil;
 import org.ddns.util.NetworkUtility;
 import org.ddns.util.TimeUtil;
+import org.ddns.web.WebHttpServer;
 
 import java.security.PublicKey;
 import java.util.*;
@@ -84,11 +93,33 @@ public class NodesManager implements MessageHandler {
             case PROMOTE -> resolvePromoteNode(payload);
             case FETCH_NODES_RESPONSE -> resolveFetchResponse(payload);
             case SYNC_REQUEST -> resolveSyncRequest(incoming);
+            case QUEUE_UPDATE -> resolveQueueUpdate(payload);
             default -> {
 //                ConsolePrinter.printInfo("[NodesManager] Ignored message type: " + incoming.type);
             }
         }
     }
+
+    private void resolveQueueUpdate(String payload) {
+
+        Set<QueueNode> queueNodeSet =
+                ConversionUtil.jsonToSet(payload, QueueNode.class);
+
+        if (queueNodeSet == null || queueNodeSet.isEmpty()) {
+            return;
+        }
+
+        List<QueueNode> list = new ArrayList<>(queueNodeSet);
+
+        // Sort by sequence number to guarantee same order everywhere
+        list.sort(Comparator.comparingInt(QueueNode::getSno));
+
+        // Replace entire local queue with authoritative state
+        CircularQueue.getInstance().resetWith(list);
+
+        ConsolePrinter.printSuccess("[Consensus] Queue updated. New size = " + list.size());
+    }
+
 
     @Override
     public void onMulticastMessage(String message) {
@@ -400,6 +431,17 @@ public class NodesManager implements MessageHandler {
             throw new RuntimeException(e);
         }
 
+        ConsensusSystem.start();
+        NodeDNSService.configure("0.0.0.0", "example.com.", 64);
+        NodeDNSService.start();
+
+        try{
+            WebHttpServer.start();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+
     }
 
     public void setupNormalNode(){
@@ -414,6 +456,16 @@ public class NodesManager implements MessageHandler {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+
+        ConsensusSystem.start();
+        NodeDNSService.configure("0.0.0.0", "example.com.", 64);
+        NodeDNSService.start();
+        try{
+            WebHttpServer.start();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
     }
     public void setupLeaderNode(){
         NodeConfig nodeConfig = DBUtil.getInstance().getSelfNode();
@@ -430,6 +482,16 @@ public class NodesManager implements MessageHandler {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+
+        ConsensusSystem.start();
+        NodeDNSService.configure("0.0.0.0", "example.com.", 64);
+        NodeDNSService.start();
+        try{
+            WebHttpServer.start();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
     }
 
 
@@ -439,7 +501,92 @@ public class NodesManager implements MessageHandler {
         for (String stmt: insertStatements){
             BlockDb.getInstance().executeInsertSQL(stmt);
         }
+        applyBlock(false);
     }
+    public static synchronized void applyBlock(boolean onlyLast) {
+
+        DNSDb dnsDb = DNSDb.getInstance();
+
+        if (!onlyLast) {
+
+
+            ConsolePrinter.printInfo("[StateApplier] Rebuilding DNS state from blockchain...");
+
+            // 1. Clear current state
+            dnsDb.truncateDatabase(true);
+
+            // 2. Read blocks in correct order
+            List<Block> blocks = BlockDb.getInstance().readAllBlocksOrdered();
+
+            for (Block block : blocks) {
+                applySingleBlock(block, dnsDb);
+            }
+
+            ConsolePrinter.printSuccess("[StateApplier] Full state rebuild completed. Blocks=" + blocks.size());
+
+        } else {
+            // ⚡ APPLY ONLY LAST BLOCK
+
+            String lastBlockHash = BlockDb.getInstance().getLatestBlockHash();
+            if (lastBlockHash == null || lastBlockHash.equals("0")) return;
+
+            Block lastBlock = BlockDb.getInstance().readBlockByHash(lastBlockHash);
+            if (lastBlock == null) return;
+
+            ConsolePrinter.printInfo("[StateApplier] Applying last block: " + lastBlock.getHash());
+
+            applySingleBlock(lastBlock, dnsDb);
+        }
+    }
+    private static void applySingleBlock(Block block, DNSPersistence persistence) {
+        if (block == null || block.getTransactions() == null) return;
+
+        for (Transaction transaction : block.getTransactions()) {
+            if (transaction.getPayload() == null) continue;
+
+            for (DNSModel dnsModel : transaction.getPayload()) {
+
+                boolean ok = false;
+
+                switch (transaction.getType()) {
+
+                    case REGISTER -> {
+                        ok = persistence.addRecord(dnsModel);
+                        if (ok) {
+                            ConsolePrinter.printSuccess("[STATE] REGISTER applied: " + dnsModel.getName());
+                        } else {
+                            ConsolePrinter.printFail("[STATE] REGISTER failed (duplicate or invalid): " + dnsModel.getName());
+                        }
+                    }
+
+                    case UPDATE_RECORDS -> {
+                        ok = persistence.updateRecord(dnsModel);
+                        if (ok) {
+                            ConsolePrinter.printSuccess("[STATE] UPDATE applied: " + dnsModel.getName());
+                        } else {
+                            ConsolePrinter.printFail("[STATE] UPDATE failed: " + dnsModel.getName());
+                        }
+                    }
+
+                    case DELETE_RECORDS -> {
+                        ok = persistence.deleteRecord(
+                                dnsModel.getName(),
+                                dnsModel.getType(),
+                                dnsModel.getRdata()
+                        );
+                        if (ok) {
+                            ConsolePrinter.printSuccess("[STATE] DELETE applied: " + dnsModel.getName());
+                        } else {
+                            ConsolePrinter.printFail("[STATE] DELETE failed (not found): " + dnsModel.getName());
+                        }
+                    }
+                }
+
+            }
+        }
+    }
+
+
 
 
 }

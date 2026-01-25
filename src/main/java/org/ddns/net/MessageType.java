@@ -7,6 +7,7 @@ public enum MessageType {
     DELETE_NODE,
     PROMOTE_NODE,
     FETCH_NODES_RESPONSE,
+    QUEUE_UPDATE,
 
     CREATE_ELECTION,
     CASTE_VOTE,
