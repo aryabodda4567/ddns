@@ -5,7 +5,7 @@ public final class ConsensusSystem {
     private static final ConsensusScheduler scheduler = new ConsensusScheduler();
 
     public static void start() {
-        scheduler.start(10); // every 3 seconds
+        scheduler.start(10); // every 10 seconds
     }
 
     public static ConsensusScheduler getScheduler() {

@@ -32,6 +32,8 @@ import java.security.PublicKey;
 import java.security.Security;
 import java.util.*;
 
+import static org.ddns.governance.Election.*;
+
 /**
  * Main application entrypoint for the dDNS node app.
  *
@@ -55,7 +57,7 @@ public class Main {
 
     private DNSClient dnsClient = null;
 
-    private static final String ELECTION_PASSWORD = "election_password"; // DB key
+    public static final String ELECTION_PASSWORD = "election_password"; // DB key
 
     public static void main(String[] args) throws Exception {
         Security.addProvider(new BouncyCastleProvider());
@@ -158,7 +160,7 @@ public class Main {
         TimeUtil.waitForSeconds(3);
         Role role = DBUtil.getInstance().getRole();
         if (role == null || role.equals(Role.NONE)) {
-            createElection();
+            createJoinElection();
         }
         menu();
     }
@@ -282,75 +284,57 @@ public class Main {
      * Election flows
      * ------------------------- */
 
-    public void createElection() {
+    public void createJoinElection() {
         ConsolePrinter.printInfo("Create election for joining the node");
 
-        char[] password = readPasswordWithPrompt("Create an election password: ");
-        if (password == null || password.length == 0) {
-            ConsolePrinter.printWarning("Empty password; aborting election creation.");
-            return;
-        }
-        String hash = hashPassword(password);
-        DBUtil.getInstance().putString(ELECTION_PASSWORD, hash);
-        Arrays.fill(password, '\0');
+        while (true){
+            char[] password = readPasswordWithPrompt("Create an election password: ");
 
-        TimeUtil.waitForSeconds(1);
+            String name = readLine("Enter node name: ");
 
-        String name = readLine("Enter node name: ");
-        if (name.length() == 0 || name.length() > 128) {
-            ConsolePrinter.printWarning("Invalid node name (empty or too long).");
-            return;
-        }
+            int time = readInt("Enter time limit of the election (in minutes): ");
 
-        int time = readInt("Enter time limit of the election (in minutes): ");
-        if (time <= 0 || time > 60 * 24) {
-            ConsolePrinter.printWarning("Invalid time limit. Must be between 1 and 1440 minutes.");
-            return;
-        }
+            String description = readLine("Enter description: ");
 
-        String description = readLine("Enter description: ");
-        if (description.length() == 0 || description.length() > 1024) {
-            ConsolePrinter.printWarning("Invalid description (empty or too long).");
-            return;
+            int result = election.createElection(Arrays.toString(password), name,time,description,ElectionType.JOIN);
+            if(result == INVALID_INPUT){
+                ConsolePrinter.printFail("Invalid password");
+            }
+            else if(result == INVALID_DESCRIPTION){
+                ConsolePrinter.printFail("Invalid description");
+            }
+            else if(result == INVALID_TIME){
+                ConsolePrinter.printFail("Invalid time");
+            }else if(result == INVALID_NODE_NAME){
+                ConsolePrinter.printFail("Invalid node name");
+            }else if(result == ELECTION_CREATED){
+                ConsolePrinter.printSuccess("Election created");
+                break;
+            }
         }
 
-        election.createElection(ElectionType.JOIN, time, name, description);
     }
 
     public void electionResult() {
-        ConsolePrinter.printInfo("Enter password to view result. Once result is viewed the election will be ended even if time is not over.\n");
-
-        TimeUtil.waitForSeconds(2);
-        while (true) {
-            char[] pwToView = readPasswordWithPrompt("Password: ");
-            if (pwToView == null || pwToView.length == 0) {
-                ConsolePrinter.printWarning("Enter correct password");
-                continue;
+        while (true){
+            char[] password =readPasswordWithPrompt("Password: ");
+            int result =election.getResult(Arrays.toString(password));
+            if(result== INVALID_INPUT){
+                ConsolePrinter.printFail("Invalid input, reenter the password.");
             }
-            String storedHash = DBUtil.getInstance().getString(ELECTION_PASSWORD);
-            String providedHash = hashPassword(pwToView);
-            Arrays.fill(pwToView, '\0');
-
-            if (storedHash == null || !storedHash.equals(providedHash)) {
-                ConsolePrinter.printWarning("Wrong password");
-                continue;
+            else if(result == WRONG_PASSWORD){
+                ConsolePrinter.printFail("Wrong password.");
             }
-            break;
-        }
-
-        boolean result = election.getResult(); // blocks until election end or manual reveal
-        if (result) {
-            ConsolePrinter.printSuccess("[Main] Network accepted the node");
-            try {
+            else if(result == ACCEPTED){
+                ConsolePrinter.printSuccess("Accepted to network");
                 nodesManager.setupNormalNode();
-            } catch (Exception e) {
-                ConsolePrinter.printFail("[Main] Failed to initiate add node request: " + e.getMessage());
-                return;
+                nodesManager.createSyncRequest();
+                break;
             }
-            nodesManager.createSyncRequest();
-        } else {
-            ConsolePrinter.printFail("[Main] Network rejected the node");
-            shutdown();
+            else if(result == REJECTED){
+                ConsolePrinter.printFail("Network rejected");
+                System.exit(0);
+            }
         }
     }
 
@@ -580,7 +564,7 @@ public class Main {
         return s;
     }
 
-    private static String hashPassword(char[] password) {
+    public static String hashPassword(char[] password) {
         try {
             byte[] bytes = new String(password).getBytes("UTF-8");
             MessageDigest md = MessageDigest.getInstance("SHA-256");

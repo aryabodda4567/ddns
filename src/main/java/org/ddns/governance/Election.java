@@ -14,9 +14,13 @@ import org.ddns.util.ConversionUtil;
 import org.ddns.util.NetworkUtility;
 import org.ddns.util.TimeUtil;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+
+import static org.ddns.Main.ELECTION_PASSWORD;
+import static org.ddns.Main.hashPassword;
 
 /**
  * Election lifecycle manager.
@@ -34,6 +38,14 @@ import java.util.Set;
  * See "Security & correctness gaps" section after the code for recommended v2 upgrades.
  */
 public class Election implements MessageHandler {
+    public static final int ELECTION_CREATED =8 ;
+    public static int ACCEPTED =1;
+    public static int REJECTED =2;
+    public static int WRONG_PASSWORD=3;
+    public static int INVALID_INPUT=4;
+    public static int INVALID_NODE_NAME=5;
+    public static int INVALID_DESCRIPTION=6;
+    public static int INVALID_TIME=7;
 
     // ---- Construction ----
 
@@ -412,5 +424,59 @@ public class Election implements MessageHandler {
             }
         }
         return count;
+    }
+
+    public int  getResult(String password){
+
+        if(password == null || password.isBlank() || password.trim().isEmpty()){
+            return INVALID_INPUT;
+        }
+
+        String storedHash = DBUtil.getInstance().getString(ELECTION_PASSWORD);
+        String providedHash = hashPassword(password.toCharArray());
+        Arrays.fill(password.toCharArray(), '\0');
+
+        if (storedHash == null || !storedHash.equals(providedHash))  return WRONG_PASSWORD;
+
+        boolean result = getResult();
+        if(result) return ACCEPTED;
+        return REJECTED;
+
+    }
+
+    public int createElection(String password , String name,
+                              int time, String description, ElectionType electionType ){
+
+        if (password == null || password.isEmpty()) {
+            return INVALID_INPUT;
+        }
+        String hash = hashPassword(password.toCharArray());
+
+        DBUtil.getInstance().putString(ELECTION_PASSWORD, hash);
+
+        Arrays.fill(password.toCharArray(), '\0');
+
+        TimeUtil.waitForSeconds(1);
+
+        if (name.isEmpty() || name.length() > 128) {
+
+            return INVALID_NODE_NAME;
+        }
+
+        if (time <= 0 || time > 60 * 24) {
+
+            ConsolePrinter.printWarning("Invalid time limit. Must be between 1 and 1440 minutes.");
+
+            return INVALID_TIME;
+        }
+
+        if (description.isEmpty() || description.length() > 1024) {
+
+            return INVALID_DESCRIPTION;
+        }
+        createElection(electionType, time, name, description);
+
+        return ELECTION_CREATED;
+
     }
 }
