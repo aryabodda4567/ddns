@@ -92,10 +92,10 @@ public class Election implements MessageHandler {
      *                      - Initializes/clears a fresh vote-box for THIS election instance.
      *                      - Returns immediately on broadcast failure; peers that received it can still vote.
      */
-    public void createElection(ElectionType electionType,
-                               int timeInMinutes,
-                               String nodeName,
-                               String description) {
+    public static void createElection(ElectionType electionType,
+                                      int timeInMinutes,
+                                      String nodeName,
+                                      String description) {
 
         if (electionType == null) {
             ConsolePrinter.printFail("[Election] electionType must not be null");
@@ -156,7 +156,7 @@ public class Election implements MessageHandler {
      * - If we've already removed it locally (we voted earlier), it's a no-op.
      * - If voting window has expired, we remove it and warn.
      */
-    public void casteVote(Nomination nomination) {
+    public static void casteVote(Nomination nomination) {
         if (nomination == null) {
             ConsolePrinter.printWarning("[Election] casteVote called with null nomination");
             return;
@@ -200,7 +200,7 @@ public class Election implements MessageHandler {
      * Return a copy of outstanding nominations that we haven't voted on AND are not expired.
      * (We treat the 'vote' flag inside Nomination as advisory; primary control is store removal.)
      */
-    public Set<Nomination> getNominations() {
+    public static Set<Nomination> getNominations() {
         Set<Nomination> nominations = safeSet(loadNominations());
         long now = TimeUtil.getCurrentUnixTime();
         nominations.removeIf(n ->
@@ -216,7 +216,7 @@ public class Election implements MessageHandler {
     /**
      * Remove a specific nomination (idempotent).
      */
-    public void removeNomination(Nomination nomination) {
+    public static void removeNomination(Nomination nomination) {
         if (nomination == null) return;
         Set<Nomination> nominations = safeSet(loadNominations());
         nominations.remove(nomination);
@@ -271,7 +271,7 @@ public class Election implements MessageHandler {
      *
      * @return true if quorum met; false otherwise.
      */
-    public boolean getResult() {
+    public static boolean getResult() {
         int requiredVotes = getRequiredVotes();
         int votesReceived = safeSet(loadVotes()).size();
         deleteVoteBox(); // make result read-once
@@ -369,29 +369,29 @@ public class Election implements MessageHandler {
 
     // ---- Helpers: votes ----
 
-    private void saveNomination(Set<Nomination> nominationSet) {
+    private static void saveNomination(Set<Nomination> nominationSet) {
         DBUtil.getInstance().putString(ConfigKey.NOMINATIONS.key(), ConversionUtil.toJson(safeSet(nominationSet)));
     }
 
-    private Set<Nomination> loadNominations() {
+    private static Set<Nomination> loadNominations() {
         String json = DBUtil.getInstance().getString(ConfigKey.NOMINATIONS.key());
         Set<Nomination> set = ConversionUtil.jsonToSet(json, Nomination.class);
         return set != null ? set : new HashSet<>();
     }
 
-    private Set<Vote> loadVotes() {
+    private static Set<Vote> loadVotes() {
         String json = DBUtil.getInstance().getString(ConfigKey.VOTE_BOX.key());
         Set<Vote> set = ConversionUtil.jsonToSet(json, Vote.class);
         return set != null ? set : new HashSet<>();
     }
 
-    private void saveVotes(Set<Vote> votes) {
+    private static void saveVotes(Set<Vote> votes) {
         DBUtil.getInstance().putString(ConfigKey.VOTE_BOX.key(), ConversionUtil.toJson(safeSet(votes)));
     }
 
     // ---- Quorum ----
 
-    public void deleteVoteBox() {
+    public static void deleteVoteBox() {
         DBUtil.getInstance().delete(ConfigKey.VOTE_BOX.key());
     }
 
@@ -414,7 +414,7 @@ public class Election implements MessageHandler {
      * Required votes = count of nodes whose role is GENESIS or LEADER_NODE.
      * Uses current snapshot. See analysis below for implications.
      */
-    public int getRequiredVotes() {
+    public static int getRequiredVotes() {
         Set<NodeConfig> nodeConfigSet = DBUtil.getInstance().getAllNodes();
         int count = 0;
         for (NodeConfig n : nodeConfigSet) {
@@ -426,7 +426,7 @@ public class Election implements MessageHandler {
         return count;
     }
 
-    public int  getResult(String password){
+    public static int  getResult(String password){
 
         if(password == null || password.isBlank() || password.trim().isEmpty()){
             return INVALID_INPUT;
@@ -444,8 +444,8 @@ public class Election implements MessageHandler {
 
     }
 
-    public int createElection(String password , String name,
-                              int time, String description, ElectionType electionType ){
+    public static int createElection(String password, String name,
+                                     int time, String description, ElectionType electionType){
 
         if (password == null || password.isEmpty()) {
             return INVALID_INPUT;

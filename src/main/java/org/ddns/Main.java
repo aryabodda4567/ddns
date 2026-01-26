@@ -142,7 +142,7 @@ public class Main {
      */
     public void node() {
         try {
-            configNode();
+//            configNode();
             ConsolePrinter.printInfo(" [Main] Self node configured ");
             ConsolePrinter.printInfo(" Details: " + DBUtil.getInstance().getSelfNode());
         } catch (Exception e) {
@@ -151,7 +151,7 @@ public class Main {
         }
 
         try {
-            nodesManager.createFetchRequest();
+            NodesManager.createFetchRequest();
         } catch (Exception e) {
             ConsolePrinter.printFail(" [Main] Failed to initiate fetch request to Bootstrap node: " + e.getMessage());
             return;
@@ -394,13 +394,13 @@ public class Main {
             int opt = readInt("Choose DNS option: ");
             try {
                 switch (opt) {
-                    case 1 -> configureDnsClient();
-                    case 2 -> dnsCreateRecord();
-                    case 3 -> dnsLookup();
-                    case 4 -> dnsReverseLookup();
-                    case 5 -> dnsSendRawCommand();
-                    case 6 -> { return; }
-                    default -> ConsolePrinter.printWarning("Invalid DNS option");
+//                    case 1 -> configureDnsClient();
+//                    case 2 -> dnsCreateRecord();
+//                    case 3 -> dnsLookup();
+//                    case 4 -> dnsReverseLookup();
+//                    case 5 -> dnsSendRawCommand();
+//                    case 6 -> { return; }
+//                    default -> ConsolePrinter.printWarning("Invalid DNS option");
                 }
             } catch (Exception e) {
                 ConsolePrinter.printFail("DNS operation failed: " + e.getMessage());
@@ -425,110 +425,110 @@ public class Main {
         }
     }
 
-    private void dnsCreateRecord() {
-        if (dnsClient == null) {
-            ConsolePrinter.printWarning("DNS client not configured. Configure DNS server first.");
-            return;
-        }
-
-        String origin = readLine("Enter zone/origin (e.g. example.com.): ");
-        String name = readLine("Enter full record name (e.g. a-host-01.example.com.): ");
-        if (!name.endsWith(".")) name = name + ".";
-        String typeStr = readLine("Enter record type (A, AAAA, TXT, MX, PTR, etc) [A]: ");
-        if (typeStr == null || typeStr.isEmpty()) typeStr = "A";
-        typeStr = typeStr.toUpperCase(Locale.ROOT);
-        String value = readLine("Enter record value (IP for A/AAAA, text for TXT, target for PTR/CNAME): ");
-        String ttlStr = readLine("Enter TTL in seconds [300]: ");
-        long ttl;
-        try { ttl = ttlStr.isEmpty() ? 300L : Long.parseLong(ttlStr); } catch (NumberFormatException e) { ConsolePrinter.printWarning("Invalid TTL, using default 300."); ttl = 300L; }
-        String ownerBase64 = readLine("Enter ownerBase64 (or leave empty): ");
-        String txHash = readLine("Enter transaction hash (or leave empty for default tx_cli): ");
-        if (txHash.isEmpty()) txHash = "tx_cli";
-
-        Map<String, Object> cmd = createDnsCommandMap("CREATE", name, typeStr, value, ttl, ownerBase64, txHash);
-        try {
-            Record resp = dnsClient.sendCommand(cmd, origin);
-            if (resp == null) ConsolePrinter.printInfo("No answer returned from server.");
-            else ConsolePrinter.printInfo("Server response: " + resp.rdataToString());
-        } catch (Exception e) {
-            ConsolePrinter.printFail("Create record failed: " + e.getMessage());
-        }
-    }
-
-    private void dnsLookup() {
-        if (dnsClient == null) { ConsolePrinter.printWarning("DNS client not configured. Configure DNS server first."); return; }
-        String name = readLine("Enter domain name (e.g. a-host-01.example.com): ");
-        String typeStr = readLine("Enter record type (A, AAAA, TXT, MX, ANY) [A]: ");
-        if (typeStr == null || typeStr.isEmpty()) typeStr = "A";
-        int type = Type.value(typeStr.toUpperCase(Locale.ROOT));
-        try {
-            Record[] rr = dnsClient.lookup(name, type);
-            if (rr == null || rr.length == 0) { ConsolePrinter.printInfo("No records found."); return; }
-            ConsolePrinter.printInfo("Lookup returned " + rr.length + " record(s):");
-            for (Record r : rr) System.out.println(" - " + r);
-        } catch (TextParseException tpe) {
-            ConsolePrinter.printFail("Invalid name: " + tpe.getMessage());
-        } catch (Exception e) {
-            ConsolePrinter.printFail("Lookup failed: " + e.getMessage());
-        }
-    }
-
-    private void dnsReverseLookup() {
-        if (dnsClient == null) { ConsolePrinter.printWarning("DNS client not configured. Configure DNS server first."); return; }
-        String ip = readLine("Enter IP address to reverse lookup (IPv4/IPv6): ");
-        try {
-            Record[] rr = dnsClient.reverseLookup(ip);
-            if (rr == null || rr.length == 0) { ConsolePrinter.printInfo("No PTR records found."); return; }
-            ConsolePrinter.printInfo("Reverse lookup returned " + rr.length + " record(s):");
-            for (Record r : rr) System.out.println(" - " + r);
-        } catch (Exception e) {
-            ConsolePrinter.printFail("Reverse lookup failed: " + e.getMessage());
-        }
-    }
-
-    private void dnsSendRawCommand() {
-        if (dnsClient == null) { ConsolePrinter.printWarning("DNS client not configured. Configure DNS server first."); return; }
-        String origin = readLine("Enter zone/origin (e.g. example.com.): ");
-        String action = readLine("Enter action (CREATE / UPDATE / DELETE): ").toUpperCase(Locale.ROOT);
-        String name = readLine("Enter full record name (e.g. a-host-01.example.com.): ");
-        if (!name.endsWith(".")) name = name + ".";
-        String typeStr = readLine("Enter record type (A, AAAA, TXT, MX, PTR, etc) [A]: ");
-        if (typeStr == null || typeStr.isEmpty()) typeStr = "A";
-        typeStr = typeStr.toUpperCase(Locale.ROOT);
-        String value = readLine("Enter record value (IP for A/AAAA, text for TXT, target for PTR/CNAME): ");
-        String ttlStr = readLine("Enter TTL in seconds [300]: ");
-        long ttl;
-        try { ttl = ttlStr.isEmpty() ? 300L : Long.parseLong(ttlStr); } catch (NumberFormatException e) { ConsolePrinter.printWarning("Invalid TTL, using default 300."); ttl = 300L; }
-        String ownerBase64 = readLine("Enter ownerBase64 (or leave empty): ");
-        String txHash = readLine("Enter transaction hash (or leave empty for default tx_cli_raw): ");
-        if (txHash.isEmpty()) txHash = "tx_cli_raw";
-
-        Map<String, Object> cmd = createDnsCommandMap(action, name, typeStr, value, ttl, ownerBase64, txHash);
-        try {
-            Record resp = dnsClient.sendCommand(cmd, origin);
-            if (resp == null) ConsolePrinter.printInfo("No answer returned from server.");
-            else ConsolePrinter.printInfo("Server response: " + resp.rdataToString());
-        } catch (Exception e) {
-            ConsolePrinter.printFail("sendCommand failed: " + e.getMessage());
-        }
-    }
-
-    private Map<String, Object> createDnsCommandMap(String action, String name, String type, String value, long ttl, String ownerBase64, String transactionHash) {
-        Map<String, Object> cmd = new LinkedHashMap<>();
-        cmd.put("action", action);
-        cmd.put("name", name);
-        cmd.put("type", type);
-        cmd.put("value", value);
-        cmd.put("ttl", ttl);
-        cmd.put("ownerBase64", ownerBase64 == null ? "" : ownerBase64);
-        cmd.put("transactionHash", transactionHash == null ? "tx_cli" : transactionHash);
-        return cmd;
-    }
-
-    /* -------------------------
-     * Pretty printing, helpers
-     * ------------------------- */
-
+//    private void dnsCreateRecord() {
+//        if (dnsClient == null) {
+//            ConsolePrinter.printWarning("DNS client not configured. Configure DNS server first.");
+//            return;
+//        }
+//
+//        String origin = readLine("Enter zone/origin (e.g. example.com.): ");
+//        String name = readLine("Enter full record name (e.g. a-host-01.example.com.): ");
+//        if (!name.endsWith(".")) name = name + ".";
+//        String typeStr = readLine("Enter record type (A, AAAA, TXT, MX, PTR, etc) [A]: ");
+//        if (typeStr == null || typeStr.isEmpty()) typeStr = "A";
+//        typeStr = typeStr.toUpperCase(Locale.ROOT);
+//        String value = readLine("Enter record value (IP for A/AAAA, text for TXT, target for PTR/CNAME): ");
+//        String ttlStr = readLine("Enter TTL in seconds [300]: ");
+//        long ttl;
+//        try { ttl = ttlStr.isEmpty() ? 300L : Long.parseLong(ttlStr); } catch (NumberFormatException e) { ConsolePrinter.printWarning("Invalid TTL, using default 300."); ttl = 300L; }
+//        String ownerBase64 = readLine("Enter ownerBase64 (or leave empty): ");
+//        String txHash = readLine("Enter transaction hash (or leave empty for default tx_cli): ");
+//        if (txHash.isEmpty()) txHash = "tx_cli";
+//
+//        Map<String, Object> cmd = createDnsCommandMap("CREATE", name, typeStr, value, ttl, ownerBase64, txHash);
+//        try {
+//            Record resp = dnsClient.sendCommand(cmd, origin);
+//            if (resp == null) ConsolePrinter.printInfo("No answer returned from server.");
+//            else ConsolePrinter.printInfo("Server response: " + resp.rdataToString());
+//        } catch (Exception e) {
+//            ConsolePrinter.printFail("Create record failed: " + e.getMessage());
+//        }
+//    }
+//
+//    private void dnsLookup() {
+//        if (dnsClient == null) { ConsolePrinter.printWarning("DNS client not configured. Configure DNS server first."); return; }
+//        String name = readLine("Enter domain name (e.g. a-host-01.example.com): ");
+//        String typeStr = readLine("Enter record type (A, AAAA, TXT, MX, ANY) [A]: ");
+//        if (typeStr == null || typeStr.isEmpty()) typeStr = "A";
+//        int type = Type.value(typeStr.toUpperCase(Locale.ROOT));
+//        try {
+//            Record[] rr = dnsClient.lookup(name, type);
+//            if (rr == null || rr.length == 0) { ConsolePrinter.printInfo("No records found."); return; }
+//            ConsolePrinter.printInfo("Lookup returned " + rr.length + " record(s):");
+//            for (Record r : rr) System.out.println(" - " + r);
+//        } catch (TextParseException tpe) {
+//            ConsolePrinter.printFail("Invalid name: " + tpe.getMessage());
+//        } catch (Exception e) {
+//            ConsolePrinter.printFail("Lookup failed: " + e.getMessage());
+//        }
+//    }
+//
+//    private void dnsReverseLookup() {
+//        if (dnsClient == null) { ConsolePrinter.printWarning("DNS client not configured. Configure DNS server first."); return; }
+//        String ip = readLine("Enter IP address to reverse lookup (IPv4/IPv6): ");
+//        try {
+//            Record[] rr = dnsClient.reverseLookup(ip);
+//            if (rr == null || rr.length == 0) { ConsolePrinter.printInfo("No PTR records found."); return; }
+//            ConsolePrinter.printInfo("Reverse lookup returned " + rr.length + " record(s):");
+//            for (Record r : rr) System.out.println(" - " + r);
+//        } catch (Exception e) {
+//            ConsolePrinter.printFail("Reverse lookup failed: " + e.getMessage());
+//        }
+//    }
+//
+//    private void dnsSendRawCommand() {
+//        if (dnsClient == null) { ConsolePrinter.printWarning("DNS client not configured. Configure DNS server first."); return; }
+//        String origin = readLine("Enter zone/origin (e.g. example.com.): ");
+//        String action = readLine("Enter action (CREATE / UPDATE / DELETE): ").toUpperCase(Locale.ROOT);
+//        String name = readLine("Enter full record name (e.g. a-host-01.example.com.): ");
+//        if (!name.endsWith(".")) name = name + ".";
+//        String typeStr = readLine("Enter record type (A, AAAA, TXT, MX, PTR, etc) [A]: ");
+//        if (typeStr == null || typeStr.isEmpty()) typeStr = "A";
+//        typeStr = typeStr.toUpperCase(Locale.ROOT);
+//        String value = readLine("Enter record value (IP for A/AAAA, text for TXT, target for PTR/CNAME): ");
+//        String ttlStr = readLine("Enter TTL in seconds [300]: ");
+//        long ttl;
+//        try { ttl = ttlStr.isEmpty() ? 300L : Long.parseLong(ttlStr); } catch (NumberFormatException e) { ConsolePrinter.printWarning("Invalid TTL, using default 300."); ttl = 300L; }
+//        String ownerBase64 = readLine("Enter ownerBase64 (or leave empty): ");
+//        String txHash = readLine("Enter transaction hash (or leave empty for default tx_cli_raw): ");
+//        if (txHash.isEmpty()) txHash = "tx_cli_raw";
+//
+//        Map<String, Object> cmd = createDnsCommandMap(action, name, typeStr, value, ttl, ownerBase64, txHash);
+//        try {
+//            Record resp = dnsClient.sendCommand(cmd, origin);
+//            if (resp == null) ConsolePrinter.printInfo("No answer returned from server.");
+//            else ConsolePrinter.printInfo("Server response: " + resp.rdataToString());
+//        } catch (Exception e) {
+//            ConsolePrinter.printFail("sendCommand failed: " + e.getMessage());
+//        }
+//    }
+//
+//    private Map<String, Object> createDnsCommandMap(String action, String name, String type, String value, long ttl, String ownerBase64, String transactionHash) {
+//        Map<String, Object> cmd = new LinkedHashMap<>();
+//        cmd.put("action", action);
+//        cmd.put("name", name);
+//        cmd.put("type", type);
+//        cmd.put("value", value);
+//        cmd.put("ttl", ttl);
+//        cmd.put("ownerBase64", ownerBase64 == null ? "" : ownerBase64);
+//        cmd.put("transactionHash", transactionHash == null ? "tx_cli" : transactionHash);
+//        return cmd;
+//    }
+//
+//    /* -------------------------
+//     * Pretty printing, helpers
+//     * ------------------------- */
+//
     public static void printNominationPretty(Nomination n) { printNominationPretty(n, -1); }
 
     public static void printNominationPretty(Nomination n, int index) {

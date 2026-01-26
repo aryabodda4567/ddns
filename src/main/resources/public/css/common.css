@@ -1,0 +1,111 @@
+:root {
+    --bg-main: #0f172a;
+    --bg-card: #020617;
+    --bg-input: #020617;
+    --border: #1e293b;
+    --text-main: #e5e7eb;
+    --text-muted: #94a3b8;
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --success-bg: #052e16;
+    --success-text: #86efac;
+    --error-bg: #2a0a0a;
+    --error-text: #fca5a5;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: system-ui, Arial, sans-serif;
+    background: var(--bg-main);
+    color: var(--text-main);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.card {
+    background: var(--bg-card);
+    padding: 24px;
+    border-radius: 12px;
+    width: 420px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+}
+
+h1, h2, h3 {
+    margin-top: 0;
+    text-align: center;
+}
+
+.form-group {
+    margin-top: 14px;
+}
+
+label {
+    display: block;
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+}
+
+input, textarea, select {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-input);
+    color: var(--text-main);
+    font-size: 14px;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 120px;
+    font-family: monospace;
+}
+
+input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+button {
+    width: 100%;
+    margin-top: 18px;
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    background: var(--primary);
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: var(--primary-hover);
+}
+
+.alert {
+    margin-top: 16px;
+    padding: 12px;
+    border-radius: 8px;
+    display: none;
+    white-space: pre-wrap;
+    font-size: 13px;
+}
+
+.alert.success {
+    background: var(--success-bg);
+    color: var(--success-text);
+    border: 1px solid #14532d;
+}
+
+.alert.error {
+    background: var(--error-bg);
+    color: var(--error-text);
+    border: 1px solid #7f1d1d;
+}

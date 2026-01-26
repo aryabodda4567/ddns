@@ -118,12 +118,52 @@ public class SignatureUtil {
     /**
      * A helper method to convert a private key string into PrivateKey object
      *
-     * @param key The Private key string to convert
+     * @param keyString The Private key string to convert
      * @return PrivateKey  Object
      */
-    public static PrivateKey getPrivateKeyFromString(String key) throws Exception {
-        byte[] keyBytes = Base64.getDecoder().decode(key);
-        KeyFactory keyFactory = KeyFactory.getInstance("ECDSA", "BC");
-        return keyFactory.generatePrivate(new PKCS8EncodedKeySpec(keyBytes));
+    public static PrivateKey getPrivateKeyFromString(String keyString) throws Exception {
+
+        String key = keyString.trim();
+
+        // Remove PEM armor if present
+        if (key.contains("BEGIN")) {
+            key = key
+                    .replaceAll("-----BEGIN ([A-Z ]*)-----", "")
+                    .replaceAll("-----END ([A-Z ]*)-----", "")
+                    .replaceAll("\\s", "");
+        } else {
+            // raw base64 → remove whitespace
+            key = key.replaceAll("\\s", "");
+        }
+
+        byte[] keyBytes;
+        try {
+            keyBytes = Base64.getDecoder().decode(key);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Private key is not valid Base64");
+        }
+
+        PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyBytes);
+
+
+        try {
+            KeyFactory kf = KeyFactory.getInstance("EC"); // or "EC", "BC"
+            return kf.generatePrivate(spec);
+        } catch (Exception ignored) {}
+
+        // Optional: support RSA too
+        try {
+            KeyFactory kf = KeyFactory.getInstance("RSA");
+            return kf.generatePrivate(spec);
+        } catch (Exception ignored) {}
+
+        // Optional: support DSA
+        try {
+            KeyFactory kf = KeyFactory.getInstance("DSA");
+            return kf.generatePrivate(spec);
+        } catch (Exception ignored) {}
+
+        throw new IllegalArgumentException("Unsupported or invalid private key format");
     }
+
 }

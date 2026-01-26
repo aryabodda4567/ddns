@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Vote</title>
+    <link rel="stylesheet" href="/css/common.css">
+</head>
+<body>
+
+<div class="card" style="width: 700px;">
+    <h2>Cast Your Vote</h2>
+
+    <div id="list"></div>
+
+    <button style="margin-top:16px;" onclick="submitVote()">Vote</button>
+
+    <div id="result" class="alert"></div>
+</div>
+
+<script>
+    let nominations = [];
+
+    async function loadNominations() {
+        const res = await fetch("/election/nominations");
+        const data = await res.json();
+
+        const list = document.getElementById("list");
+        list.innerHTML = "";
+
+        nominations = data.nominations;
+
+        nominations.forEach(n => {
+            const div = document.createElement("div");
+            div.className = "card";
+            div.style.marginBottom = "16px";
+            div.style.width = "100%";
+
+            div.innerHTML = `
+                <div style="display:flex; justify-content: space-between; align-items:center;">
+                    <b>Nomination #${n.index}</b>
+                    <input type="radio" name="vote" value="${n.index}">
+                </div>
+                <hr style="opacity:0.2">
+
+                ${kv("Node IP", n.nodeIp)}
+                ${kv("Role", n.role)}
+                ${kv("Vote Casted", n.vote)}
+                ${kv("Start Time", n.startTime)}
+                ${kv("Expire Time", n.expireTime)}
+                ${kv("Election Type", n.electionType)}
+                ${kv("Node Name", n.nodeName)}
+                ${kv("Description", n.description)}
+                ${kv("Public Key", shortKey(n.publicKey))}
+            `;
+
+            list.appendChild(div);
+        });
+    }
+
+    function kv(k, v) {
+        if (v === null || v === undefined) v = "";
+        v = String(v);
+        if (v.length > 60) v = v.substring(0, 57) + "...";
+
+        return `
+            <div style="display:flex; font-size:13px; margin-bottom:6px;">
+                <div style="width:140px; color:#94a3b8;">${k}</div>
+                <div style="flex:1; font-family: monospace;">${v}</div>
+            </div>
+        `;
+    }
+
+    function shortKey(k) {
+        if (!k) return "";
+        if (k.length < 30) return k;
+        return k.substring(0, 20) + "..." + k.substring(k.length - 20);
+    }
+
+    async function submitVote() {
+        const checked = document.querySelector("input[name='vote']:checked");
+        if (!checked) {
+            alert("Select a nomination");
+            return;
+        }
+
+        const res = await fetch("/election/vote", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ nominationIndex: parseInt(checked.value) })
+        });
+
+        const data = await res.json();
+
+        const box = document.getElementById("result");
+        if (data.error) {
+            box.className = "alert error";
+            box.textContent = data.error;
+        } else {
+            box.className = "alert success";
+            box.textContent = "Vote cast successfully!";
+
+        }
+        box.style.display = "block";
+    }
+
+    loadNominations();
+</script>
+
+</body>
+</html>

@@ -23,7 +23,7 @@ import org.ddns.util.ConsolePrinter;
 import org.ddns.util.ConversionUtil;
 import org.ddns.util.NetworkUtility;
 import org.ddns.util.TimeUtil;
-import org.ddns.web.WebHttpServer;
+
 
 import java.security.PublicKey;
 import java.util.*;
@@ -284,7 +284,7 @@ public class NodesManager implements MessageHandler {
      *
      * @throws Exception If public key or self-node config is missing.
      */
-    public void createAddNodeRequest() throws Exception {
+    public static void createAddNodeRequest() throws Exception {
         ConsolePrinter.printInfo("[NodesManager] Sending ADD_NODE request to Bootstrap...");
         sendBootstrapRequest(MessageType.ADD_NODE);
     }
@@ -314,7 +314,7 @@ public class NodesManager implements MessageHandler {
      *
      * @throws Exception If public key or bootstrap IP is missing.
      */
-    public void createFetchRequest() throws Exception {
+    public static void createFetchRequest() throws Exception {
         String bootstrapIp = DBUtil.getInstance().getBootstrapIp();
         if (bootstrapIp == null) {
             ConsolePrinter.printFail("[NodesManager] Cannot createFetchRequest: Bootstrap IP is not set.");
@@ -346,7 +346,7 @@ public class NodesManager implements MessageHandler {
      * @param type The MessageType of the request.
      * @throws Exception If bootstrap IP, self-node config, or keys are missing.
      */
-    private void sendBootstrapRequest(MessageType type) throws Exception {
+    private static void sendBootstrapRequest(MessageType type) throws Exception {
         String bootstrapIp = DBUtil.getInstance().getBootstrapIp();
         if (bootstrapIp == null) {
             ConsolePrinter.printFail("[NodesManager] Cannot send request: Bootstrap IP is not set.");
@@ -370,7 +370,7 @@ public class NodesManager implements MessageHandler {
     }
 //    This method send a request to genesis node to send sync data
 
-    public void createSyncRequest() {
+    public static void createSyncRequest() {
         Set<NodeConfig> nodeConfigSet = DBUtil.getInstance().getAllNodes();
         NodeConfig genesisNode = null;
         System.out.println(nodeConfigSet);
@@ -436,7 +436,7 @@ public class NodesManager implements MessageHandler {
         NodeDNSService.start();
 
         try{
-            WebHttpServer.start();
+
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -444,7 +444,7 @@ public class NodesManager implements MessageHandler {
 
     }
 
-    public void setupNormalNode(){
+    public static void setupNormalNode(){
         NodeConfig nodeConfig = DBUtil.getInstance().getSelfNode();
         nodeConfig.setRole(Role.NORMAL_NODE);
         DBUtil.getInstance().saveRole(Role.NORMAL_NODE);
@@ -461,7 +461,7 @@ public class NodesManager implements MessageHandler {
         NodeDNSService.configure("0.0.0.0", "example.com.", 64);
         NodeDNSService.start();
         try{
-            WebHttpServer.start();
+
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -487,7 +487,7 @@ public class NodesManager implements MessageHandler {
         NodeDNSService.configure("0.0.0.0", "example.com.", 64);
         NodeDNSService.start();
         try{
-            WebHttpServer.start();
+
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

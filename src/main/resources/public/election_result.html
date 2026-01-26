@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Election Result</title>
+    <link rel="stylesheet" href="/css/common.css">
+</head>
+<body>
+
+<div class="card">
+    <h2>Election Result</h2>
+
+    <div class="form-group">
+        <label>Password</label>
+        <input id="password" type="password">
+    </div>
+
+    <button onclick="checkResult()">Check Result</button>
+
+    <div id="result" class="alert"></div>
+</div>
+
+<script>
+    async function checkResult() {
+        const password = document.getElementById("password").value;
+
+        const res = await fetch("/election/result", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ password })
+        });
+
+        const data = await res.json();
+
+        const box = document.getElementById("result");
+
+        if (data.error) {
+            box.className = "alert error";
+            box.textContent = data.error;
+        } else if (data.accepted === true) {
+            box.className = "alert success";
+            box.textContent = " Accepted to network!";
+            setTimeout(() => location.href = "/home.html", 1500);
+        } else {
+            box.className = "alert error";
+            box.textContent = "Rejected by network";
+        }
+
+        box.style.display = "block";
+    }
+</script>
+
+</body>
+</html>

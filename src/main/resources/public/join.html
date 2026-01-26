@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Join Node</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/css/common.css">
+</head>
+<body>
+
+<div class="card">
+    <h2>Join Node</h2>
+
+    <div class="form-group">
+        <label>Bootstrap IP / Host</label>
+        <input id="bootstrapIp" placeholder="192.168.1.10 or node.example.com">
+    </div>
+
+    <div class="form-group">
+        <label>Private Key (PEM / Base64)</label>
+        <textarea id="privateKey" placeholder="-----BEGIN PRIVATE KEY-----"></textarea>
+    </div>
+
+    <button id="joinBtn" onclick="join()">Join Network</button>
+
+    <div id="result" class="alert"></div>
+
+    <!-- Success Area -->
+    <div id="successBox" style="display:none; margin-top: 16px;">
+        <div class="alert success" style="display:block;">
+            ✅ Node configured successfully.
+        </div>
+
+        <div style="margin-top:10px; font-size: 13px; color: #94a3b8;">
+            Public Key:
+            <div id="pubKeyShort" style="margin-top:4px; font-family: monospace; color:#e5e7eb;"></div>
+        </div>
+
+        <button style="margin-top:16px;" onclick="goNext()">Next</button>
+    </div>
+</div>
+
+<script>
+    let joined = false;
+
+    async function join() {
+        const bootstrapIp = document.getElementById("bootstrapIp").value.trim();
+        const privateKey = document.getElementById("privateKey").value.trim();
+        const resultBox = document.getElementById("result");
+        const successBox = document.getElementById("successBox");
+
+        resultBox.style.display = "none";
+        successBox.style.display = "none";
+
+        if (!bootstrapIp || !privateKey) {
+            showError("Please fill all fields");
+            return;
+        }
+
+        try {
+            const res = await fetch("/join", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ bootstrapIp, privateKey })
+            });
+
+            const text = await res.text();
+
+            if (!res.ok) {
+                showError(text);
+                return;
+            }
+
+            const data = JSON.parse(text);
+
+            showSuccess(data.publicKey);
+            joined = true;
+
+        } catch (e) {
+            showError("Connection failed: " + e.message);
+        }
+
+        function showError(msg) {
+            resultBox.className = "alert error";
+            resultBox.style.display = "block";
+            resultBox.textContent = msg;
+        }
+
+        function showSuccess(publicKey) {
+            const shortKey = shortenKey(publicKey);
+
+            document.getElementById("pubKeyShort").textContent = shortKey;
+
+            successBox.style.display = "block";
+            resultBox.style.display = "none";
+
+            // Disable join button
+            document.getElementById("joinBtn").disabled = true;
+        }
+    }
+
+    function shortenKey(pk) {
+        if (!pk) return "";
+        if (pk.length < 30) return pk;
+        return pk.substring(0, 12) + "..." + pk.substring(pk.length - 12);
+    }
+
+    async function goNext() {
+        try {
+            const res = await fetch("/checkfetchresult");
+            const data = await res.json();
+
+            if (data.election === true) {
+                window.location.href = "/create_election.html";
+            } else {
+                window.location.href = "/home.html";
+            }
+        } catch (e) {
+            alert("Failed to check next step: " + e.message);
+        }
+    }
+</script>
+
+</body>
+</html>
