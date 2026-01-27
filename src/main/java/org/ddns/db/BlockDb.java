@@ -107,10 +107,10 @@ public final class BlockDb {
     /**
      * Inserts a block into the database.
      */
-    public void insertBlock(Block block ) {
+    public boolean insertBlock(Block block ) {
         if (block == null) {
             ConsolePrinter.printFail("[BlockDb] insertBlock failed: block is null.");
-            return;
+            return false;
         }
 
 
@@ -120,7 +120,7 @@ public final class BlockDb {
             txJson = (txs == null) ? null : ConversionUtil.toJson(txs);
         } catch (Exception e) {
             ConsolePrinter.printFail("[BlockDb] insertBlock: failed to serialize transactions: " + e.getMessage());
-            return;
+            return false;
         }
 
         Callable<Boolean> task = () -> {
@@ -172,7 +172,10 @@ public final class BlockDb {
             f.get();
         } catch (Exception e) {
             ConsolePrinter.printFail("[BlockDb] insertBlock writer failure: " + e.getMessage());
+            return  false;
         }
+        return true;
+
     }
 
     /**

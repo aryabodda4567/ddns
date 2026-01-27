@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create DNS Record</title>
+    <link rel="stylesheet" href="/css/common.css">
+</head>
+<body>
+
+<div class="card">
+    <h2>Create DNS Record</h2>
+
+    <div class="form-group">
+        <label>Zone / Origin</label>
+        <input id="origin" placeholder="example.com.">
+    </div>
+
+    <div class="form-group">
+        <label>Record Name</label>
+        <input id="name" placeholder="a.example.com.">
+    </div>
+
+    <div class="form-group">
+        <label>Type</label>
+        <input id="type" placeholder="A">
+    </div>
+
+    <div class="form-group">
+        <label>Value</label>
+        <input id="value" placeholder="1.2.3.4">
+    </div>
+
+    <div class="form-group">
+        <label>TTL</label>
+        <input id="ttl" type="number" value="300">
+    </div>
+
+    <button onclick="createRecord()">Create</button>
+
+    <div id="result" class="alert"></div>
+</div>
+
+<script>
+    async function createRecord() {
+        const origin = document.getElementById("origin").value.trim();
+        const name = document.getElementById("name").value.trim();
+        const type = document.getElementById("type").value.trim();
+        const value = document.getElementById("value").value.trim();
+        const ttl = parseInt(document.getElementById("ttl").value);
+
+        const resultBox = document.getElementById("result");
+        resultBox.style.display = "none";
+
+        if (!origin || !name || !type || !value) {
+            showError("All fields are required");
+            return;
+        }
+
+        const body = {
+            origin: origin,
+            name: name,
+            type: type,
+            value: value,
+            ttl: ttl
+        };
+
+        try {
+            const res = await fetch("/dns/create", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(body)
+            });
+
+            const data = await res.json();
+
+            if (data.error) {
+                showError(data.error);
+            } else {
+                showSuccess("Record created successfully!");
+            }
+
+        } catch (e) {
+            showError("Request failed: " + e.message);
+        }
+
+        function showError(msg) {
+            resultBox.className = "alert error";
+            resultBox.textContent = msg;
+            resultBox.style.display = "block";
+        }
+
+        function showSuccess(msg) {
+            resultBox.className = "alert success";
+            resultBox.textContent = msg;
+            resultBox.style.display = "block";
+        }
+    }
+</script>
+
+</body>
+</html>

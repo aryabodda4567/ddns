@@ -2,21 +2,20 @@ package org.ddns.web;
 
 import com.google.gson.Gson;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.ddns.governance.Election;
 import org.ddns.web.services.config.BootstrapHandler;
 import org.ddns.web.services.config.JoiningHandler;
+import org.ddns.web.services.dns.DnsWebHandler;
 import org.ddns.web.services.election.ElectionHandler;
 
 import java.security.Security;
 
 import static spark.Spark.*;
 
-public class Server {
+public class WebServer {
 
     private static final Gson gson = new Gson();
     private static final JoiningHandler joiningHandler = new JoiningHandler();
     private static final BootstrapHandler bootstrapHandler = new BootstrapHandler();
-
 
 
     public static void start() {
@@ -51,8 +50,19 @@ public class Server {
         post("/election/result", electionHandler::electionResult, gson::toJson);
 
 
-    }
+        DnsWebHandler dnsHandler = new DnsWebHandler();
 
+        post("/dns/create", dnsHandler::create, gson::toJson);
+        post("/dns/delete", dnsHandler::delete, gson::toJson);
+        post("/dns/update", dnsHandler::update, gson::toJson);
+
+
+        get("/dns/lookup", dnsHandler::lookup, gson::toJson);
+        get("/dns/reverse", dnsHandler::reverse, gson::toJson);
+        get("/dns/status", dnsHandler::status, gson::toJson);
+
+
+    }
 
 
     public static void main(String[] args) {

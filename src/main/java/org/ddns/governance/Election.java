@@ -14,13 +14,15 @@ import org.ddns.util.ConversionUtil;
 import org.ddns.util.NetworkUtility;
 import org.ddns.util.TimeUtil;
 
+import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import org.ddns.db.*;
+import java.util.*;
 
 import static org.ddns.Main.ELECTION_PASSWORD;
-import static org.ddns.Main.hashPassword;
 
 /**
  * Election lifecycle manager.
@@ -478,5 +480,21 @@ public class Election implements MessageHandler {
 
         return ELECTION_CREATED;
 
+    }
+    public static String hashPassword(char[] password) {
+        try {
+            byte[] bytes = new String(password).getBytes("UTF-8");
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] digest = md.digest(bytes);
+            Arrays.fill(bytes, (byte) 0);
+            return bytesToHex(digest);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to hash password", e);
+        }
+    }
+    private static String bytesToHex(byte[] bytes) {
+        StringBuilder sb = new StringBuilder(bytes.length * 2);
+        for (byte b : bytes) sb.append(String.format("%02x", b & 0xff));
+        return sb.toString();
     }
 }

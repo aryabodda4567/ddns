@@ -1,9 +1,10 @@
 package org.ddns.tests;
 
-import org.ddns.dns.DNSClient;
-import org.ddns.dns.DNSHandler;
-import org.ddns.dns.DNSServer;
-import org.ddns.dns.InMemoryDNSPersistence;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.ddns.db.BlockDb;
+import org.ddns.db.DNSDb;
+import org.ddns.db.TransactionDb;
+import org.ddns.dns.*;
 import org.ddns.util.ConsolePrinter;
 import org.xbill.DNS.DClass;
 import org.xbill.DNS.Lookup;
@@ -17,6 +18,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.Security;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -41,12 +43,15 @@ public class DNSTest {
     private static final AtomicInteger totalTests = new AtomicInteger(0);
     private static final List<Map<String, Object>> testResults = Collections.synchronizedList(new ArrayList<>());
     private static int serverPort;
-    private static DNSServer server;
+
     private static DNSClient client;
 
     public static void main(String[] args) {
         ConsolePrinter.printInfo("=== Rigorous MANY-Test DNSServer Console Runner ===");
-
+        Security.addProvider(new BouncyCastleProvider());
+        DNSTest dnsTest = new DNSTest();
+        dnsTest.test();
+        System.exit(0);
         // CLI flags
         boolean useExternal = false;
         String externalHost = null;
@@ -103,13 +108,13 @@ public class DNSTest {
 
                 InMemoryDNSPersistence persistence = new InMemoryDNSPersistence();
                 DNSHandler handler = new DNSHandler(persistence, ORIGIN);
-                server = new DNSServer(handler, "127.0.0.1", serverPort, serverPort, threads);
+
 
                 Thread serverThread = new Thread(() -> {
                     try {
-                        server.start();
+                        DNSServer.start();
                     } catch (Exception e) {
-                        ConsolePrinter.printFail("Server failed to start: " + e);
+                        ConsolePrinter.printFail("WebServer failed to start: " + e);
                         e.printStackTrace();
                     }
                 }, "dnstest-server-thread");
@@ -293,9 +298,9 @@ public class DNSTest {
             e.printStackTrace();
             failures.incrementAndGet();
         } finally {
-            if (server != null) {
+            if (DNSServer.get() != null) {
                 try {
-                    server.stop();
+                    DNSServer.stop();
                 } catch (Exception ignored) {
                 }
             }
@@ -425,4 +430,28 @@ public class DNSTest {
     private interface Check {
         boolean run() throws Exception;
     }
+
+
+    public void test(){
+        DNSServer.start();
+
+//        DNSServer.get().create(
+//                new DNSModel("example.com", RecordType.A, 300, "1.2.3.4", null, "txhash")
+//        );
+
+        List<DNSModel> res = DNSServer.get().lookup("example.com", RecordType.A);
+        System.out.println(res);
+
+      //  System.out.println(DNSServer.get().reverseLookup("1.2.3.4"));
+
+//        DNSServer.get().delete("example.com", RecordType.A, "1.2.3.4");
+        System.out.println(TransactionDb.getInstance().readTransactionByHash("bc2a07e338b189d7b811e755052d2eedc011285d41a378785bd7644f4cfa9d07"));
+        System.out.println(BlockDb.getInstance().readBlockByHash("a79337c9c09fd7a68cec6a6105fe9fa8e1cf7edb2e62e311dba7eea9605ebd0f"));
+
+
+
+
+
+    }
+
 }

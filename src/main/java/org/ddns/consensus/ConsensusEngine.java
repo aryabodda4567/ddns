@@ -4,6 +4,7 @@ import org.ddns.bc.Block;
 import org.ddns.bc.Transaction;
 import org.ddns.db.BlockDb;
 import org.ddns.db.DBUtil;
+import org.ddns.db.TransactionDb;
 import org.ddns.net.Message;
 import org.ddns.net.MessageHandler;
 import org.ddns.node.NodesManager;
@@ -112,7 +113,16 @@ public final class ConsensusEngine implements MessageHandler {
             return;
         }
 
-        BlockDb.getInstance().insertBlock(block);
+        boolean inserted = BlockDb.getInstance().insertBlock(block);
+
+        if (!inserted) {
+            return; // duplicate block, ignore
+        }
+
+        for (Transaction tx : block.getTransactions()) {
+            TransactionDb.getInstance().insertTransaction(List.of(tx));
+        }
+
         NodesManager.applyBlock(true);
         transactions.clear();
 
@@ -129,9 +139,17 @@ public final class ConsensusEngine implements MessageHandler {
 
         Block.publish(block);
 
-        // Apply locally
-        BlockDb.getInstance().insertBlock(block);
-        NodesManager.applyBlock(true);
+
+        boolean inserted = BlockDb.getInstance().insertBlock(block);
+
+        if (inserted) {
+            for (Transaction tx : block.getTransactions()) {
+                TransactionDb.getInstance().insertTransaction(List.of(tx));
+            }
+
+
+            NodesManager.applyBlock(true);
+        }
         transactions.clear();
 
         CircularQueue.getInstance().rotate();

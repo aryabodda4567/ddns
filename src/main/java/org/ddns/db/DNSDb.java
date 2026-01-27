@@ -98,19 +98,22 @@ public final class DNSDb implements DNSPersistence {
                         owner TEXT,
                         transaction_hash TEXT,
                         timestamp INTEGER,
-                        PRIMARY KEY (name_norm, type, rdata)
+                        PRIMARY KEY (name_norm, type)
                     );
                 """;
 
         String idxName = "CREATE INDEX IF NOT EXISTS idx_dns_name_norm ON dns_records(name_norm);";
         String idxType = "CREATE INDEX IF NOT EXISTS idx_dns_type ON dns_records(type);";
         String idxRdata = "CREATE INDEX IF NOT EXISTS idx_dns_rdata ON dns_records(rdata);";
+        String index ="CREATE INDEX IF NOT EXISTS idx_dns_name_type ON dns_records(name_norm, type);";
+
 
         try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
             stmt.execute(createTable);
             stmt.execute(idxName);
             stmt.execute(idxType);
             stmt.execute(idxRdata);
+            stmt.execute(index);
 
             // Migration: ensure timestamp column exists (for older DBs)
             boolean hasTimestamp = false;
@@ -171,15 +174,16 @@ public final class DNSDb implements DNSPersistence {
     @Override
     public synchronized boolean updateRecord(DNSModel record) {
         if (record == null || record.getName() == null) return false;
+
         String nameNorm = normalize(record.getName());
         String ownerStr = record.getOwner() == null ? null : SignatureUtil.getStringFromKey(record.getOwner());
         long ts = TimeUtil.getCurrentUnixTime();
 
         String updateSql = """
-                    UPDATE dns_records
-                    SET name = ?, ttl = ?, rdata = ?, owner = ?, transaction_hash = ?, timestamp = ?
-                    WHERE name_norm = ? AND type = ?;
-                """;
+        UPDATE dns_records
+        SET name = ?, ttl = ?, rdata = ?, owner = ?, transaction_hash = ?, timestamp = ?
+        WHERE name_norm = ? AND type = ?;
+    """;
 
         try (Connection conn = connect(); PreparedStatement ps = conn.prepareStatement(updateSql)) {
             ps.setString(1, record.getName());
@@ -192,33 +196,15 @@ public final class DNSDb implements DNSPersistence {
             ps.setInt(8, record.getType());
 
             int rows = ps.executeUpdate();
-            if (rows > 0) {
-                return true;
-            } else {
-                // Not present -> insert (upsert behaviour)
-                String insertSql = """
-                            INSERT INTO dns_records (name, name_norm, type, ttl, rdata, owner, transaction_hash, timestamp)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                            ON CONFLICT(name_norm, type, rdata) DO NOTHING;
-                        """;
-                try (PreparedStatement ips = conn.prepareStatement(insertSql)) {
-                    ips.setString(1, record.getName());
-                    ips.setString(2, nameNorm);
-                    ips.setInt(3, record.getType());
-                    ips.setLong(4, record.getTtl());
-                    ips.setString(5, record.getRdata());
-                    ips.setString(6, ownerStr);
-                    ips.setString(7, record.getTransactionHash());
-                    ips.setLong(8, ts);
-                    ips.executeUpdate();
-                    return true;
-                }
-            }
+
+            return rows > 0;
+
         } catch (SQLException e) {
             ConsolePrinter.printFail("[SqliteDNSPersistence] updateRecord failed: " + e.getMessage());
             return false;
         }
     }
+
 
     @Override
     public synchronized boolean deleteRecord(String name, int type, String rdata) {
@@ -630,6 +616,36 @@ public final class DNSDb implements DNSPersistence {
             return inserts;
         }
     }
+    /**
+     * Checks whether a DNS record already exists for given (name, type).
+     * Enforces uniqueness per (domain, record type).
+     *
+     * @param name domain name
+     * @param type DNS record type
+     * @return true if exists, false otherwise
+     */
+    public synchronized boolean exists(String name, int type) {
+        if (name == null) return false;
+
+        String nameNorm = normalize(name);
+        String sql = "SELECT 1 FROM dns_records WHERE name_norm = ? AND type = ? LIMIT 1;";
+
+        try (Connection conn = connect();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, nameNorm);
+            ps.setInt(2, type);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next(); // true if any row exists
+            }
+
+        } catch (SQLException e) {
+            ConsolePrinter.printFail("[SqliteDNSPersistence] exists(name,type) failed: " + e.getMessage());
+            return false;
+        }
+    }
+
 
 
 }

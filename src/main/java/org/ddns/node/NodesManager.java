@@ -28,7 +28,7 @@ import org.ddns.util.TimeUtil;
 import java.security.PublicKey;
 import java.util.*;
 
-import static org.ddns.Main.testTransaction;
+
 
 /**
  * Manages the node's view of the network.
@@ -552,20 +552,14 @@ public class NodesManager implements MessageHandler {
 
                     case REGISTER -> {
                         ok = persistence.addRecord(dnsModel);
-                        if (ok) {
-                            ConsolePrinter.printSuccess("[STATE] REGISTER applied: " + dnsModel.getName());
-                        } else {
-                            ConsolePrinter.printFail("[STATE] REGISTER failed (duplicate or invalid): " + dnsModel.getName());
-                        }
+                        if (ok) ConsolePrinter.printSuccess("[STATE] REGISTER applied: " + dnsModel.getName());
+                        else ConsolePrinter.printFail("[STATE] REGISTER failed: " + dnsModel.getName());
                     }
 
                     case UPDATE_RECORDS -> {
                         ok = persistence.updateRecord(dnsModel);
-                        if (ok) {
-                            ConsolePrinter.printSuccess("[STATE] UPDATE applied: " + dnsModel.getName());
-                        } else {
-                            ConsolePrinter.printFail("[STATE] UPDATE failed: " + dnsModel.getName());
-                        }
+                        if (ok) ConsolePrinter.printSuccess("[STATE] UPDATE applied: " + dnsModel.getName());
+                        else ConsolePrinter.printFail("[STATE] UPDATE failed: " + dnsModel.getName());
                     }
 
                     case DELETE_RECORDS -> {
@@ -574,17 +568,14 @@ public class NodesManager implements MessageHandler {
                                 dnsModel.getType(),
                                 dnsModel.getRdata()
                         );
-                        if (ok) {
-                            ConsolePrinter.printSuccess("[STATE] DELETE applied: " + dnsModel.getName());
-                        } else {
-                            ConsolePrinter.printFail("[STATE] DELETE failed (not found): " + dnsModel.getName());
-                        }
+                        if (ok) ConsolePrinter.printSuccess("[STATE] DELETE applied: " + dnsModel.getName());
+                        else ConsolePrinter.printFail("[STATE] DELETE failed: " + dnsModel.getName());
                     }
                 }
-
             }
         }
     }
+
 
 
 

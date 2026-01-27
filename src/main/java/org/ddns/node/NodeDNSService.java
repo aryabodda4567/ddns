@@ -60,13 +60,13 @@ public final class NodeDNSService {
             InMemoryDNSPersistence persistence = new InMemoryDNSPersistence();
             DNSHandler handler = new DNSHandler(persistence, origin);
 
-            server = new DNSServer(handler, bindIp, port, port, threads);
+
 
             Thread serverThread = new Thread(() -> {
                 try {
-                    server.start();
+                    DNSServer.start();
                 } catch (Exception e) {
-                    ConsolePrinter.printFail("[NodeDNS] DNS Server crashed: " + e.getMessage());
+                    ConsolePrinter.printFail("[NodeDNS] DNS WebServer crashed: " + e.getMessage());
                     e.printStackTrace();
                 }
             }, "node-dns-server");
@@ -77,7 +77,7 @@ public final class NodeDNSService {
             client = new DNSClient(bindIp, port);
 
             started = true;
-            ConsolePrinter.printSuccess("[NodeDNS] DNS Server & Client started");
+            ConsolePrinter.printSuccess("[NodeDNS] DNS WebServer & Client started");
 
         } catch (Exception e) {
             ConsolePrinter.printFail("[NodeDNS] Failed to start DNS services: " + e.getMessage());
@@ -96,7 +96,7 @@ public final class NodeDNSService {
     }
 
     /**
-     * Global DNS Server
+     * Global DNS WebServer
      */
     public static DNSServer getServer() {
         if (!started) {
@@ -112,7 +112,7 @@ public final class NodeDNSService {
         try {
             if (server != null) {
                 server.stop();
-                ConsolePrinter.printInfo("[NodeDNS] DNS Server stopped");
+                ConsolePrinter.printInfo("[NodeDNS] DNS WebServer stopped");
             }
         } catch (Exception e) {
             ConsolePrinter.printWarning("[NodeDNS] Failed to stop DNS server: " + e.getMessage());
