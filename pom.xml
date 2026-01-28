@@ -52,12 +52,14 @@
             <version>1.70</version>
         </dependency>
 
-        <!-- DNS Java -->
         <dependency>
             <groupId>dnsjava</groupId>
             <artifactId>dnsjava</artifactId>
             <version>3.6.0</version>
         </dependency>
+
+
+
 
         <!-- SQLite -->
         <dependency>

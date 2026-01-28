@@ -1,8 +1,7 @@
 package org.ddns.tests;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.ddns.node.NodeDNSService;
-import org.ddns.dns.DNSClient;
+
 import org.ddns.node.NodesManager;
 import org.ddns.util.ConsolePrinter;
 import org.xbill.DNS.Record;

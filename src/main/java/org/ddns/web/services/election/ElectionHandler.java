@@ -112,7 +112,7 @@ public class ElectionHandler {
     // ================================
     // Election Result
     // ================================
-    public Object electionResult(Request req, Response res) {
+    public Object electionResult(Request req, Response res) throws Exception {
 
         ElectionResultRequest body = Json.body(req, ElectionResultRequest.class);
 

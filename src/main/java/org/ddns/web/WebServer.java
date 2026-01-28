@@ -21,7 +21,7 @@ public class WebServer {
     public static void start() {
 
         port(8080);
-        ipAddress("127.0.0.1");
+        ipAddress("0.0.0.0");
         staticFiles.location("/public");
 
         exception(IllegalArgumentException.class, (e, req, res) -> {

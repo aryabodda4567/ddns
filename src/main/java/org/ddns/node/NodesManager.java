@@ -12,8 +12,7 @@ import org.ddns.db.BlockDb;
 import org.ddns.db.DBUtil;
 import org.ddns.db.DNSDb;
 import org.ddns.db.TransactionDb;
-import org.ddns.dns.DNSModel;
-import org.ddns.dns.DNSPersistence;
+import org.ddns.dns.*;
 import org.ddns.governance.Election;
 import org.ddns.net.Message;
 import org.ddns.net.MessageHandler;
@@ -25,6 +24,7 @@ import org.ddns.util.NetworkUtility;
 import org.ddns.util.TimeUtil;
 
 
+import javax.sound.sampled.Port;
 import java.security.PublicKey;
 import java.util.*;
 
@@ -41,6 +41,7 @@ import java.util.*;
 public class NodesManager implements MessageHandler {
 
     private final Election election;
+    private final static int PORT=53;
 
     /**
      * Registers this manager as a handler with the NetworkManager upon creation.
@@ -417,7 +418,7 @@ public class NodesManager implements MessageHandler {
 //
     }
 
-    public void setupGenesisNode(){
+    public void setupGenesisNode() throws Exception {
         NodeConfig nodeConfig = DBUtil.getInstance().getSelfNode();
 
         nodeConfig.setRole(Role.GENESIS);
@@ -432,8 +433,7 @@ public class NodesManager implements MessageHandler {
         }
 
         ConsensusSystem.start();
-        NodeDNSService.configure("0.0.0.0", "example.com.", 64);
-        NodeDNSService.start();
+        DNSService.start(PORT);
 
         try{
 
@@ -444,7 +444,7 @@ public class NodesManager implements MessageHandler {
 
     }
 
-    public static void setupNormalNode(){
+    public static void setupNormalNode() throws Exception {
         NodeConfig nodeConfig = DBUtil.getInstance().getSelfNode();
         nodeConfig.setRole(Role.NORMAL_NODE);
         DBUtil.getInstance().saveRole(Role.NORMAL_NODE);
@@ -458,8 +458,7 @@ public class NodesManager implements MessageHandler {
         }
 
         ConsensusSystem.start();
-        NodeDNSService.configure("0.0.0.0", "example.com.", 64);
-        NodeDNSService.start();
+        DNSService.start(PORT);
         try{
 
         } catch (Exception e) {
@@ -467,7 +466,7 @@ public class NodesManager implements MessageHandler {
         }
 
     }
-    public void setupLeaderNode(){
+    public void setupLeaderNode() throws Exception {
         NodeConfig nodeConfig = DBUtil.getInstance().getSelfNode();
         nodeConfig.setRole(Role.LEADER_NODE);
 
@@ -484,8 +483,7 @@ public class NodesManager implements MessageHandler {
         }
 
         ConsensusSystem.start();
-        NodeDNSService.configure("0.0.0.0", "example.com.", 64);
-        NodeDNSService.start();
+        DNSService.start(PORT);
         try{
 
         } catch (Exception e) {
