@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Delete DNS Record</title>
+    <link rel="stylesheet" href="/css/common.css">
+</head>
+<body>
+<div class="card">
+    <h2>Delete DNS Record</h2>
+
+    <input id="name" placeholder="test.example.com.">
+    <input id="type" placeholder="A">
+    <input id="rdata" placeholder="1.1.1.1">
+
+    <button onclick="del()">Delete</button>
+    <div id="result" class="alert"></div>
+</div>
+
+<script>
+    async function del(){
+        const body = {
+            name: document.getElementById("name").value.trim(),
+            type: document.getElementById("type").value.trim(),
+            rdata: document.getElementById("rdata").value.trim()
+        };
+
+        console.log("Sending:", body);
+
+        const res = await fetch("/dns/delete", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(body)
+        });
+
+        const json = await res.json();
+        show(json, res.ok);
+    }
+
+    function show(obj, ok){
+        const el = document.getElementById("result");
+        el.style.display = "block";
+        el.className = "alert " + (ok ? "success" : "error");
+        el.textContent = JSON.stringify(obj, null, 2);
+    }
+</script>
+</body>
+</html>

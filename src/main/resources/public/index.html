@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DDNS Control Panel</title>
+    <link rel="stylesheet" href="/css/common.css">
+</head>
+<body>
+<div class="card">
+    <h1>DDNS Control Panel</h1>
+
+    <button onclick="go('create.html')">Create Record</button>
+    <button onclick="go('update.html')">Update Record</button>
+    <button onclick="go('delete.html')">Delete Record</button>
+    <button onclick="go('lookup.html')">Lookup</button>
+    <button onclick="go('status.html')">Transaction Status</button>
+
+</div>
+
+<script>
+    function go(p){ location.href = p; }
+</script>
+</body>
+</html>

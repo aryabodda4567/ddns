@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DNS Lookup</title>
+    <link rel="stylesheet" href="/css/common.css">
+</head>
+<body>
+
+<div class="card">
+    <h2>DNS Lookup</h2>
+
+    <div class="form-group">
+        <label>Domain</label>
+        <input id="dnsName" placeholder="example.com">
+    </div>
+
+    <div class="form-group">
+        <label>Type (optional)</label>
+        <input id="dnsType" placeholder="A or AAAA or leave empty">
+    </div>
+
+    <button onclick="lookup()">Lookup</button>
+
+    <div id="result" class="alert"></div>
+</div>
+
+<script>
+    async function lookup() {
+        const nameEl = document.getElementById("dnsName");
+        const typeEl = document.getElementById("dnsType");
+        const resultEl = document.getElementById("result");
+
+        const name = nameEl.value.trim();
+        const type = typeEl.value.trim();
+
+        console.log("Name:", name);
+        console.log("Type:", type);
+
+        if (!name) {
+            show({ error: "Domain name is required" }, false);
+            return;
+        }
+
+        let url = "/dns/lookup?name=" + encodeURIComponent(name);
+        if (type) {
+            url += "&type=" + encodeURIComponent(type);
+        }
+
+        console.log("Request URL:", url);
+
+        try {
+            const res = await fetch(url);
+            const json = await res.json();
+            show(json, res.ok);
+        } catch (e) {
+            show({ error: "Network error: " + e.message }, false);
+        }
+    }
+
+    function show(obj, ok) {
+        const el = document.getElementById("result");
+        el.style.display = "block";
+        el.className = "alert " + (ok ? "success" : "error");
+        el.textContent = JSON.stringify(obj, null, 2);
+    }
+</script>
+
+</body>
+</html>

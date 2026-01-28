@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create DNS Record</title>
+    <link rel="stylesheet" href="/css/common.css">
+</head>
+<body>
+<div class="card">
+    <h2>Create DNS Record</h2>
+
+    <div class="form-group">
+        <label>Domain</label>
+        <input id="name" placeholder="example.com">
+    </div>
+
+    <div class="form-group">
+        <label>Type</label>
+        <select id="type">
+            <option value="1">A</option>
+            <option value="28">AAAA</option>
+            <option value="5">CNAME</option>
+            <option value="16">TXT</option>
+            <option value="2">NS</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>TTL</label>
+        <input id="ttl" type="number" value="300">
+    </div>
+
+    <div class="form-group">
+        <label>RDATA</label>
+        <input id="rdata" placeholder="1.2.3.4">
+    </div>
+
+    <button onclick="create()">Create</button>
+    <div id="result" class="alert"></div>
+</div>
+
+<script>
+    async function create(){
+    const name = document.getElementById('name').value;
+        const body = {
+            name: name,
+            type: parseInt(type.value),
+            ttl: parseInt(ttl.value),
+            rdata: rdata.value
+        };
+
+
+        const res = await fetch("/dns/create", {
+            method:"POST",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify(body)
+        });
+
+        const json = await res.json();
+        show(json, res.ok);
+    }
+
+    function show(obj, ok){
+        const el = document.getElementById("result");
+        el.style.display = "block";
+        el.className = "alert " + (ok ? "success" : "error");
+        el.textContent = JSON.stringify(obj, null, 2);
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Update DNS Record</title>
+    <link rel="stylesheet" href="/css/common.css">
+</head>
+<body>
+<div class="card">
+    <h2>Update DNS Record</h2>
+
+    <input id="name" placeholder="example.com">
+    <input id="type" placeholder="1 (A)">
+    <input id="ttl" type="number" placeholder="300">
+    <input id="rdata" placeholder="5.5.5.5">
+
+    <button onclick="update()">Update</button>
+    <div id="result" class="alert"></div>
+</div>
+
+<script>
+
+    async function update(){
+        const nameEl = document.getElementById("name");
+        const typeEl = document.getElementById("type");
+        const ttlEl = document.getElementById("ttl");
+        const rdataEl = document.getElementById("rdata");
+
+        const body = {
+            name: nameEl.value.trim(),
+            type: typeEl.value.trim(),   // send "A", not 1
+            ttl: parseInt(ttlEl.value),
+            rdata: rdataEl.value.trim()
+        };
+
+        console.log("Sending:", body); // DEBUG
+
+        const res = await fetch("/dns/update", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(body)
+        });
+
+        const json = await res.json();
+        show(json, res.ok);
+    }
+
+    function show(obj, ok){
+        const el = document.getElementById("result");
+        el.style.display = "block";
+        el.className = "alert " + (ok ? "success" : "error");
+        el.textContent = JSON.stringify(obj, null, 2);
+    }
+
+
+</script>
+</body>
+</html>

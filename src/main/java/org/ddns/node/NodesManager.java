@@ -433,6 +433,7 @@ public class NodesManager implements MessageHandler {
         }
 
         ConsensusSystem.start();
+        DNSServer.start();
         DNSService.start(PORT);
 
         try{
@@ -458,6 +459,7 @@ public class NodesManager implements MessageHandler {
         }
 
         ConsensusSystem.start();
+        DNSServer.start();
         DNSService.start(PORT);
         try{
 
@@ -483,6 +485,7 @@ public class NodesManager implements MessageHandler {
         }
 
         ConsensusSystem.start();
+        DNSServer.start();
         DNSService.start(PORT);
         try{
 
