@@ -228,6 +228,11 @@ public class BootstrapNode implements MessageHandler {
                     ConversionUtil.toJson(nodeConfig)
             );
 
+            // Update the queue
+            int next = BootstrapDB.getInstance().getNextQueueSequence();
+            QueueNode queueNode = new QueueNode(nodeConfig, next);
+            BootstrapDB.getInstance().insertQueueNode(queueNode);
+
             // Use the provided list, not a fresh DB call
 
             NetworkManager.broadcast(
@@ -235,6 +240,26 @@ public class BootstrapNode implements MessageHandler {
                     nodesToBroadcastTo, // Use the list passed in
                     Set.of(Role.GENESIS, Role.LEADER_NODE, Role.NORMAL_NODE) // Target roles
             );
+
+
+
+
+            //            Broadcast queue update
+            if(nodeConfig.getRole().equals(Role.GENESIS) || nodeConfig.getRole().equals(Role.LEADER_NODE))
+            {
+                Set<QueueNode> queueNodeSet = BootstrapDB.getInstance().getAllQueueNodes();
+                Message message1 = new Message(
+                        MessageType.QUEUE_UPDATE,
+                        NetworkUtility.getLocalIpAddress(),
+                        null,
+                        ConversionUtil.toJson(queueNodeSet)
+                );
+
+                NetworkManager.broadcast(ConversionUtil.toJson(message1),
+                        BootstrapDB.getInstance().getAllNodes(),
+                        Set.of(Role.LEADER_NODE,Role.NORMAL_NODE,Role.GENESIS) );
+            }
+
         } catch (Exception e) {
             ConsolePrinter.printFail("[BootstrapNode] Failed to broadcast node update (" + type + "): " + e.getMessage());
         }

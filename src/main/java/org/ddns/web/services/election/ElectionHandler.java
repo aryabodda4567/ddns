@@ -25,13 +25,13 @@ public class ElectionHandler {
     public Object createJoinElection(Request req, Response res) {
 
         CreateElectionRequest body = Json.body(req, CreateElectionRequest.class);
-
+        ElectionType electionType = (body.electionType==0)?ElectionType.JOIN:ElectionType.PROMOTE;
         int result = Election.createElection(
                 body.password,
                 body.nodeName,
                 body.timeMinutes,
                 body.description,
-                ElectionType.JOIN
+                electionType
         );
 
         if (result == Election.INVALID_INPUT) {
