@@ -5,43 +5,137 @@
     <link rel="stylesheet" href="/css/common.css">
 </head>
 <body>
+
 <div class="card">
     <h2>Delete DNS Record</h2>
 
-    <input id="name" placeholder="test.example.com.">
-    <input id="type" placeholder="A">
-    <input id="rdata" placeholder="1.1.1.1">
+    <div class="form-group">
+        <label>Domain</label>
+        <input id="name" placeholder="test.example.com">
+    </div>
 
-    <button onclick="del()">Delete</button>
-    <div id="result" class="alert"></div>
+    <div class="form-group">
+        <label>Type</label>
+        <select id="type">
+            <option value="1">A</option>
+            <option value="28">AAAA</option>
+            <option value="5">CNAME</option>
+            <option value="16">TXT</option>
+            <option value="2">NS</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>RDATA</label>
+        <input id="rdata" placeholder="1.1.1.1">
+    </div>
+
+    <button onclick="deleteRecord()">Delete</button>
+
+    <div id="result"></div>
 </div>
 
 <script>
-    async function del(){
-        const body = {
+    /* ========== SMART JSON RENDERER ========== */
+    function renderJSON(obj, container) {
+        for (let key in obj) {
+            const value = obj[key];
+
+            const row = document.createElement("div");
+            row.className = "kv";
+
+            const k = document.createElement("div");
+            k.className = "key";
+            k.textContent = key;
+
+            const v = document.createElement("div");
+
+            if (typeof value === "object" && value !== null) {
+                const nested = document.createElement("div");
+                nested.className = "nested";
+                renderJSON(value, nested);
+                v.appendChild(nested);
+            } else {
+                v.textContent = value;
+            }
+
+            row.appendChild(k);
+            row.appendChild(v);
+            container.appendChild(row);
+        }
+    }
+
+    function showMessage(obj, ok) {
+        const result = document.getElementById("result");
+        result.innerHTML = "";
+
+        const box = document.createElement("div");
+        box.className = "alert " + (ok ? "success" : "error");
+        box.style.display = "block";
+
+        if (typeof obj === "object") {
+            renderJSON(obj, box);
+        } else {
+            box.textContent = obj;
+        }
+
+        result.appendChild(box);
+    }
+
+    /* ========== VALIDATION ========== */
+    function isValidDomain(domain) {
+        return /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(domain);
+    }
+
+    function validateDelete(data) {
+        if (!data.name)
+            return "Domain name is required";
+
+        if (!isValidDomain(data.name))
+            return "Invalid domain format";
+
+        if (!data.rdata)
+            return "RDATA value is required";
+
+        return null;
+    }
+
+    /* ========== API CALL ========== */
+    async function deleteRecord() {
+        const data = {
             name: document.getElementById("name").value.trim(),
-            type: document.getElementById("type").value.trim(),
+            type: parseInt(document.getElementById("type").value),
             rdata: document.getElementById("rdata").value.trim()
         };
 
-        console.log("Sending:", body);
+        // Client-side validation
+        const error = validateDelete(data);
+        if (error) {
+            showMessage({ error: error }, false);
+            return;
+        }
 
-        const res = await fetch("/dns/delete", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify(body)
-        });
+        try {
+            const res = await fetch("/dns/delete", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            });
 
-        const json = await res.json();
-        show(json, res.ok);
-    }
+            const json = await res.json();
 
-    function show(obj, ok){
-        const el = document.getElementById("result");
-        el.style.display = "block";
-        el.className = "alert " + (ok ? "success" : "error");
-        el.textContent = JSON.stringify(obj, null, 2);
+            if (!res.ok || json.error) {
+                showMessage(json, false);
+                return;
+            }
+
+            showMessage(json, true);
+
+        } catch (err) {
+            showMessage({ error: "Server not reachable", details: err.toString() }, false);
+        }
     }
 </script>
+
 </body>
 </html>

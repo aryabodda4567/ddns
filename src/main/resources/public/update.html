@@ -5,53 +5,156 @@
     <link rel="stylesheet" href="/css/common.css">
 </head>
 <body>
+
 <div class="card">
     <h2>Update DNS Record</h2>
 
-    <input id="name" placeholder="example.com">
-    <input id="type" placeholder="1 (A)">
-    <input id="ttl" type="number" placeholder="300">
-    <input id="rdata" placeholder="5.5.5.5">
+    <div class="form-group">
+        <label>Domain</label>
+        <input id="name" placeholder="example.com">
+    </div>
 
-    <button onclick="update()">Update</button>
-    <div id="result" class="alert"></div>
+    <div class="form-group">
+        <label>Type</label>
+        <select id="type">
+            <option value="1">A</option>
+            <option value="28">AAAA</option>
+            <option value="5">CNAME</option>
+            <option value="16">TXT</option>
+            <option value="2">NS</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>TTL</label>
+        <input id="ttl" type="number" value="300">
+    </div>
+
+    <div class="form-group">
+        <label>RDATA</label>
+        <input id="rdata" placeholder="5.5.5.5">
+    </div>
+
+    <button onclick="updateRecord()">Update</button>
+
+    <div id="result"></div>
 </div>
 
 <script>
+    /* ========== SMART JSON RENDERER ========== */
+    function renderJSON(obj, container) {
+        for (let key in obj) {
+            const value = obj[key];
 
-    async function update(){
-        const nameEl = document.getElementById("name");
-        const typeEl = document.getElementById("type");
-        const ttlEl = document.getElementById("ttl");
-        const rdataEl = document.getElementById("rdata");
+            const row = document.createElement("div");
+            row.className = "kv";
 
-        const body = {
-            name: nameEl.value.trim(),
-            type: typeEl.value.trim(),   // send "A", not 1
-            ttl: parseInt(ttlEl.value),
-            rdata: rdataEl.value.trim()
+            const k = document.createElement("div");
+            k.className = "key";
+            k.textContent = key;
+
+            const v = document.createElement("div");
+
+            if (typeof value === "object" && value !== null) {
+                const nested = document.createElement("div");
+                nested.className = "nested";
+                renderJSON(value, nested);
+                v.appendChild(nested);
+            } else {
+                v.textContent = value;
+            }
+
+            row.appendChild(k);
+            row.appendChild(v);
+            container.appendChild(row);
+        }
+    }
+
+    function showMessage(obj, ok) {
+        const result = document.getElementById("result");
+        result.innerHTML = "";
+
+        const box = document.createElement("div");
+        box.className = "alert " + (ok ? "success" : "error");
+        box.style.display = "block";
+
+        if (typeof obj === "object") {
+            renderJSON(obj, box);
+        } else {
+            box.textContent = obj;
+        }
+
+        result.appendChild(box);
+    }
+
+    /* ========== VALIDATION ========== */
+    function isValidDomain(domain) {
+        return /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(domain);
+    }
+
+    function isValidIPv4(ip) {
+        return /^(\d{1,3}\.){3}\d{1,3}$/.test(ip);
+    }
+
+    function validateUpdate(data) {
+        if (!data.name)
+            return "Domain name is required";
+
+        if (!isValidDomain(data.name))
+            return "Invalid domain format. Example: example.com";
+
+        if (!Number.isInteger(data.ttl) || data.ttl <= 0)
+            return "TTL must be a positive number";
+
+        if (!data.rdata)
+            return "RDATA value is required";
+
+        // If type is A or AAAA, expect IP (your backend seems IPv4-focused)
+        if (data.type === 1 || data.type === 28) {
+            if (!isValidIPv4(data.rdata))
+                return "For A/AAAA record, RDATA must be a valid IP address";
+        }
+
+        return null;
+    }
+
+    /* ========== API CALL ========== */
+    async function updateRecord() {
+        const data = {
+            name: document.getElementById("name").value.trim(),
+            type: parseInt(document.getElementById("type").value),
+            ttl: parseInt(document.getElementById("ttl").value),
+            rdata: document.getElementById("rdata").value.trim()
         };
 
-        console.log("Sending:", body); // DEBUG
+        // Client-side validation
+        const error = validateUpdate(data);
+        if (error) {
+            showMessage({ error: error }, false);
+            return;
+        }
 
-        const res = await fetch("/dns/update", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify(body)
-        });
+        try {
+            const res = await fetch("/dns/update", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            });
 
-        const json = await res.json();
-        show(json, res.ok);
+            const json = await res.json();
+
+            if (!res.ok || json.error) {
+                showMessage(json, false);
+                return;
+            }
+
+            showMessage(json, true);
+
+        } catch (err) {
+            showMessage({ error: "Server not reachable", details: err.toString() }, false);
+        }
     }
-
-    function show(obj, ok){
-        const el = document.getElementById("result");
-        el.style.display = "block";
-        el.className = "alert " + (ok ? "success" : "error");
-        el.textContent = JSON.stringify(obj, null, 2);
-    }
-
-
 </script>
+
 </body>
 </html>

@@ -5,19 +5,26 @@
     <link rel="stylesheet" href="/css/common.css">
 </head>
 <body>
+
 <div class="card">
     <h1>DDNS Control Panel</h1>
 
-    <button onclick="go('create.html')">Create Record</button>
-    <button onclick="go('update.html')">Update Record</button>
-    <button onclick="go('delete.html')">Delete Record</button>
-    <button onclick="go('lookup.html')">Lookup</button>
-    <button onclick="go('status.html')">Transaction Status</button>
+    <p style="text-align:center; color: var(--text-muted); margin-bottom: 20px;">
+        Manage DNS records on your decentralized DNS network
+    </p>
 
+    <button onclick="go('create.html')">➕ Create Record</button>
+    <button onclick="go('update.html')">✏️ Update Record</button>
+    <button onclick="go('delete.html')">🗑️ Delete Record</button>
+    <button onclick="go('lookup.html')">🔍 Lookup Record</button>
+    <button onclick="go('status.html')">📦 Transaction Status</button>
 </div>
 
 <script>
-    function go(p){ location.href = p; }
+    function go(page) {
+        location.href = page;
+    }
 </script>
+
 </body>
 </html>

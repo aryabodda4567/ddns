@@ -21,9 +21,9 @@
         <textarea id="privateKey" placeholder="-----BEGIN PRIVATE KEY-----"></textarea>
     </div>
 
-    <button id="joinBtn" onclick="join()">Join Network</button>
+    <button id="joinBtn" onclick="joinNode()">Join Network</button>
 
-    <div id="result" class="alert"></div>
+    <div id="result"></div>
 
     <!-- Success Area -->
     <div id="successBox" style="display:none; margin-top: 16px;">
@@ -41,19 +41,84 @@
 </div>
 
 <script>
-    let joined = false;
+    /* ========== SMART JSON RENDERER ========== */
+    function renderJSON(obj, container) {
+        for (let key in obj) {
+            const value = obj[key];
 
-    async function join() {
-        const bootstrapIp = document.getElementById("bootstrapIp").value.trim();
-        const privateKey = document.getElementById("privateKey").value.trim();
+            const row = document.createElement("div");
+            row.className = "kv";
+
+            const k = document.createElement("div");
+            k.className = "key";
+            k.textContent = key;
+
+            const v = document.createElement("div");
+
+            if (typeof value === "object" && value !== null) {
+                const nested = document.createElement("div");
+                nested.className = "nested";
+                renderJSON(value, nested);
+                v.appendChild(nested);
+            } else {
+                v.textContent = value;
+            }
+
+            row.appendChild(k);
+            row.appendChild(v);
+            container.appendChild(row);
+        }
+    }
+
+    function showMessage(obj, ok) {
+        const result = document.getElementById("result");
+        result.innerHTML = "";
+
+        const box = document.createElement("div");
+        box.className = "alert " + (ok ? "success" : "error");
+        box.style.display = "block";
+
+        if (typeof obj === "object") {
+            renderJSON(obj, box);
+        } else {
+            box.textContent = obj;
+        }
+
+        result.appendChild(box);
+    }
+
+    /* ========== VALIDATION ========== */
+    function isValidHost(host) {
+        return host.length >= 3;
+    }
+
+    function validateJoin(data) {
+        if (!data.bootstrapIp || !isValidHost(data.bootstrapIp))
+            return "Bootstrap IP / Host is required";
+
+        if (!data.privateKey || data.privateKey.length < 20)
+            return "Private key is required (too short / invalid)";
+
+        return null;
+    }
+
+    /* ========== API CALL ========== */
+    async function joinNode() {
+        const data = {
+            bootstrapIp: document.getElementById("bootstrapIp").value.trim(),
+            privateKey: document.getElementById("privateKey").value.trim()
+        };
+
         const resultBox = document.getElementById("result");
         const successBox = document.getElementById("successBox");
 
-        resultBox.style.display = "none";
+        resultBox.innerHTML = "";
         successBox.style.display = "none";
 
-        if (!bootstrapIp || !privateKey) {
-            showError("Please fill all fields");
+        // Client-side validation
+        const error = validateJoin(data);
+        if (error) {
+            showMessage({ error: error }, false);
             return;
         }
 
@@ -61,50 +126,36 @@
             const res = await fetch("/join", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ bootstrapIp, privateKey })
+                body: JSON.stringify(data)
             });
 
-            const text = await res.text();
+            const json = await res.json();
 
-            if (!res.ok) {
-                showError(text);
+            if (!res.ok || json.error) {
+                showMessage(json, false);
                 return;
             }
 
-            const data = JSON.parse(text);
-
-            showSuccess(data.publicKey);
-            joined = true;
-
-        } catch (e) {
-            showError("Connection failed: " + e.message);
-        }
-
-        function showError(msg) {
-            resultBox.className = "alert error";
-            resultBox.style.display = "block";
-            resultBox.textContent = msg;
-        }
-
-        function showSuccess(publicKey) {
-            const shortKey = shortenKey(publicKey);
-
-            document.getElementById("pubKeyShort").textContent = shortKey;
-
+            // Success
+            document.getElementById("pubKeyShort").textContent = shortenKey(json.publicKey);
             successBox.style.display = "block";
-            resultBox.style.display = "none";
-
-            // Disable join button
             document.getElementById("joinBtn").disabled = true;
+
+            showMessage(json, true);
+
+        } catch (err) {
+            showMessage({ error: "Connection failed", details: err.toString() }, false);
         }
     }
 
+    /* ========== UTIL ========== */
     function shortenKey(pk) {
         if (!pk) return "";
         if (pk.length < 30) return pk;
         return pk.substring(0, 12) + "..." + pk.substring(pk.length - 12);
     }
 
+    /* ========== NEXT STEP ========== */
     async function goNext() {
         try {
             const res = await fetch("/checkfetchresult");

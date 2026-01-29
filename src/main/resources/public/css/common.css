@@ -109,3 +109,46 @@ button:hover {
     color: var(--error-text);
     border: 1px solid #7f1d1d;
 }
+
+
+.record {
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 15px;
+    margin: 10px 0;
+    background: #0f172a;
+    color: #e5e7eb;
+}
+
+.record h3 {
+    margin: 0 0 10px 0;
+    color: #38bdf8;
+}
+
+.kv {
+    display: grid;
+    grid-template-columns: 150px auto;
+    margin-bottom: 6px;
+}
+
+.key {
+    color: #94a3b8;
+}
+
+.nested {
+    margin-left: 15px;
+    border-left: 2px solid #334155;
+    padding-left: 10px;
+    margin-top: 5px;
+}
+
+.kv div {
+    word-break: break-all;
+    overflow-wrap: anywhere;
+}
+.card {
+    overflow-wrap: anywhere;
+}
+
+
+

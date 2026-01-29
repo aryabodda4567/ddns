@@ -11,41 +11,103 @@
 
     <div class="form-group">
         <label>Password</label>
-        <input id="password" type="password">
+        <input id="password" type="password" placeholder="Election password">
     </div>
 
     <button onclick="checkResult()">Check Result</button>
 
-    <div id="result" class="alert"></div>
+    <div id="result"></div>
 </div>
 
 <script>
-    async function checkResult() {
-        const password = document.getElementById("password").value;
+    /* ========== SMART JSON RENDERER ========== */
+    function renderJSON(obj, container) {
+        for (let key in obj) {
+            const value = obj[key];
 
-        const res = await fetch("/election/result", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({ password })
-        });
+            const row = document.createElement("div");
+            row.className = "kv";
 
-        const data = await res.json();
+            const k = document.createElement("div");
+            k.className = "key";
+            k.textContent = key;
 
-        const box = document.getElementById("result");
+            const v = document.createElement("div");
 
-        if (data.error) {
-            box.className = "alert error";
-            box.textContent = data.error;
-        } else if (data.accepted === true) {
-            box.className = "alert success";
-            box.textContent = " Accepted to network!";
-            setTimeout(() => location.href = "/home.html", 1500);
+            if (typeof value === "object" && value !== null) {
+                const nested = document.createElement("div");
+                nested.className = "nested";
+                renderJSON(value, nested);
+                v.appendChild(nested);
+            } else {
+                v.textContent = value;
+            }
+
+            row.appendChild(k);
+            row.appendChild(v);
+            container.appendChild(row);
+        }
+    }
+
+    function showMessage(obj, ok) {
+        const result = document.getElementById("result");
+        result.innerHTML = "";
+
+        const box = document.createElement("div");
+        box.className = "alert " + (ok ? "success" : "error");
+        box.style.display = "block";
+
+        if (typeof obj === "object") {
+            renderJSON(obj, box);
         } else {
-            box.className = "alert error";
-            box.textContent = "Rejected by network";
+            box.textContent = obj;
         }
 
-        box.style.display = "block";
+        result.appendChild(box);
+    }
+
+    /* ========== VALIDATION ========== */
+    function validatePassword(pw) {
+        if (!pw || pw.trim().length < 3)
+            return "Password is required (allowed only if length >= 3)";
+        return null;
+    }
+
+    /* ========== API CALL ========== */
+    async function checkResult() {
+        const password = document.getElementById("password").value.trim();
+
+        const error = validatePassword(password);
+        if (error) {
+            showMessage({ error: error }, false);
+            return;
+        }
+
+        try {
+            const res = await fetch("/election/result", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ password })
+            });
+
+            const json = await res.json();
+
+            if (!res.ok || json.error) {
+                showMessage(json, false);
+                return;
+            }
+
+            // If accepted
+            if (json.accepted === true) {
+                showMessage({ status: "Accepted to network", details: json }, true);
+                setTimeout(() => location.href = "/home.html", 1500);
+            } else {
+                showMessage({ status: "Rejected by network", details: json }, false);
+            }
+
+        } catch (err) {
+            showMessage({ error: "Server not reachable", details: err.toString() }, false);
+        }
     }
 </script>
 

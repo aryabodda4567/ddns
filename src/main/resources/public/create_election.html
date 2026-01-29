@@ -7,7 +7,7 @@
 <body>
 
 <div class="card">
-    <h2>Create Join Election</h2>
+    <h2>Create / Join Election</h2>
 
     <div class="form-group">
         <label>Password</label>
@@ -16,52 +16,123 @@
 
     <div class="form-group">
         <label>Node Name</label>
-        <input id="nodeName">
+        <input id="nodeName" placeholder="node-1">
     </div>
 
     <div class="form-group">
         <label>Time Limit (minutes)</label>
-        <input id="time" type="number">
+        <input id="time" type="number" placeholder="10">
     </div>
 
     <div class="form-group">
         <label>Description</label>
-        <textarea id="description"></textarea>
+        <textarea id="description" placeholder="Reason for election..."></textarea>
     </div>
 
     <button onclick="createElection()">Create Election</button>
 
-    <div id="result" class="alert"></div>
+    <div id="result"></div>
 </div>
 
 <script>
-    async function createElection() {
-        const body = {
-            password: document.getElementById("password").value,
-            nodeName: document.getElementById("nodeName").value,
-            timeMinutes: parseInt(document.getElementById("time").value),
-            description: document.getElementById("description").value
+    /* ========== SMART JSON RENDERER ========== */
+    function renderJSON(obj, container) {
+        for (let key in obj) {
+            const value = obj[key];
 
+            const row = document.createElement("div");
+            row.className = "kv";
+
+            const k = document.createElement("div");
+            k.className = "key";
+            k.textContent = key;
+
+            const v = document.createElement("div");
+
+            if (typeof value === "object" && value !== null) {
+                const nested = document.createElement("div");
+                nested.className = "nested";
+                renderJSON(value, nested);
+                v.appendChild(nested);
+            } else {
+                v.textContent = value;
+            }
+
+            row.appendChild(k);
+            row.appendChild(v);
+            container.appendChild(row);
+        }
+    }
+
+    function showMessage(obj, ok) {
+        const result = document.getElementById("result");
+        result.innerHTML = "";
+
+        const box = document.createElement("div");
+        box.className = "alert " + (ok ? "success" : "error");
+        box.style.display = "block";
+
+        if (typeof obj === "object") {
+            renderJSON(obj, box);
+        } else {
+            box.textContent = obj;
+        }
+
+        result.appendChild(box);
+    }
+
+    /* ========== VALIDATION ========== */
+    function validateElection(data) {
+        if (!data.password || data.password.length < 3)
+            return "Password is required (min 3 characters)";
+
+        if (!data.nodeName || data.nodeName.trim().length < 2)
+            return "Node name must be at least 2 characters";
+
+        if (!Number.isInteger(data.timeMinutes) || data.timeMinutes <= 0)
+            return "Time limit must be a positive number";
+
+        if (!data.description || data.description.trim().length < 5)
+            return "Description must be at least 5 characters";
+
+        return null;
+    }
+
+    /* ========== API CALL ========== */
+    async function createElection() {
+        const data = {
+            password: document.getElementById("password").value.trim(),
+            nodeName: document.getElementById("nodeName").value.trim(),
+            timeMinutes: parseInt(document.getElementById("time").value),
+            description: document.getElementById("description").value.trim()
         };
 
-        const res = await fetch("/election/create-join", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify(body)
-        });
-
-        const data = await res.json();
-
-        const box = document.getElementById("result");
-        if (data.error) {
-            box.className = "alert error";
-            box.textContent = data.error;
-        } else {
-            box.className = "alert success";
-            box.textContent = "Election created successfully!";
-
+        // Client-side validation
+        const error = validateElection(data);
+        if (error) {
+            showMessage({ error: error }, false);
+            return;
         }
-        box.style.display = "block";
+
+        try {
+            const res = await fetch("/election/create-join", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            });
+
+            const json = await res.json();
+
+            if (!res.ok || json.error) {
+                showMessage(json, false);
+                return;
+            }
+
+            showMessage(json, true);
+
+        } catch (err) {
+            showMessage({ error: "Server not reachable", details: err.toString() }, false);
+        }
     }
 </script>
 

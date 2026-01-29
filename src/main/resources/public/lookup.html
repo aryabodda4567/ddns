@@ -16,52 +16,164 @@
 
     <div class="form-group">
         <label>Type (optional)</label>
-        <input id="dnsType" placeholder="A or AAAA or leave empty">
+        <input id="dnsType" placeholder="A, AAAA, TXT, NS, CNAME or empty">
     </div>
 
-    <button onclick="lookup()">Lookup</button>
+    <button onclick="lookupDNS()">Lookup</button>
 
-    <div id="result" class="alert"></div>
+    <div id="result"></div>
 </div>
 
 <script>
-    async function lookup() {
-        const nameEl = document.getElementById("dnsName");
-        const typeEl = document.getElementById("dnsType");
-        const resultEl = document.getElementById("result");
+    /* ========== SMART RENDERERS ========== */
 
-        const name = nameEl.value.trim();
-        const type = typeEl.value.trim();
+    // Render any value (string, number, object, array)
+    function renderValue(value, container) {
+        if (Array.isArray(value)) {
+            value.forEach((item, i) => {
+                const sub = document.createElement("div");
+                sub.className = "record";
 
-        console.log("Name:", name);
-        console.log("Type:", type);
+                const title = document.createElement("h3");
+                title.textContent = "Item #" + (i + 1);
+                sub.appendChild(title);
+
+                renderObject(item, sub);
+                container.appendChild(sub);
+            });
+        }
+        else if (typeof value === "object" && value !== null) {
+            renderObject(value, container);
+        }
+        else {
+            const div = document.createElement("div");
+            div.textContent = value;
+            container.appendChild(div);
+        }
+    }
+
+    function renderObject(obj, container) {
+        for (let key in obj) {
+            const value = obj[key];
+
+            const row = document.createElement("div");
+            row.className = "kv";
+
+            const k = document.createElement("div");
+            k.className = "key";
+            k.textContent = key;
+
+            const v = document.createElement("div");
+
+            if (typeof value === "object" && value !== null) {
+                const nested = document.createElement("div");
+                nested.className = "nested";
+                renderValue(value, nested);
+                v.appendChild(nested);
+            } else {
+                v.textContent = value;
+            }
+
+            row.appendChild(k);
+            row.appendChild(v);
+            container.appendChild(row);
+        }
+    }
+
+    function showMessage(json, ok) {
+        const result = document.getElementById("result");
+        result.innerHTML = "";
+
+        const box = document.createElement("div");
+        box.className = "alert " + (ok ? "success" : "error");
+        box.style.display = "block";
+
+        if (typeof json === "object") {
+
+            // Special handling for DNS response
+            if (Array.isArray(json.records)) {
+                box.innerHTML = `
+                    <div style="margin-bottom:10px;">
+                        <b>Domain:</b> ${json.name}<br>
+                        <b>Query Type:</b> ${json.type}<br>
+                        <b>Total Records:</b> ${json.count}
+                    </div>
+                `;
+
+                if (json.records.length === 0) {
+                    box.innerHTML += "<div>No records found</div>";
+                } else {
+                    json.records.forEach((rec, i) => {
+                        const card = document.createElement("div");
+                        card.className = "record";
+
+                        const h = document.createElement("h3");
+                        h.textContent = "Record #" + (i + 1);
+                        card.appendChild(h);
+
+                        renderObject(rec, card);
+                        box.appendChild(card);
+                    });
+                }
+            } else {
+                // Fallback generic render
+                renderObject(json, box);
+            }
+
+        } else {
+            box.textContent = json;
+        }
+
+        result.appendChild(box);
+    }
+
+    /* ========== VALIDATION ========== */
+    function isValidDomain(domain) {
+        return /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(domain);
+    }
+
+    function isValidType(type) {
+        const allowed = ["A", "AAAA", "TXT", "NS", "CNAME", "ANY"];
+        return allowed.includes(type.toUpperCase());
+    }
+
+    /* ========== API CALL ========== */
+    async function lookupDNS() {
+        const name = document.getElementById("dnsName").value.trim();
+        const type = document.getElementById("dnsType").value.trim().toUpperCase();
 
         if (!name) {
-            show({ error: "Domain name is required" }, false);
+            showMessage({ error: "Domain name is required" }, false);
+            return;
+        }
+
+        if (!isValidDomain(name)) {
+            showMessage({ error: "Invalid domain format" }, false);
+            return;
+        }
+
+        if (type && !isValidType(type)) {
+            showMessage({ error: "Invalid type. Use A, AAAA, TXT, NS, CNAME, ANY" }, false);
             return;
         }
 
         let url = "/dns/lookup?name=" + encodeURIComponent(name);
-        if (type) {
-            url += "&type=" + encodeURIComponent(type);
-        }
-
-        console.log("Request URL:", url);
+        if (type) url += "&type=" + encodeURIComponent(type);
 
         try {
             const res = await fetch(url);
             const json = await res.json();
-            show(json, res.ok);
-        } catch (e) {
-            show({ error: "Network error: " + e.message }, false);
-        }
-    }
 
-    function show(obj, ok) {
-        const el = document.getElementById("result");
-        el.style.display = "block";
-        el.className = "alert " + (ok ? "success" : "error");
-        el.textContent = JSON.stringify(obj, null, 2);
+            if (!res.ok || json.error) {
+                showMessage(json, false);
+                return;
+            }
+
+            showMessage(json, true);
+
+        } catch (err) {
+            showMessage({ error: "Network error", details: err.toString() }, false);
+        }
     }
 </script>
 
