@@ -7,7 +7,7 @@
 <body>
 
 <div class="card">
-    <h2>Election Result</h2>
+    <h2>Promote Election Result</h2>
 
     <div class="form-group">
         <label>Password</label>
@@ -23,7 +23,7 @@
     async function checkResult() {
         const password = document.getElementById("password").value;
 
-        const res = await fetch("/election/result", {
+        const res = await fetch("/election/join_result", {
             method: "POST",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({ password })

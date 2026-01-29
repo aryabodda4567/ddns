@@ -305,7 +305,7 @@ public class NodesManager implements MessageHandler {
      *
      * @throws Exception If public key or self-node config is missing.
      */
-    public void createPromoteRequest() throws Exception {
+    public static void createPromoteRequest() throws Exception {
         ConsolePrinter.printInfo("[NodesManager] Sending PROMOTE_NODE request to Bootstrap...");
         sendBootstrapRequest(MessageType.PROMOTE_NODE);
     }
