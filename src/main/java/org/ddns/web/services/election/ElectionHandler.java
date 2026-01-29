@@ -112,7 +112,7 @@ public class ElectionHandler {
     // ================================
     // Election Result
     // ================================
-    public Object joinElectionResult(Request req, Response res) throws Exception {
+    public Object electionResult(Request req, Response res) throws Exception {
 
         ElectionResultRequest body = Json.body(req, ElectionResultRequest.class);
 
@@ -127,30 +127,6 @@ public class ElectionHandler {
         if (result == Election.ACCEPTED) {
             NodesManager.setupNormalNode();
             NodesManager.createSyncRequest();
-            return Map.of("accepted", true);
-        }
-
-        if (result == Election.REJECTED) {
-            return Map.of("accepted", false);
-        }
-
-        return Map.of("No election found ",false);
-    }
-
-    public Object promoteElectionResult(Request req, Response res) throws Exception {
-
-        ElectionResultRequest body = Json.body(req, ElectionResultRequest.class);
-
-        int result = Election.getResult(body.password);
-
-        if (result == Election.INVALID_INPUT)
-            return error("Invalid input");
-
-        if (result == Election.WRONG_PASSWORD)
-            return error("Wrong password");
-
-        if (result == Election.ACCEPTED) {
-            NodesManager.createPromoteRequest();
             return Map.of("accepted", true);
         }
 

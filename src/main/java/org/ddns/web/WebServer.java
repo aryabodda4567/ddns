@@ -47,8 +47,7 @@ public class WebServer {
         post("/election/create-join", electionHandler::createJoinElection, gson::toJson);
         get("/election/nominations", electionHandler::listNominations, gson::toJson);
         post("/election/vote", electionHandler::castVote, gson::toJson);
-        post("/election/join_result", electionHandler::joinElectionResult, gson::toJson);
-        post("/election/promote_result", electionHandler::promoteElectionResult, gson::toJson);
+        post("/election/result", electionHandler::electionResult, gson::toJson);
 
 
         DnsWebHandler dnsHandler = new DnsWebHandler();
