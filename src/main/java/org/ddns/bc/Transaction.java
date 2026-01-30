@@ -39,11 +39,11 @@ public class Transaction {
      * @param type            The type of the transaction (e.g., REGISTER, UPDATE, DELETE).
      * @param payload         A list of DNSModel objects representing DNS records involved.
      */
-    public Transaction(PublicKey senderPublicKey, TransactionType type, List<DNSModel> payload) {
+    public Transaction(PublicKey senderPublicKey, TransactionType type, List<DNSModel> payload,long timestamp) {
         this.senderPublicKey = senderPublicKey;
         this.type = type;
         this.payload = payload;
-        this.timestamp = System.currentTimeMillis();
+        this.timestamp = timestamp;
         this.hash = calculateHash();
     }
 

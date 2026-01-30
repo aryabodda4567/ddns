@@ -10,6 +10,7 @@ import org.ddns.net.MessageHandler;
 import org.ddns.node.NodesManager;
 import org.ddns.util.ConsolePrinter;
 import org.ddns.util.ConversionUtil;
+import org.ddns.util.TimeUtil;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -134,7 +135,8 @@ public final class ConsensusEngine implements MessageHandler {
         ConsolePrinter.printInfo("[ConsensusEngine] Publishing block");
         Block block = new Block(
                 BlockDb.getInstance().getLatestBlockHash(),
-                new ArrayList<>(transactions)
+                new ArrayList<>(transactions),
+                TimeUtil.getCurrentUnixTime()
         );
 
         Block.publish(block);

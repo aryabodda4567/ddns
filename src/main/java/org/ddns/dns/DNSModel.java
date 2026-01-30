@@ -16,22 +16,22 @@ public class DNSModel {
                 '}';
     }
 
-    private String name;
-    private int type;
-    private long ttl;
-    private String rdata;
-    private PublicKey owner;
+    private final String name;
+    private final int type;
+    private final long ttl;
+    private final String rdata;
+    private final PublicKey owner;
     private String transactionHash;
-    private long timestamp;
+    private final long timestamp;
 
-    public DNSModel(String name, int type, long ttl, String rdata, PublicKey owner, String txHash) {
+    public DNSModel(String name, int type, long ttl, String rdata, PublicKey owner, String txHash, long timestamp) {
         this.name = name;
         this.type = type;
         this.ttl = ttl;
         this.rdata = rdata;
         this.owner = owner;
         this.transactionHash = txHash;
-        this.timestamp = System.currentTimeMillis() / 1000;
+        this.timestamp = timestamp;
     }
 
     // getters & setters
@@ -44,7 +44,6 @@ public class DNSModel {
     public String getTransactionHash() { return transactionHash; }
     public long getTimestamp() { return timestamp; }
 
-    public void setTimestamp(long ts) { this.timestamp = ts; }
     public void setTransactionHash(String hash){
         this.transactionHash = hash;
     }

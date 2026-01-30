@@ -41,7 +41,8 @@ public class ConsensusFailoverTest {
         Transaction tx = new Transaction(
                 kp.getPublic(),
                 TransactionType.REGISTER,
-                new ArrayList<>()
+                new ArrayList<>(),
+                TimeUtil.getCurrentUnixTime()
         );
         tx.sign(kp.getPrivate());
 

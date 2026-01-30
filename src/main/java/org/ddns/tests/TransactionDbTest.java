@@ -9,6 +9,7 @@ import org.ddns.consensus.ConsensusEngine;
 import org.ddns.db.BlockDb;
 import org.ddns.db.TransactionDb;
 import org.ddns.dns.DNSModel;
+import org.ddns.util.TimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -150,7 +151,8 @@ public class TransactionDbTest {
         Transaction transaction = new Transaction(
                 Wallet.getKeyPair().getPublic(),
                 TransactionType.REGISTER,
-                new ArrayList<>()
+                new ArrayList<>(),
+                TimeUtil.getCurrentUnixTime()
         );
         ConsensusEngine consensusEngine = new ConsensusEngine();
         consensusEngine.publishTransaction(transaction);

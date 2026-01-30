@@ -11,6 +11,7 @@ import org.ddns.dns.DNSModel;
 import org.ddns.dns.DNSServer;
 import org.ddns.dns.RecordType;
 import org.ddns.util.ConsolePrinter;
+import org.ddns.util.TimeUtil;
 import org.sqlite.core.DB;
 import spark.Request;
 import spark.Response;
@@ -45,7 +46,8 @@ public class DnsWebHandler {
                     input.getTtl(),
                     input.getRdata(),
                     publicKey,
-                    null
+                    null,
+                    TimeUtil.getCurrentUnixTime()
             );
 
             // 3. Validate FIRST
@@ -63,7 +65,8 @@ public class DnsWebHandler {
             Transaction transaction = new Transaction(
                     publicKey,
                     TransactionType.REGISTER,
-                    List.of(model)
+                    List.of(model),
+                    TimeUtil.getCurrentUnixTime()
             );
 
             // 6. Sign transaction
@@ -196,7 +199,8 @@ public class DnsWebHandler {
                     0,
                     input.getRdata(),
                     publicKey,
-                    null
+                    null,
+                    TimeUtil.getCurrentUnixTime()
             );
 
             if (!DNSDb.getInstance().exists(model.getName(), model.getType())) {
@@ -211,7 +215,8 @@ public class DnsWebHandler {
             Transaction transaction = new Transaction(
                     publicKey,
                     TransactionType.DELETE_RECORDS,
-                    List.of(model)
+                    List.of(model),
+                    TimeUtil.getCurrentUnixTime()
             );
 
             transaction.sign(privateKey);
@@ -287,7 +292,8 @@ public class DnsWebHandler {
                     input.getTtl(),
                     input.getRdata(),
                     publicKey,
-                    null
+                    null,
+                    TimeUtil.getCurrentUnixTime()
             );
 
             // 3. Validate
@@ -305,7 +311,8 @@ public class DnsWebHandler {
             Transaction transaction = new Transaction(
                     publicKey,
                     TransactionType.UPDATE_RECORDS,
-                    List.of(model)
+                    List.of(model),
+                    TimeUtil.getCurrentUnixTime()
             );
 
             // 6. Sign transaction

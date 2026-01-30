@@ -31,10 +31,10 @@ public class Block {
      * @param previousHash The hash of the previous block in the chain.
      * @param transactions The list of transactions to be included.
      */
-    public Block(String previousHash, List<Transaction> transactions) {
+    public Block(String previousHash, List<Transaction> transactions, long timeStamp) {
         this.previousHash = previousHash;
         this.transactions = transactions;
-        this.timestamp = System.currentTimeMillis();
+        this.timestamp = timeStamp;
         this.merkleRoot = MerkleTree.getMerkleRoot(transactions); // Generate Merkle Root
         this.hash = calculateHash(); // Calculate the block's final hash
     }

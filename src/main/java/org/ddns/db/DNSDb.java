@@ -256,8 +256,8 @@ public final class DNSDb implements DNSPersistence {
                         } catch (Exception ignore) {
                         }
                     }
-                    DNSModel model = new DNSModel(n, t, ttl, rdata, pub, txHash);
-                    model.setTimestamp(ts);
+                    DNSModel model = new DNSModel(n, t, ttl, rdata, pub, txHash,ts);
+
                     out.add(model);
                 }
             }
@@ -292,8 +292,8 @@ public final class DNSDb implements DNSPersistence {
                         } catch (Exception ignore) {
                         }
                     }
-                    DNSModel model = new DNSModel(n, t, ttl, rdata, pub, txHash);
-                    model.setTimestamp(ts);
+                    DNSModel model = new DNSModel(n, t, ttl, rdata, pub, txHash,ts);
+
                     out.add(model);
                 }
             }
@@ -323,8 +323,8 @@ public final class DNSDb implements DNSPersistence {
                     } catch (Exception ignore) {
                     }
                 }
-                DNSModel model = new DNSModel(n, t, ttl, rdata, pub, txHash);
-                model.setTimestamp(ts);
+                DNSModel model = new DNSModel(n, t, ttl, rdata, pub, txHash,ts);
+
                 out.add(model);
             }
         } catch (SQLException e) {

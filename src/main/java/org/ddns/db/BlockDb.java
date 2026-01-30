@@ -189,7 +189,7 @@ public final class BlockDb {
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) return null;
 
-                Block block = new Block(rs.getString("previous_hash"), ConversionUtil.jsonToList(rs.getString("transactions_json"), Transaction.class));
+                Block block = new Block(rs.getString("previous_hash"), ConversionUtil.jsonToList(rs.getString("transactions_json"), Transaction.class),rs.getLong("timestamp"));
 
                 block.setHash(rs.getString("hash"));
 
@@ -456,7 +456,7 @@ public final class BlockDb {
                     txs = new ArrayList<>();
                 }
 
-                Block block = new Block(previousHash, txs);
+                Block block = new Block(previousHash, txs,timestamp);
                 block.setHash(hash);
                 block.setMerkleRoot(merkleRoot);
                 block.setTimestamp(timestamp);
