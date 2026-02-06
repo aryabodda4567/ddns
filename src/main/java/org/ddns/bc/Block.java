@@ -41,7 +41,8 @@ public class Block {
 
     /**
      * Calculates the block's hash based on its header information.
-     * Crucially, this does NOT depend on the full transaction list, only the Merkle Root.
+     * Crucially, this does NOT depend on the full transaction list, only the Merkle
+     * Root.
      *
      * @return The SHA-256 hash of the block header.
      */
@@ -49,8 +50,7 @@ public class Block {
         return SignatureUtil.applySha256(
                 previousHash +
                         merkleRoot +
-                        timestamp
-        );
+                        timestamp);
     }
 
     // --- Getters ---
@@ -94,24 +94,24 @@ public class Block {
         this.timestamp = timestamp;
     }
 
-    public static void publish(Block block){
+    public static void publish(Block block) {
         Message message;
-        try{
+        try {
             message = new Message(
                     MessageType.BLOCK_PUBLISH,
                     NetworkUtility.getLocalIpAddress(),
                     DBUtil.getInstance().getPublicKey(),
-                    ConversionUtil.toJson(block)
-            );
+                    ConversionUtil.toJson(block));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
 
         NetworkManager.broadcast(ConversionUtil.toJson(message),
                 DBUtil.getInstance().getAllNodes(),
-                Set.of(Role.GENESIS, Role.NORMAL_NODE, Role.LEADER_NODE));
+                Set.of(Role.ANY));
 
     }
+
     @Override
     public String toString() {
         return "Block{" +

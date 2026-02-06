@@ -16,50 +16,45 @@ public class Test {
         Test t = new Test();
         t.consensusFailoverTest();
 
-
     }
 
-
-    public void CircularQueueTest(){
+    public void CircularQueueTest() {
         CircularQueue circularQueue = CircularQueue.getInstance();
 
         NodeConfig node1 = new NodeConfig("192.168.0.1", Role.GENESIS, Wallet.getKeyPair().getPublic());
-        NodeConfig node2 = new NodeConfig("192.168.0.2", Role.LEADER_NODE, Wallet.getKeyPair().getPublic());
-        NodeConfig node3 = new NodeConfig("192.168.0.3", Role.NORMAL_NODE, Wallet.getKeyPair().getPublic());
-        NodeConfig node4 = new NodeConfig("192.168.0.4", Role.NORMAL_NODE, Wallet.getKeyPair().getPublic());
+        NodeConfig node2 = new NodeConfig("192.168.0.2", Role.NONE, Wallet.getKeyPair().getPublic());
+        NodeConfig node3 = new NodeConfig("192.168.0.3", Role.NONE, Wallet.getKeyPair().getPublic());
+        NodeConfig node4 = new NodeConfig("192.168.0.4", Role.NONE, Wallet.getKeyPair().getPublic());
 
-
-        for(int i =0; i< 14 ;i++){
+        for (int i = 0; i < 14; i++) {
 
             TimeUtil.waitForSeconds(3);
-            if(i ==0){
-                circularQueue.addNode(new QueueNode(node1,1));
+            if (i == 0) {
+                circularQueue.addNode(new QueueNode(node1, 1));
                 System.out.println("Node 1 added");
             }
 
-            if(i == 3){
-                circularQueue.addNode(new QueueNode(node2,2));
+            if (i == 3) {
+                circularQueue.addNode(new QueueNode(node2, 2));
                 System.out.println("Node 2 added");
             }
 
-            if(i ==6){
-                circularQueue.addNode(new QueueNode(node3,3));
+            if (i == 6) {
+                circularQueue.addNode(new QueueNode(node3, 3));
                 System.out.println("Node 3 added");
             }
 
-            if(i == 9){
-                circularQueue.addNode(new QueueNode(node4,4));
+            if (i == 9) {
+                circularQueue.addNode(new QueueNode(node4, 4));
                 System.out.println("Node 4 added");
             }
 
-
-            System.out.println("Before circle: "+ Objects.requireNonNull(circularQueue.peek()).sno);
+            System.out.println("Before circle: " + Objects.requireNonNull(circularQueue.peek()).sno);
             circularQueue.rotate();
-            System.out.println("After circle: "+ Objects.requireNonNull(circularQueue.peek()).sno);
+            System.out.println("After circle: " + Objects.requireNonNull(circularQueue.peek()).sno);
 
         }
     }
-
 
     public void consensusFailoverTest() throws Exception {
 
@@ -68,8 +63,8 @@ public class Test {
         CircularQueue queue = CircularQueue.getInstance();
 
         NodeConfig node1 = new NodeConfig("192.168.0.1", Role.GENESIS, Wallet.getKeyPair().getPublic());
-        NodeConfig node2 = new NodeConfig("192.168.0.2", Role.LEADER_NODE, Wallet.getKeyPair().getPublic());
-        NodeConfig node3 = new NodeConfig("192.168.0.3", Role.NORMAL_NODE, Wallet.getKeyPair().getPublic());
+        NodeConfig node2 = new NodeConfig("192.168.0.2", Role.NONE, Wallet.getKeyPair().getPublic());
+        NodeConfig node3 = new NodeConfig("192.168.0.3", Role.NONE, Wallet.getKeyPair().getPublic());
 
         queue.addNode(new QueueNode(node1, 1));
         queue.addNode(new QueueNode(node2, 2));
@@ -94,6 +89,5 @@ public class Test {
 
         System.out.println("=== TEST END ===");
     }
-
 
 }

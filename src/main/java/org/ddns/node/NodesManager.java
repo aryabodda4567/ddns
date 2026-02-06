@@ -23,25 +23,22 @@ import org.ddns.util.ConversionUtil;
 import org.ddns.util.NetworkUtility;
 import org.ddns.util.TimeUtil;
 
-
 import javax.sound.sampled.Port;
 import java.security.PublicKey;
 import java.util.*;
-
-
 
 /**
  * Manages the node's view of the network.
  * <p>
  * This class is responsible for two main functions:
- * 1.  Sending requests (e.g., ADD, FETCH) to the Bootstrap node.
- * 2.  Receiving and processing broadcasted updates (ADD, DELETE, PROMOTE)
+ * 1. Sending requests (e.g., ADD, FETCH) to the Bootstrap node.
+ * 2. Receiving and processing broadcasted updates (ADD, DELETE, PROMOTE)
  * from the Bootstrap node to keep its local node list (in DBUtil) synchronized.
  */
 public class NodesManager implements MessageHandler {
 
     private final Election election;
-    private final static int PORT=53;
+    private final static int PORT = 53;
 
     /**
      * Registers this manager as a handler with the NetworkManager upon creation.
@@ -96,15 +93,15 @@ public class NodesManager implements MessageHandler {
             case SYNC_REQUEST -> resolveSyncRequest(incoming);
             case QUEUE_UPDATE -> resolveQueueUpdate(payload);
             default -> {
-//                ConsolePrinter.printInfo("[NodesManager] Ignored message type: " + incoming.type);
+                // ConsolePrinter.printInfo("[NodesManager] Ignored message type: " +
+                // incoming.type);
             }
         }
     }
 
     private void resolveQueueUpdate(String payload) {
 
-        Set<QueueNode> queueNodeSet =
-                ConversionUtil.jsonToSet(payload, QueueNode.class);
+        Set<QueueNode> queueNodeSet = ConversionUtil.jsonToSet(payload, QueueNode.class);
 
         if (queueNodeSet == null || queueNodeSet.isEmpty()) {
             return;
@@ -121,7 +118,6 @@ public class NodesManager implements MessageHandler {
         ConsolePrinter.printSuccess("[Consensus] Queue updated. New size = " + list.size());
     }
 
-
     @Override
     public void onMulticastMessage(String message) {
         // no-op (for now)
@@ -137,7 +133,8 @@ public class NodesManager implements MessageHandler {
      * @param payload The JSON payload containing the NodeConfig to add.
      */
     public void resolveAddNode(String payload) {
-        if (payload == null) return;
+        if (payload == null)
+            return;
         try {
             NodeConfig nodeConfig = ConversionUtil.fromJson(payload, NodeConfig.class);
             if (nodeConfig == null || nodeConfig.getIp() == null || nodeConfig.getPublicKey() == null) {
@@ -148,11 +145,13 @@ public class NodesManager implements MessageHandler {
             DBUtil.getInstance().addNode(nodeConfig); // This is an upsert
             ConsolePrinter.printSuccess("[NodesManager] Added/Updated node in local DB: " + nodeConfig.getIp());
 
-            // If bootstrap announces a GENESIS node and that happens to be this node, reuse helper
+            // If bootstrap announces a GENESIS node and that happens to be this node, reuse
+            // helper
             NodeConfig self = DBUtil.getInstance().getSelfNode();
-            if (self != null && SignatureUtil.getStringFromKey(self.getPublicKey()).equals(SignatureUtil.getStringFromKey(nodeConfig.getPublicKey()))) {
+            if (self != null && SignatureUtil.getStringFromKey(self.getPublicKey())
+                    .equals(SignatureUtil.getStringFromKey(nodeConfig.getPublicKey()))) {
                 if (nodeConfig.getRole() != null && nodeConfig.getRole().equals(Role.GENESIS) &&
-                DBUtil.getInstance().getSelfNode().getRole()!=Role.GENESIS) {
+                        DBUtil.getInstance().getSelfNode().getRole() != Role.GENESIS) {
                     setupGenesisNode();
                 }
             }
@@ -168,7 +167,8 @@ public class NodesManager implements MessageHandler {
      * @param payload The JSON payload containing the NodeConfig to remove.
      */
     public void resolveRemoveNode(String payload) {
-        if (payload == null) return;
+        if (payload == null)
+            return;
         try {
             NodeConfig nodeConfig = ConversionUtil.fromJson(payload, NodeConfig.class);
             if (nodeConfig == null || nodeConfig.getPublicKey() == null) {
@@ -194,30 +194,11 @@ public class NodesManager implements MessageHandler {
      * @param payload The JSON payload containing the NodeConfig to promote.
      */
     public void resolvePromoteNode(String payload) {
-        if (payload == null) return;
+        if (payload == null)
+            return;
         try {
-            NodeConfig nodeConfig = ConversionUtil.fromJson(payload, NodeConfig.class);
-            if (nodeConfig == null || nodeConfig.getPublicKey() == null) {
-                ConsolePrinter.printWarning("[NodesManager] Invalid PROMOTE_NODE payload received.");
-                return;
-            }
-
-            // Update role in DB by public key string
-            String pubKeyStr = SignatureUtil.getStringFromKey(nodeConfig.getPublicKey());
-            boolean success = DBUtil.getInstance().updateNode(pubKeyStr, Role.LEADER_NODE, null);
-
-            if (success) {
-                ConsolePrinter.printSuccess("[NodesManager] Promoted node in local DB: " + nodeConfig.getIp());
-
-                // If the promoted node is this node, run the local setup to ensure role/state consistency
-                NodeConfig self = DBUtil.getInstance().getSelfNode();
-                if (self != null && SignatureUtil.getStringFromKey(self.getPublicKey()).equals(pubKeyStr)) {
-                    ConsolePrinter.printInfo("[NodesManager] Promotion applies to self — configuring local role as LEADER_NODE.");
-                    setupLeaderNode();
-                }
-            } else {
-                ConsolePrinter.printWarning("[NodesManager] Failed to promote node (not found?): " + nodeConfig.getIp());
-            }
+            // No role promotions in egalitarian system - all nodes equal
+            ConsolePrinter.printInfo("[NodesManager] Node promotion message ignored (egalitarian system)");
         } catch (Exception e) {
             ConsolePrinter.printFail("[NodesManager] Error resolving PROMOTE_NODE: " + e.getMessage());
         }
@@ -226,7 +207,8 @@ public class NodesManager implements MessageHandler {
     /**
      * Processes the response from a FETCH_NODES request.
      *
-     * @param payload The JSON payload containing a Set or Array of NodeConfig objects.
+     * @param payload The JSON payload containing a Set or Array of NodeConfig
+     *                objects.
      */
     public void resolveFetchResponse(String payload) {
         if (payload == null) {
@@ -249,7 +231,8 @@ public class NodesManager implements MessageHandler {
             // At this point nodeConfigSet may be null or empty
             if (nodeConfigSet == null || nodeConfigSet.isEmpty()) {
                 // No nodes returned -> this node should be the genesis node
-                ConsolePrinter.printInfo("[NodesManager] FETCH_NODES_RESPONSE: no nodes returned. Promoting self to GENESIS.");
+                ConsolePrinter.printInfo(
+                        "[NodesManager] FETCH_NODES_RESPONSE: no nodes returned. Promoting self to GENESIS.");
 
                 NodeConfig self = DBUtil.getInstance().getSelfNode();
 
@@ -261,7 +244,8 @@ public class NodesManager implements MessageHandler {
                 // Reuse existing method to configure genesis state and persist it
                 setupGenesisNode();
 
-                ConsolePrinter.printSuccess("[NodesManager] Node promoted to GENESIS and persisted locally: " + self.getIp());
+                ConsolePrinter
+                        .printSuccess("[NodesManager] Node promoted to GENESIS and persisted locally: " + self.getIp());
                 return;
             }
 
@@ -275,13 +259,13 @@ public class NodesManager implements MessageHandler {
         }
     }
 
-
     // -------------------------------------------------------------------------
     // REQUEST CREATORS (Send requests to Bootstrap)
     // -------------------------------------------------------------------------
 
     /**
-     * Sends a request to the Bootstrap node to add this node to the network registry.
+     * Sends a request to the Bootstrap node to add this node to the network
+     * registry.
      *
      * @throws Exception If public key or self-node config is missing.
      */
@@ -291,7 +275,8 @@ public class NodesManager implements MessageHandler {
     }
 
     /**
-     * Sends a request to the Bootstrap node to remove this node from the network registry.
+     * Sends a request to the Bootstrap node to remove this node from the network
+     * registry.
      *
      * @throws Exception If public key or self-node config is missing.
      */
@@ -311,7 +296,8 @@ public class NodesManager implements MessageHandler {
     }
 
     /**
-     * Sends a request to the Bootstrap node to get the complete list of all known nodes.
+     * Sends a request to the Bootstrap node to get the complete list of all known
+     * nodes.
      *
      * @throws Exception If public key or bootstrap IP is missing.
      */
@@ -329,8 +315,7 @@ public class NodesManager implements MessageHandler {
                 MessageType.FETCH_NODES,
                 selfIp,
                 selfKey,
-                ConversionUtil.toJson(Map.of("IP", NetworkUtility.getLocalIpAddress()))
-        );
+                ConversionUtil.toJson(Map.of("IP", NetworkUtility.getLocalIpAddress())));
 
         ConsolePrinter.printInfo("[NodesManager] Sending FETCH_NODES request to Bootstrap at " + bootstrapIp);
         NetworkManager.sendDirectMessage(bootstrapIp, ConversionUtil.toJson(message));
@@ -369,7 +354,7 @@ public class NodesManager implements MessageHandler {
 
         NetworkManager.sendDirectMessage(bootstrapIp, ConversionUtil.toJson(message));
     }
-//    This method send a request to genesis node to send sync data
+    // This method send a request to genesis node to send sync data
 
     public static void createSyncRequest() {
         Set<NodeConfig> nodeConfigSet = DBUtil.getInstance().getAllNodes();
@@ -387,8 +372,7 @@ public class NodesManager implements MessageHandler {
                     MessageType.SYNC_REQUEST,
                     NetworkUtility.getLocalIpAddress(),
                     DBUtil.getInstance().getPublicKey(),
-                    ""
-            );
+                    "");
             if (genesisNode != null)
                 NetworkManager.sendDirectMessage(genesisNode.getIp(), ConversionUtil.toJson(message));
             else {
@@ -404,18 +388,18 @@ public class NodesManager implements MessageHandler {
 
     public void resolveSyncRequest(Message message) {
         String requestNodeIp = message.senderIp;
-//        share current db snapshot
-        ConsolePrinter.printInfo("[Node Manager] Sending db snapshot to "+requestNodeIp);
+        // share current db snapshot
+        ConsolePrinter.printInfo("[Node Manager] Sending db snapshot to " + requestNodeIp);
         NetworkManager.sendFile(
                 requestNodeIp,
-                BlockDb.getInstance().exportSnapshot()
-        );
+                BlockDb.getInstance().exportSnapshot());
     }
 
     public void resolveSyncResponse(String payload) {
-//        TODO Network manager has a method to receive the files.
-//        TODO access that file and create sql insert statements and insert them into respective dbs with correct time stamp
-//
+        // TODO Network manager has a method to receive the files.
+        // TODO access that file and create sql insert statements and insert them into
+        // respective dbs with correct time stamp
+        //
     }
 
     public void setupGenesisNode() throws Exception {
@@ -426,7 +410,7 @@ public class NodesManager implements MessageHandler {
         DBUtil.getInstance().setSelfNode(nodeConfig);
         DBUtil.getInstance().addNode(nodeConfig);
         TimeUtil.waitForSeconds(1);
-        try{
+        try {
             createAddNodeRequest();
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -436,23 +420,24 @@ public class NodesManager implements MessageHandler {
         DNSServer.start();
         DNSService.start(PORT);
 
-        try{
+        try {
 
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
 
-
     }
 
-    public static void setupNormalNode() throws Exception {
+    /**
+     * Setup a regular node (all nodes are equal in egalitarian system)
+     */
+    public static void setupEqualNode() throws Exception {
         NodeConfig nodeConfig = DBUtil.getInstance().getSelfNode();
-        nodeConfig.setRole(Role.NORMAL_NODE);
-        DBUtil.getInstance().saveRole(Role.NORMAL_NODE);
+        // No role assignment needed - all nodes equal
         DBUtil.getInstance().setSelfNode(nodeConfig);
         DBUtil.getInstance().addNode(nodeConfig);
         TimeUtil.waitForSeconds(1);
-        try{
+        try {
             createAddNodeRequest();
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -461,33 +446,7 @@ public class NodesManager implements MessageHandler {
         ConsensusSystem.start();
         DNSServer.start();
         DNSService.start(PORT);
-        try{
-
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
-    }
-    public void setupLeaderNode() throws Exception {
-        NodeConfig nodeConfig = DBUtil.getInstance().getSelfNode();
-        nodeConfig.setRole(Role.LEADER_NODE);
-
-        DBUtil.getInstance().saveRole(Role.LEADER_NODE);
-
-        DBUtil.getInstance().setSelfNode(nodeConfig);
-        // Ensure the nodes table contains this genesis node
-        DBUtil.getInstance().addNode(nodeConfig);
-        TimeUtil.waitForSeconds(1);
-        try{
-            createAddNodeRequest();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
-        ConsensusSystem.start();
-        DNSServer.start();
-        DNSService.start(PORT);
-        try{
+        try {
 
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -495,21 +454,20 @@ public class NodesManager implements MessageHandler {
 
     }
 
-
-    public static void sync(){
-        List<String> insertStatements = BlockDb.getInstance().
-                extractInsertStatementsFromDbFile(FileNames.BLOCK_DB_TEMP);
-        for (String stmt: insertStatements){
+    public static void sync() {
+        List<String> insertStatements = BlockDb.getInstance()
+                .extractInsertStatementsFromDbFile(FileNames.BLOCK_DB_TEMP);
+        for (String stmt : insertStatements) {
             BlockDb.getInstance().executeInsertSQL(stmt);
         }
         applyBlock(false);
     }
+
     public static synchronized void applyBlock(boolean onlyLast) {
 
         DNSDb dnsDb = DNSDb.getInstance();
 
         if (!onlyLast) {
-
 
             ConsolePrinter.printInfo("[StateApplier] Rebuilding DNS state from blockchain...");
 
@@ -529,21 +487,26 @@ public class NodesManager implements MessageHandler {
             // ⚡ APPLY ONLY LAST BLOCK
 
             String lastBlockHash = BlockDb.getInstance().getLatestBlockHash();
-            if (lastBlockHash == null || lastBlockHash.equals("0")) return;
+            if (lastBlockHash == null || lastBlockHash.equals("0"))
+                return;
 
             Block lastBlock = BlockDb.getInstance().readBlockByHash(lastBlockHash);
-            if (lastBlock == null) return;
+            if (lastBlock == null)
+                return;
 
             ConsolePrinter.printInfo("[StateApplier] Applying last block: " + lastBlock.getHash());
 
             applySingleBlock(lastBlock, dnsDb);
         }
     }
+
     private static void applySingleBlock(Block block, DNSPersistence persistence) {
-        if (block == null || block.getTransactions() == null) return;
+        if (block == null || block.getTransactions() == null)
+            return;
 
         for (Transaction transaction : block.getTransactions()) {
-            if (transaction.getPayload() == null) continue;
+            if (transaction.getPayload() == null)
+                continue;
 
             for (DNSModel dnsModel : transaction.getPayload()) {
 
@@ -553,32 +516,33 @@ public class NodesManager implements MessageHandler {
 
                     case REGISTER -> {
                         ok = persistence.addRecord(dnsModel);
-                        if (ok) ConsolePrinter.printSuccess("[STATE] REGISTER applied: " + dnsModel.getName());
-                        else ConsolePrinter.printFail("[STATE] REGISTER failed: " + dnsModel.getName());
+                        if (ok)
+                            ConsolePrinter.printSuccess("[STATE] REGISTER applied: " + dnsModel.getName());
+                        else
+                            ConsolePrinter.printFail("[STATE] REGISTER failed: " + dnsModel.getName());
                     }
 
                     case UPDATE_RECORDS -> {
                         ok = persistence.updateRecord(dnsModel);
-                        if (ok) ConsolePrinter.printSuccess("[STATE] UPDATE applied: " + dnsModel.getName());
-                        else ConsolePrinter.printFail("[STATE] UPDATE failed: " + dnsModel.getName());
+                        if (ok)
+                            ConsolePrinter.printSuccess("[STATE] UPDATE applied: " + dnsModel.getName());
+                        else
+                            ConsolePrinter.printFail("[STATE] UPDATE failed: " + dnsModel.getName());
                     }
 
                     case DELETE_RECORDS -> {
                         ok = persistence.deleteRecord(
                                 dnsModel.getName(),
                                 dnsModel.getType(),
-                                dnsModel.getRdata()
-                        );
-                        if (ok) ConsolePrinter.printSuccess("[STATE] DELETE applied: " + dnsModel.getName());
-                        else ConsolePrinter.printFail("[STATE] DELETE failed: " + dnsModel.getName());
+                                dnsModel.getRdata());
+                        if (ok)
+                            ConsolePrinter.printSuccess("[STATE] DELETE applied: " + dnsModel.getName());
+                        else
+                            ConsolePrinter.printFail("[STATE] DELETE failed: " + dnsModel.getName());
                     }
                 }
             }
         }
     }
-
-
-
-
 
 }

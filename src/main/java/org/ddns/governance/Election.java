@@ -35,24 +35,28 @@ import static org.ddns.Main.ELECTION_PASSWORD;
  * - Computes result against a snapshot quorum (leaders + genesis).
  * <p>
  * Operational notes:
- * - Storage keys used: NOMINATIONS (Set<Nomination> JSON), VOTE_BOX (Set<Vote> JSON)
- * - This version avoids schema changes and does not add signatures/election IDs.
- * See "Security & correctness gaps" section after the code for recommended v2 upgrades.
+ * - Storage keys used: NOMINATIONS (Set<Nomination> JSON), VOTE_BOX (Set<Vote>
+ * JSON)
+ * - This version avoids schema changes and does not add signatures/election
+ * IDs.
+ * See "Security & correctness gaps" section after the code for recommended v2
+ * upgrades.
  */
 public class Election implements MessageHandler {
-    public static final int ELECTION_CREATED =8 ;
-    public static int ACCEPTED =1;
-    public static int REJECTED =2;
-    public static int WRONG_PASSWORD=3;
-    public static int INVALID_INPUT=4;
-    public static int INVALID_NODE_NAME=5;
-    public static int INVALID_DESCRIPTION=6;
-    public static int INVALID_TIME=7;
+    public static final int ELECTION_CREATED = 8;
+    public static int ACCEPTED = 1;
+    public static int REJECTED = 2;
+    public static int WRONG_PASSWORD = 3;
+    public static int INVALID_INPUT = 4;
+    public static int INVALID_NODE_NAME = 5;
+    public static int INVALID_DESCRIPTION = 6;
+    public static int INVALID_TIME = 7;
 
     // ---- Construction ----
 
     /**
-     * Registers to the network manager and initializes empty local stores if needed.
+     * Registers to the network manager and initializes empty local stores if
+     * needed.
      * Never throws: logs and continues with empty sets on any parsing issue.
      */
     public Election(NetworkManager networkManager) {
@@ -60,8 +64,10 @@ public class Election implements MessageHandler {
         networkManager.registerHandler(this);
 
         // Ensure we have sane initial state for nominations and votes
-        if (loadNominations() == null) saveNomination(new HashSet<>());
-        if (loadVotes() == null) saveVotes(new HashSet<>());
+        if (loadNominations() == null)
+            saveNomination(new HashSet<>());
+        if (loadVotes() == null)
+            saveVotes(new HashSet<>());
     }
 
     // ---- API: Create & Broadcast ----
@@ -73,9 +79,11 @@ public class Election implements MessageHandler {
     // ---- API: Cast vote ----
 
     private static String safe(String s, int maxLen) {
-        if (s == null) return null;
+        if (s == null)
+            return null;
         String t = s.trim();
-        if (t.length() > maxLen) t = t.substring(0, maxLen);
+        if (t.length() > maxLen)
+            t = t.substring(0, maxLen);
         return t;
     }
 
@@ -91,13 +99,15 @@ public class Election implements MessageHandler {
      *                      <p>
      *                      Failure handling:
      *                      - Validates inputs and self-node availability.
-     *                      - Initializes/clears a fresh vote-box for THIS election instance.
-     *                      - Returns immediately on broadcast failure; peers that received it can still vote.
+     *                      - Initializes/clears a fresh vote-box for THIS election
+     *                      instance.
+     *                      - Returns immediately on broadcast failure; peers that
+     *                      received it can still vote.
      */
     public static void createElection(ElectionType electionType,
-                                      int timeInMinutes,
-                                      String nodeName,
-                                      String description) {
+            int timeInMinutes,
+            String nodeName,
+            String description) {
 
         if (electionType == null) {
             ConsolePrinter.printFail("[Election] electionType must not be null");
@@ -125,8 +135,7 @@ public class Election implements MessageHandler {
                 NetworkUtility.getLocalIpAddress(),
                 electionType,
                 safe(nodeName, 256),
-                safe(description, 1024)
-        );
+                safe(description, 1024));
 
         // Fresh vote-box for *this* election window
         saveVotes(new HashSet<>());
@@ -135,18 +144,17 @@ public class Election implements MessageHandler {
             Message msg = new Message(
                     MessageType.CREATE_ELECTION,
                     NetworkUtility.getLocalIpAddress(),
-                    DBUtil.getInstance().getPublicKey(),            // sender's public key
-                    ConversionUtil.toJson(nomination)
-            );
+                    DBUtil.getInstance().getPublicKey(), // sender's public key
+                    ConversionUtil.toJson(nomination));
 
-            // Broadcast to leaders + genesis only
+            // Broadcast to ALL nodes
             NetworkManager.broadcast(
                     ConversionUtil.toJson(msg),
                     DBUtil.getInstance().getAllNodes(),
-                    Set.of(Role.LEADER_NODE, Role.GENESIS)
-            );
+                    Set.of(Role.ANY));
 
-            ConsolePrinter.printSuccess("[Election] Broadcasted CREATE_ELECTION (" + electionType + "), expires at " + endTime);
+            ConsolePrinter.printSuccess(
+                    "[Election] Broadcasted CREATE_ELECTION (" + electionType + "), expires at " + endTime);
         } catch (Exception e) {
             ConsolePrinter.printFail("[Election] Failed to broadcast CREATE_ELECTION: " + e.getMessage());
         }
@@ -181,10 +189,9 @@ public class Election implements MessageHandler {
 
         Message msg = new Message(
                 MessageType.CASTE_VOTE,
-                nomination.getIpAddress(),                         // receiver IP (candidate)
-                nomination.getNodeConfig().getPublicKey(),         // receiver pubkey
-                ConversionUtil.toJson(vote)
-        );
+                nomination.getIpAddress(), // receiver IP (candidate)
+                nomination.getNodeConfig().getPublicKey(), // receiver pubkey
+                ConversionUtil.toJson(vote));
 
         try {
             NetworkManager.sendDirectMessage(nomination.getIpAddress(), ConversionUtil.toJson(msg));
@@ -199,17 +206,17 @@ public class Election implements MessageHandler {
     // ---- Votes (receiver side) ----
 
     /**
-     * Return a copy of outstanding nominations that we haven't voted on AND are not expired.
-     * (We treat the 'vote' flag inside Nomination as advisory; primary control is store removal.)
+     * Return a copy of outstanding nominations that we haven't voted on AND are not
+     * expired.
+     * (We treat the 'vote' flag inside Nomination as advisory; primary control is
+     * store removal.)
      */
     public static Set<Nomination> getNominations() {
         Set<Nomination> nominations = safeSet(loadNominations());
         long now = TimeUtil.getCurrentUnixTime();
-        nominations.removeIf(n ->
-                n == null ||
-                        n.getNodeConfig() == null ||
-                        TimeUtil.isExpired(now, n.getExpireTime())
-        );
+        nominations.removeIf(n -> n == null ||
+                n.getNodeConfig() == null ||
+                TimeUtil.isExpired(now, n.getExpireTime()));
         // Persist cleanup in case we filtered any expired ones
         saveNomination(nominations);
         return new HashSet<>(nominations);
@@ -219,7 +226,8 @@ public class Election implements MessageHandler {
      * Remove a specific nomination (idempotent).
      */
     public static void removeNomination(Nomination nomination) {
-        if (nomination == null) return;
+        if (nomination == null)
+            return;
         Set<Nomination> nominations = safeSet(loadNominations());
         nominations.remove(nomination);
         saveNomination(nominations);
@@ -290,7 +298,8 @@ public class Election implements MessageHandler {
 
     @Override
     public void onDirectMessage(String message) {
-        if (message == null || message.isBlank()) return;
+        if (message == null || message.isBlank())
+            return;
 
         Message envelope;
         try {
@@ -309,7 +318,8 @@ public class Election implements MessageHandler {
             switch (envelope.type) {
                 case CREATE_ELECTION -> addNomination(envelope.payload);
                 case CASTE_VOTE -> addVote(envelope.payload);
-                default -> { /* ignore others */ }
+                default -> {
+                    /* ignore others */ }
             }
         } catch (Exception e) {
             ConsolePrinter.printFail("[Election] Error processing " + envelope.type + ": " + e.getMessage());
@@ -335,7 +345,8 @@ public class Election implements MessageHandler {
         try {
             nomination = ConversionUtil.fromJson(payload, Nomination.class);
         } catch (Exception e) {
-            ConsolePrinter.printWarning("[Election] addNomination: malformed Nomination JSON ignored: " + e.getMessage());
+            ConsolePrinter
+                    .printWarning("[Election] addNomination: malformed Nomination JSON ignored: " + e.getMessage());
             return;
         }
 
@@ -354,7 +365,6 @@ public class Election implements MessageHandler {
         nominations.add(nomination);
         saveNomination(nominations);
         ConsolePrinter.printSuccess("[Election] Nomination stored from " + nomination.getIpAddress());
-
 
     }
 
@@ -400,9 +410,12 @@ public class Election implements MessageHandler {
     // ---- Utils ----
 
     private boolean sameVoter(Vote a, Vote b) {
-        if (a == null || b == null) return false;
-        if (a.getNodeConfig() == null || b.getNodeConfig() == null) return false;
-        if (a.getNodeConfig().getPublicKey() == null || b.getNodeConfig().getPublicKey() == null) return false;
+        if (a == null || b == null)
+            return false;
+        if (a.getNodeConfig() == null || b.getNodeConfig() == null)
+            return false;
+        if (a.getNodeConfig().getPublicKey() == null || b.getNodeConfig().getPublicKey() == null)
+            return false;
         try {
             String ak = org.ddns.bc.SignatureUtil.getStringFromKey(a.getNodeConfig().getPublicKey());
             String bk = org.ddns.bc.SignatureUtil.getStringFromKey(b.getNodeConfig().getPublicKey());
@@ -413,24 +426,17 @@ public class Election implements MessageHandler {
     }
 
     /**
-     * Required votes = count of nodes whose role is GENESIS or LEADER_NODE.
+     * Required votes = ALL nodes (unanimous approval required).
      * Uses current snapshot. See analysis below for implications.
      */
     public static int getRequiredVotes() {
-        Set<NodeConfig> nodeConfigSet = DBUtil.getInstance().getAllNodes();
-        int count = 0;
-        for (NodeConfig n : nodeConfigSet) {
-            if (n != null && n.getRole() != null &&
-                    (n.getRole() == Role.GENESIS || n.getRole() == Role.LEADER_NODE)) {
-                count++;
-            }
-        }
-        return count;
+        // Unanimous voting - all nodes must approve
+        return DBUtil.getInstance().getAllNodes().size();
     }
 
-    public static int  getResult(String password){
+    public static int getResult(String password) {
 
-        if(password == null || password.isBlank() || password.trim().isEmpty()){
+        if (password == null || password.isBlank() || password.trim().isEmpty()) {
             return INVALID_INPUT;
         }
 
@@ -438,16 +444,18 @@ public class Election implements MessageHandler {
         String providedHash = hashPassword(password.toCharArray());
         Arrays.fill(password.toCharArray(), '\0');
 
-        if (storedHash == null || !storedHash.equals(providedHash))  return WRONG_PASSWORD;
+        if (storedHash == null || !storedHash.equals(providedHash))
+            return WRONG_PASSWORD;
 
         boolean result = getResult();
-        if(result) return ACCEPTED;
+        if (result)
+            return ACCEPTED;
         return REJECTED;
 
     }
 
     public static int createElection(String password, String name,
-                                     int time, String description, ElectionType electionType){
+            int time, String description, ElectionType electionType) {
 
         if (password == null || password.isEmpty()) {
             return INVALID_INPUT;
@@ -481,6 +489,7 @@ public class Election implements MessageHandler {
         return ELECTION_CREATED;
 
     }
+
     public static String hashPassword(char[] password) {
         try {
             byte[] bytes = new String(password).getBytes("UTF-8");
@@ -492,9 +501,11 @@ public class Election implements MessageHandler {
             throw new RuntimeException("Failed to hash password", e);
         }
     }
+
     private static String bytesToHex(byte[] bytes) {
         StringBuilder sb = new StringBuilder(bytes.length * 2);
-        for (byte b : bytes) sb.append(String.format("%02x", b & 0xff));
+        for (byte b : bytes)
+            sb.append(String.format("%02x", b & 0xff));
         return sb.toString();
     }
 }

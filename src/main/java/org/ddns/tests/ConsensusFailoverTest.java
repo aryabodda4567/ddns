@@ -26,8 +26,8 @@ public class ConsensusFailoverTest {
         CircularQueue queue = CircularQueue.getInstance();
 
         NodeConfig node1 = new NodeConfig("192.168.0.1", Role.GENESIS, Wallet.getKeyPair().getPublic());
-        NodeConfig node2 = new NodeConfig("192.168.0.2", Role.LEADER_NODE, Wallet.getKeyPair().getPublic());
-        NodeConfig node3 = new NodeConfig("192.168.0.3", Role.NORMAL_NODE, Wallet.getKeyPair().getPublic());
+        NodeConfig node2 = new NodeConfig("192.168.0.2", Role.NONE, Wallet.getKeyPair().getPublic());
+        NodeConfig node3 = new NodeConfig("192.168.0.3", Role.NONE, Wallet.getKeyPair().getPublic());
 
         queue.addNode(new QueueNode(node1, 1));
         queue.addNode(new QueueNode(node2, 2));
@@ -42,8 +42,7 @@ public class ConsensusFailoverTest {
                 kp.getPublic(),
                 TransactionType.REGISTER,
                 new ArrayList<>(),
-                TimeUtil.getCurrentUnixTime()
-        );
+                TimeUtil.getCurrentUnixTime());
         tx.sign(kp.getPrivate());
 
         // Publish transaction into consensus

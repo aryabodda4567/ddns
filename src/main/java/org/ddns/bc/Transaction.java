@@ -1,6 +1,5 @@
 package org.ddns.bc;
 
-
 import org.ddns.constants.Role;
 import org.ddns.db.DBUtil;
 import org.ddns.dns.DNSModel;
@@ -16,7 +15,6 @@ import java.security.PublicKey;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-
 
 /**
  * Represents a single, signed transaction in the dDNS blockchain.
@@ -36,10 +34,12 @@ public class Transaction {
      * Constructor for a new Transaction.
      *
      * @param senderPublicKey The public key of the transaction creator.
-     * @param type            The type of the transaction (e.g., REGISTER, UPDATE, DELETE).
-     * @param payload         A list of DNSModel objects representing DNS records involved.
+     * @param type            The type of the transaction (e.g., REGISTER, UPDATE,
+     *                        DELETE).
+     * @param payload         A list of DNSModel objects representing DNS records
+     *                        involved.
      */
-    public Transaction(PublicKey senderPublicKey, TransactionType type, List<DNSModel> payload,long timestamp) {
+    public Transaction(PublicKey senderPublicKey, TransactionType type, List<DNSModel> payload, long timestamp) {
         this.senderPublicKey = senderPublicKey;
         this.type = type;
         this.payload = payload;
@@ -59,8 +59,7 @@ public class Transaction {
                 SignatureUtil.getStringFromKey(senderPublicKey) +
                         type.toString() +
                         payloadJson +
-                        timestamp
-        );
+                        timestamp);
     }
 
     /**
@@ -116,15 +115,14 @@ public class Transaction {
         return signature;
     }
 
-    public static void publish( Transaction transaction){
+    public static void publish(Transaction transaction) {
         Message message;
-        try{
-             message = new Message(
+        try {
+            message = new Message(
                     MessageType.TRANSACTION_PUBLISH,
                     NetworkUtility.getLocalIpAddress(),
                     DBUtil.getInstance().getPublicKey(),
-                    ConversionUtil.toJson(transaction)
-            );
+                    ConversionUtil.toJson(transaction));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -132,8 +130,7 @@ public class Transaction {
         ConsolePrinter.printInfo("[Transaction] Sending transaction ");
         NetworkManager.broadcast(ConversionUtil.toJson(message),
                 DBUtil.getInstance().getAllNodes(),
-                Set.of(Role.GENESIS, Role.NORMAL_NODE, Role.LEADER_NODE));
-
+                Set.of(Role.ANY));
 
     }
 

@@ -13,8 +13,6 @@ import java.util.*;
 
 public class ElectionHandler {
 
-
-
     // Inject these from your app
     public ElectionHandler() {
     }
@@ -25,31 +23,25 @@ public class ElectionHandler {
     public Object createJoinElection(Request req, Response res) {
 
         CreateElectionRequest body = Json.body(req, CreateElectionRequest.class);
-        ElectionType electionType = (body.electionType==0)?ElectionType.JOIN:ElectionType.PROMOTE;
+        ElectionType electionType = (body.electionType == 0) ? ElectionType.JOIN : ElectionType.PROMOTE;
         int result = Election.createElection(
                 body.password,
                 body.nodeName,
                 body.timeMinutes,
                 body.description,
-                electionType
-        );
+                electionType);
 
         if (result == Election.INVALID_INPUT) {
             return error("Invalid password");
-        }
-        else if (result == Election.INVALID_DESCRIPTION) {
+        } else if (result == Election.INVALID_DESCRIPTION) {
             return error("Invalid description");
-        }
-        else if (result == Election.INVALID_TIME) {
+        } else if (result == Election.INVALID_TIME) {
             return error("Invalid time");
-        }
-        else if (result == Election.INVALID_NODE_NAME) {
+        } else if (result == Election.INVALID_NODE_NAME) {
             return error("Invalid node name");
-        }
-        else if (result == Election.ELECTION_CREATED) {
+        } else if (result == Election.ELECTION_CREATED) {
             return ok("Election created");
-        }
-        else {
+        } else {
             return error("Unknown error");
         }
 
@@ -77,9 +69,7 @@ public class ElectionHandler {
                     "nodeName", n.getNodeName(),
                     "description", n.getDescription(),
                     "publicKey", Base64.getEncoder().encodeToString(
-                            n.getNodeConfig().getPublicKey().getEncoded()
-                    )
-            ));
+                            n.getNodeConfig().getPublicKey().getEncoded())));
 
         }
 
@@ -125,7 +115,7 @@ public class ElectionHandler {
             return error("Wrong password");
 
         if (result == Election.ACCEPTED) {
-            NodesManager.setupNormalNode();
+            NodesManager.setupEqualNode();
             NodesManager.createSyncRequest();
             return Map.of("accepted", true);
         }
@@ -134,7 +124,7 @@ public class ElectionHandler {
             return Map.of("accepted", false);
         }
 
-        return Map.of("No election found ",false);
+        return Map.of("No election found ", false);
     }
 
     // ================================
