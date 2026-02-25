@@ -119,6 +119,8 @@ public class BootstrapNode implements MessageHandler {
                         .printWarning("[BootstrapNode] Invalid ADD_NODE request payload: " + requestMessage.payload);
                 return;
             }
+            // Force egalitarian role
+            nodeConfig.setRole(Role.NONE);
 
             BootstrapDB.getInstance().saveNode(nodeConfig);
             ConsolePrinter.printSuccess("[BootstrapNode] Added/Updated node: " + nodeConfig.getIp());

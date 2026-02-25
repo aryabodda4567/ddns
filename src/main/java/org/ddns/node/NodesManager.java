@@ -1,7 +1,6 @@
 package org.ddns.node;
 
 import org.ddns.bc.Block;
-import org.ddns.bc.SignatureUtil;
 import org.ddns.bc.Transaction;
 import org.ddns.bc.TransactionType;
 import org.ddns.consensus.*;
@@ -145,17 +144,6 @@ public class NodesManager implements MessageHandler {
             DBUtil.getInstance().addNode(nodeConfig); // This is an upsert
             ConsolePrinter.printSuccess("[NodesManager] Added/Updated node in local DB: " + nodeConfig.getIp());
 
-            // If bootstrap announces a GENESIS node and that happens to be this node, reuse
-            // helper
-            NodeConfig self = DBUtil.getInstance().getSelfNode();
-            if (self != null && SignatureUtil.getStringFromKey(self.getPublicKey())
-                    .equals(SignatureUtil.getStringFromKey(nodeConfig.getPublicKey()))) {
-                if (nodeConfig.getRole() != null && nodeConfig.getRole().equals(Role.GENESIS) &&
-                        DBUtil.getInstance().getSelfNode().getRole() != Role.GENESIS) {
-                    setupGenesisNode();
-                }
-            }
-
         } catch (Exception e) {
             ConsolePrinter.printFail("[NodesManager] Error resolving ADD_NODE: " + e.getMessage());
         }
@@ -230,22 +218,20 @@ public class NodesManager implements MessageHandler {
 
             // At this point nodeConfigSet may be null or empty
             if (nodeConfigSet == null || nodeConfigSet.isEmpty()) {
-                // No nodes returned -> this node should be the genesis node
+                // No nodes returned -> first node joins as regular participant
                 ConsolePrinter.printInfo(
-                        "[NodesManager] FETCH_NODES_RESPONSE: no nodes returned. Promoting self to GENESIS.");
+                        "[NodesManager] FETCH_NODES_RESPONSE: no nodes returned. Starting as first node.");
 
                 NodeConfig self = DBUtil.getInstance().getSelfNode();
 
                 if (self == null) {
-                    ConsolePrinter.printFail("[NodesManager] Self node not configured; cannot promote to GENESIS.");
+                    ConsolePrinter.printFail("[NodesManager] Self node not configured; cannot start node.");
                     return;
                 }
 
-                // Reuse existing method to configure genesis state and persist it
-                setupGenesisNode();
-
+                setupEqualNode();
                 ConsolePrinter
-                        .printSuccess("[NodesManager] Node promoted to GENESIS and persisted locally: " + self.getIp());
+                        .printSuccess("[NodesManager] Node started and persisted locally: " + self.getIp());
                 return;
             }
 
@@ -354,17 +340,17 @@ public class NodesManager implements MessageHandler {
 
         NetworkManager.sendDirectMessage(bootstrapIp, ConversionUtil.toJson(message));
     }
-    // This method send a request to genesis node to send sync data
+    // This method sends a request to any peer node to send sync data
 
     public static void createSyncRequest() {
         Set<NodeConfig> nodeConfigSet = DBUtil.getInstance().getAllNodes();
-        NodeConfig genesisNode = null;
-        System.out.println(nodeConfigSet);
+        NodeConfig targetNode = null;
         for (NodeConfig nodeConfig : nodeConfigSet) {
-            if (nodeConfig.getRole().equals(Role.GENESIS)) {
-                genesisNode = nodeConfig;
-                break;
-            }
+            if (nodeConfig == null) continue;
+            NodeConfig self = DBUtil.getInstance().getSelfNode();
+            if (self != null && nodeConfig.getIp().equals(self.getIp())) continue;
+            targetNode = nodeConfig;
+            break;
         }
 
         try {
@@ -373,13 +359,13 @@ public class NodesManager implements MessageHandler {
                     NetworkUtility.getLocalIpAddress(),
                     DBUtil.getInstance().getPublicKey(),
                     "");
-            if (genesisNode != null)
-                NetworkManager.sendDirectMessage(genesisNode.getIp(), ConversionUtil.toJson(message));
-            else {
-                ConsolePrinter.printFail("[Node Manager] No genesis node found");
+            if (targetNode != null) {
+                NetworkManager.sendDirectMessage(targetNode.getIp(), ConversionUtil.toJson(message));
+            } else {
+                ConsolePrinter.printFail("[Node Manager] No peer node found for sync");
                 return;
             }
-            ConsolePrinter.printInfo("[Node Manager] Sync request is sent to Genesis node");
+            ConsolePrinter.printInfo("[Node Manager] Sync request sent to peer " + targetNode.getIp());
 
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -403,29 +389,8 @@ public class NodesManager implements MessageHandler {
     }
 
     public void setupGenesisNode() throws Exception {
-        NodeConfig nodeConfig = DBUtil.getInstance().getSelfNode();
-
-        nodeConfig.setRole(Role.GENESIS);
-        DBUtil.getInstance().saveRole(Role.GENESIS);
-        DBUtil.getInstance().setSelfNode(nodeConfig);
-        DBUtil.getInstance().addNode(nodeConfig);
-        TimeUtil.waitForSeconds(1);
-        try {
-            createAddNodeRequest();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
-        ConsensusSystem.start();
-        DNSServer.start();
-        DNSService.start(PORT);
-
-        try {
-
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
+        // Legacy entry point now delegates to egalitarian setup
+        setupEqualNode();
     }
 
     /**
@@ -433,7 +398,10 @@ public class NodesManager implements MessageHandler {
      */
     public static void setupEqualNode() throws Exception {
         NodeConfig nodeConfig = DBUtil.getInstance().getSelfNode();
-        // No role assignment needed - all nodes equal
+        if (nodeConfig.getRole() == null) {
+            nodeConfig.setRole(Role.NONE);
+        }
+        DBUtil.getInstance().saveRole(Role.NONE);
         DBUtil.getInstance().setSelfNode(nodeConfig);
         DBUtil.getInstance().addNode(nodeConfig);
         TimeUtil.waitForSeconds(1);

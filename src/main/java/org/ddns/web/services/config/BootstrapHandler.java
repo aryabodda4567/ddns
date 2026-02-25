@@ -1,7 +1,7 @@
 package org.ddns.web.services.config;
 
-import org.ddns.constants.Role;
 import org.ddns.db.DBUtil;
+import org.ddns.node.NodeConfig;
 import org.ddns.node.NodesManager;
 import spark.Request;
 import spark.Response;
@@ -12,11 +12,13 @@ public class BootstrapHandler {
 
     public Object handle(Request req, Response res) {
 
-        Role role = DBUtil.getInstance().getRole();
-        System.out.println(role);
-        boolean election;
+        NodeConfig self = DBUtil.getInstance().getSelfNode();
+        boolean election = true;
 
-        election = role == null || role.equals(Role.NONE);
+        if (self != null) {
+            election = !DBUtil.getInstance().getAllNodes().contains(self);
+        }
+
         NodesManager.sync();
         res.type("application/json");
 

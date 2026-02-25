@@ -112,46 +112,19 @@ public class NetworkManager {
             ConsolePrinter.printWarning("[NetworkManager] No nodes found to send broadcast message.");
             return;
         }
-        if (roles == null || roles.isEmpty()) {
-            ConsolePrinter.printWarning("[NetworkManager] No roles specified for broadcast.");
-            return;
-        }
-        String localIp = NetworkUtility.getLocalIpAddress();
-        boolean broadcastAll = roles.contains(Role.ANY);
-        int sentCount = 0;
 
-        // Normalize role names for safe comparison
-        Set<String> normalizedRoleNames = new HashSet<>();
-        for (Role role : roles) {
-            if (role != null) normalizedRoleNames.add(role.name().trim().toUpperCase());
-        }
+        int sentCount = 0;
 
         for (NodeConfig nodeConfig : nodeConfigSet) {
             if (nodeConfig == null || nodeConfig.getIp() == null) continue;
-          //  if (localIp != null && localIp.equals(nodeConfig.getIp())) continue; // Skip self
-
-            Role nodeRole = nodeConfig.getRole();
-            boolean match = false;
-
-            if (broadcastAll) {
-                match = true;
-            } else if (nodeRole != null && normalizedRoleNames.contains(nodeRole.name().trim().toUpperCase())) {
-                match = true;
-            }
-
-            if (match) {
-                boolean success = sendDirectMessage(nodeConfig.getIp(), jsonMessage);
-                if (success) sentCount++;
-            } else {
-                ConsolePrinter.printInfo("[NetworkManager] Skipping node " + nodeConfig.getIp()
-                        + " (role=" + nodeRole + "), not in target roles " + normalizedRoleNames);
-            }
+            boolean success = sendDirectMessage(nodeConfig.getIp(), jsonMessage);
+            if (success) sentCount++;
         }
 
         if (sentCount > 0) {
             ConsolePrinter.printSuccess("[NetworkManager] Broadcasted message to " + sentCount + " nodes.");
         } else {
-            ConsolePrinter.printWarning("[NetworkManager] No nodes matched roles " + normalizedRoleNames);
+            ConsolePrinter.printWarning("[NetworkManager] Broadcast skipped, no valid nodes.");
         }
     }
 

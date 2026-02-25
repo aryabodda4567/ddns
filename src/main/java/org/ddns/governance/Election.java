@@ -32,7 +32,7 @@ import static org.ddns.Main.ELECTION_PASSWORD;
  * - Receives nominations from others and persists a local "to vote" list.
  * - Casts a vote exactly once per nomination (no dup votes).
  * - Receives votes and stores them in a local vote-box (deduped).
- * - Computes result against a snapshot quorum (leaders + genesis).
+ * - Computes result against a snapshot quorum of all known nodes.
  * <p>
  * Operational notes:
  * - Storage keys used: NOMINATIONS (Set<Nomination> JSON), VOTE_BOX (Set<Vote>
@@ -277,7 +277,7 @@ public class Election implements MessageHandler {
 
     /**
      * Compute the result using the current vote-box, then clear it.
-     * Quorum rule: votes >= requiredVotes (leaders + genesis).
+     * Quorum rule: votes >= requiredVotes (all known nodes).
      *
      * @return true if quorum met; false otherwise.
      */
