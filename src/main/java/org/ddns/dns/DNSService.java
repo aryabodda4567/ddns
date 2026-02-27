@@ -1,8 +1,12 @@
 package org.ddns.dns;
 
-import org.ddns.util.ConsolePrinter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 public final class DNSService {
+
+    private static final Logger log = LoggerFactory.getLogger(DNSService.class);
 
     private static UDPPacketServer udp;
     private static TCPPacketServer tcp;
@@ -19,7 +23,7 @@ public final class DNSService {
         udpThread.start();
         tcpThread.start();
 
-        ConsolePrinter.printSuccess("DNS Service started on port " + port);
+        log.info("DNS Service started on port " + port);
     }
 
     public static void stop() {

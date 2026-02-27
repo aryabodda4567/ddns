@@ -1,10 +1,12 @@
 package org.ddns.db;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.ddns.bc.SignatureUtil;
 import org.ddns.consensus.QueueNode;
 import org.ddns.constants.Role;
 import org.ddns.node.NodeConfig;
-import org.ddns.util.ConsolePrinter;
 
 import java.security.PublicKey;
 import java.sql.*;
@@ -12,6 +14,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 public final class BootstrapDB {
+
+    private static final Logger log = LoggerFactory.getLogger(BootstrapDB.class);
 
     private static volatile BootstrapDB instance;
     private final String dbUrl;
@@ -72,9 +76,9 @@ public final class BootstrapDB {
             stmt.execute(configTable);
             stmt.execute(queueTable);
 
-            ConsolePrinter.printSuccess("[BootstrapDB] bootstrap.db initialized.");
+            log.info("[BootstrapDB] bootstrap.db initialized.");
         } catch (SQLException e) {
-            ConsolePrinter.printFail("[BootstrapDB] Init failed: " + e.getMessage());
+            log.error("[BootstrapDB] Init failed: " + e.getMessage());
         }
     }
 
@@ -97,7 +101,7 @@ public final class BootstrapDB {
             pstmt.setString(3, SignatureUtil.getStringFromKey(node.getPublicKey()));
             pstmt.executeUpdate();
         } catch (Exception e) {
-            ConsolePrinter.printFail("[BootstrapDB] Save node failed: " + e.getMessage());
+            log.error("[BootstrapDB] Save node failed: " + e.getMessage());
         }
     }
 
@@ -116,7 +120,7 @@ public final class BootstrapDB {
                 }
             }
         } catch (SQLException e) {
-            ConsolePrinter.printFail("[BootstrapDB] Fetch nodes failed: " + e.getMessage());
+            log.error("[BootstrapDB] Fetch nodes failed: " + e.getMessage());
         }
         return nodes;
     }
@@ -125,7 +129,7 @@ public final class BootstrapDB {
         try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
             stmt.execute("DELETE FROM bootstrap_nodes");
         } catch (SQLException e) {
-            ConsolePrinter.printFail("[BootstrapDB] Clear nodes failed: " + e.getMessage());
+            log.error("[BootstrapDB] Clear nodes failed: " + e.getMessage());
         }
     }
 
@@ -137,16 +141,16 @@ public final class BootstrapDB {
         try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, SignatureUtil.getStringFromKey(publicKey));
             pstmt.executeUpdate();
-            ConsolePrinter.printSuccess("[BootstrapDB] Node removed via public key");
+            log.info("[BootstrapDB] Node removed via public key");
         } catch (Exception e) {
-            ConsolePrinter.printFail("[BootstrapDB] Delete node by key failed: " + e.getMessage());
+            log.error("[BootstrapDB] Delete node by key failed: " + e.getMessage());
         }
     }
 
     // Updates a node identified by IP. Sets new role and public_key.
     public synchronized void updateNode(String ip, Role role, PublicKey publicKey) {
         if (ip == null || ip.isBlank() || role == null || publicKey == null) {
-            ConsolePrinter.printWarning("[BootstrapDB] updateNode(ip, ...) skipped due to null/blank args");
+            log.warn("[BootstrapDB] updateNode(ip, ...) skipped due to null/blank args");
             return;
         }
 
@@ -159,19 +163,19 @@ public final class BootstrapDB {
 
             int rows = ps.executeUpdate();
             if (rows > 0) {
-                ConsolePrinter.printSuccess("[BootstrapDB] Node updated by IP: " + ip);
+                log.info("[BootstrapDB] Node updated by IP: " + ip);
             } else {
-                ConsolePrinter.printWarning("[BootstrapDB] No node found with IP: " + ip);
+                log.warn("[BootstrapDB] No node found with IP: " + ip);
             }
         } catch (Exception e) {
-            ConsolePrinter.printFail("[BootstrapDB] updateNode by IP failed: " + e.getMessage());
+            log.error("[BootstrapDB] updateNode by IP failed: " + e.getMessage());
         }
     }
 
     // Updates a node identified by PublicKey. Sets new role and ip.
     public synchronized void updateNode(PublicKey publicKey, Role role, String ip) {
         if (publicKey == null || role == null || ip == null || ip.isBlank()) {
-            ConsolePrinter.printWarning("[BootstrapDB] updateNode(publicKey, ...) skipped due to null/blank args");
+            log.warn("[BootstrapDB] updateNode(publicKey, ...) skipped due to null/blank args");
             return;
         }
 
@@ -184,12 +188,12 @@ public final class BootstrapDB {
 
             int rows = ps.executeUpdate();
             if (rows > 0) {
-                ConsolePrinter.printSuccess("[BootstrapDB] Node updated by PublicKey");
+                log.info("[BootstrapDB] Node updated by PublicKey");
             } else {
-                ConsolePrinter.printWarning("[BootstrapDB] No node found with provided PublicKey");
+                log.warn("[BootstrapDB] No node found with provided PublicKey");
             }
         } catch (Exception e) {
-            ConsolePrinter.printFail("[BootstrapDB] updateNode by PublicKey failed: " + e.getMessage());
+            log.error("[BootstrapDB] updateNode by PublicKey failed: " + e.getMessage());
         }
     }
 
@@ -207,12 +211,12 @@ public final class BootstrapDB {
             int rows = pstmt.executeUpdate();
 
             if (rows > 0) {
-                ConsolePrinter.printSuccess("[BootstrapDB] Node removed: " + ip);
+                log.info("[BootstrapDB] Node removed: " + ip);
             } else {
-                ConsolePrinter.printWarning("[BootstrapDB] No node found with IP: " + ip);
+                log.warn("[BootstrapDB] No node found with IP: " + ip);
             }
         } catch (SQLException e) {
-            ConsolePrinter.printFail("[BootstrapDB] Delete node failed: " + e.getMessage());
+            log.error("[BootstrapDB] Delete node failed: " + e.getMessage());
         }
     }
 
@@ -233,7 +237,7 @@ public final class BootstrapDB {
             pstmt.setString(2, value);
             pstmt.executeUpdate();
         } catch (SQLException e) {
-            ConsolePrinter.printFail("[BootstrapDB] putConfig failed: " + e.getMessage());
+            log.error("[BootstrapDB] putConfig failed: " + e.getMessage());
         }
     }
 
@@ -245,7 +249,7 @@ public final class BootstrapDB {
             ResultSet rs = pstmt.executeQuery();
             if (rs.next()) return rs.getString("value");
         } catch (SQLException e) {
-            ConsolePrinter.printFail("[BootstrapDB] getConfig failed: " + e.getMessage());
+            log.error("[BootstrapDB] getConfig failed: " + e.getMessage());
         }
         return null;
     }
@@ -257,7 +261,7 @@ public final class BootstrapDB {
             pstmt.setString(1, key);
             pstmt.executeUpdate();
         } catch (SQLException e) {
-            ConsolePrinter.printFail("[BootstrapDB] deleteConfig failed: " + e.getMessage());
+            log.error("[BootstrapDB] deleteConfig failed: " + e.getMessage());
         }
     }
 
@@ -265,7 +269,7 @@ public final class BootstrapDB {
         try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
             stmt.execute("DELETE FROM bootstrap_config");
         } catch (SQLException e) {
-            ConsolePrinter.printFail("[BootstrapDB] clearConfig failed: " + e.getMessage());
+            log.error("[BootstrapDB] clearConfig failed: " + e.getMessage());
         }
     }
 
@@ -277,12 +281,12 @@ public final class BootstrapDB {
         try {
             java.io.File f = new java.io.File(dbUrl.replace("jdbc:sqlite:", ""));
             if (f.exists() && f.delete()) {
-                ConsolePrinter.printSuccess("[BootstrapDB] bootstrap.db deleted.");
+                log.info("[BootstrapDB] bootstrap.db deleted.");
             } else {
-                ConsolePrinter.printFail("[BootstrapDB] Failed to delete bootstrap.db.");
+                log.error("[BootstrapDB] Failed to delete bootstrap.db.");
             }
         } catch (Exception e) {
-            ConsolePrinter.printFail("[BootstrapDB] Drop DB error: " + e.getMessage());
+            log.error("[BootstrapDB] Drop DB error: " + e.getMessage());
         }
     }
 
@@ -301,7 +305,7 @@ public final class BootstrapDB {
             ps.setString(4, SignatureUtil.getStringFromKey(node.getNodeConfig().getPublicKey()));
             ps.executeUpdate();
         } catch (Exception e) {
-            ConsolePrinter.printFail("[BootstrapDB] insertQueueNode failed: " + e.getMessage());
+            log.error("[BootstrapDB] insertQueueNode failed: " + e.getMessage());
         }
     }
 
@@ -321,7 +325,7 @@ public final class BootstrapDB {
                 set.add(new QueueNode(nc, sno));
             }
         } catch (Exception e) {
-            ConsolePrinter.printFail("[BootstrapDB] getAllQueueNodes failed: " + e.getMessage());
+            log.error("[BootstrapDB] getAllQueueNodes failed: " + e.getMessage());
         }
 
         return set;
@@ -342,7 +346,7 @@ public final class BootstrapDB {
                 return new QueueNode(nc, sno);
             }
         } catch (Exception e) {
-            ConsolePrinter.printFail("[BootstrapDB] getQueueNodeBySno failed: " + e.getMessage());
+            log.error("[BootstrapDB] getQueueNodeBySno failed: " + e.getMessage());
         }
 
         return null;
@@ -355,7 +359,7 @@ public final class BootstrapDB {
             ps.setInt(1, sno);
             ps.executeUpdate();
         } catch (Exception e) {
-            ConsolePrinter.printFail("[BootstrapDB] deleteQueueNode failed: " + e.getMessage());
+            log.error("[BootstrapDB] deleteQueueNode failed: " + e.getMessage());
         }
     }
 
@@ -363,7 +367,7 @@ public final class BootstrapDB {
         try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
             stmt.execute("DELETE FROM consensus_queue");
         } catch (Exception e) {
-            ConsolePrinter.printFail("[BootstrapDB] clearQueue failed: " + e.getMessage());
+            log.error("[BootstrapDB] clearQueue failed: " + e.getMessage());
         }
     }
     public synchronized void updateQueueNode(QueueNode node) {
@@ -382,7 +386,7 @@ public final class BootstrapDB {
             ps.setInt(4, node.getSno());
             ps.executeUpdate();
         } catch (Exception e) {
-            ConsolePrinter.printFail("[BootstrapDB] updateQueueNode failed: " + e.getMessage());
+            log.error("[BootstrapDB] updateQueueNode failed: " + e.getMessage());
         }
     }
     public synchronized int getNextQueueSequence() {
@@ -397,7 +401,7 @@ public final class BootstrapDB {
                 return max + 1;
             }
         } catch (Exception e) {
-            ConsolePrinter.printFail("[BootstrapDB] getNextQueueSequence failed: " + e.getMessage());
+            log.error("[BootstrapDB] getNextQueueSequence failed: " + e.getMessage());
         }
 
         return 0;

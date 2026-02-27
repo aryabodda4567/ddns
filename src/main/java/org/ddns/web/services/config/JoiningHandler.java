@@ -1,12 +1,14 @@
 package org.ddns.web.services.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.ddns.bc.SignatureUtil;
 import org.ddns.chain.Wallet;
 import org.ddns.constants.Role;
 import org.ddns.db.DBUtil;
 import org.ddns.node.NodeConfig;
 import org.ddns.node.NodesManager;
-import org.ddns.util.ConsolePrinter;
 import org.ddns.util.NetworkUtility;
 import spark.Request;
 import spark.Response;
@@ -18,6 +20,8 @@ import java.util.Map;
 
 
 public class JoiningHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(JoiningHandler.class);
 
     private final Gson gson = new Gson();
 
@@ -52,7 +56,7 @@ public class JoiningHandler {
         PrivateKey privateKey = SignatureUtil.getPrivateKeyFromString(privateKeyString);
         PublicKey publicKey = Wallet.getPublicKeyFromPrivateKey(privateKey);
 
-        ConsolePrinter.printInfo("Public key: " + publicKey);
+        log.info("Public key: " + publicKey);
         DBUtil.getInstance().saveKeys(publicKey, privateKey);
 
         // set self node using local IP

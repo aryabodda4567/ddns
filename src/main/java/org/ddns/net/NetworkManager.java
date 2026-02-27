@@ -1,11 +1,13 @@
 package org.ddns.net;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 import org.ddns.constants.FileNames;
 import org.ddns.constants.Role;
 import org.ddns.node.NodeConfig;
 import org.ddns.node.NodesManager;
-import org.ddns.util.ConsolePrinter;
 import org.ddns.util.NetworkUtility;
 
 import java.io.*;
@@ -31,6 +33,8 @@ import java.util.concurrent.Executors;
  * </ul>
  */
 public class NetworkManager {
+
+    private static final Logger log = LoggerFactory.getLogger(NetworkManager.class);
 
     // --- Network Configuration ---
     public static final int BROADCAST_PORT = 6969;
@@ -61,9 +65,9 @@ public class NetworkManager {
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length, broadcastAddress, BROADCAST_PORT);
             socket.send(packet);
 
-            ConsolePrinter.printSuccess("[NetworkManager] Broadcast message sent to all nodes.");
+            log.info("[NetworkManager] Broadcast message sent to all nodes.");
         } catch (Exception e) {
-            ConsolePrinter.printFail("[NetworkManager] Failed to send broadcast: " + e.getMessage());
+            log.error("[NetworkManager] Failed to send broadcast: " + e.getMessage());
         }
     }
 
@@ -75,10 +79,10 @@ public class NetworkManager {
         try (Socket socket = new Socket(peerIp, DIRECT_MESSAGE_PORT);
              PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
             out.println(jsonMessage);
-            ConsolePrinter.printInfo("[NetworkManager] Sent direct message to " + peerIp);
+            log.info("[NetworkManager] Sent direct message to " + peerIp);
             return true;
         } catch (Exception e) {
-            ConsolePrinter.printFail("[NetworkManager] Failed to send direct message to " + peerIp + ": " + e.getMessage());
+            log.error("[NetworkManager] Failed to send direct message to " + peerIp + ": " + e.getMessage());
             return false;
         }
     }
@@ -97,9 +101,9 @@ public class NetworkManager {
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, BROADCAST_PORT);
             socket.send(packet);
 
-            ConsolePrinter.printSuccess("[NetworkManager] Multicast message sent to leader group.");
+            log.info("[NetworkManager] Multicast message sent to leader group.");
         } catch (Exception e) {
-            ConsolePrinter.printFail("[NetworkManager] Failed to send multicast: " + e.getMessage());
+            log.error("[NetworkManager] Failed to send multicast: " + e.getMessage());
         }
     }
 
@@ -109,7 +113,7 @@ public class NetworkManager {
      */
     public static void broadcast(String jsonMessage, Set<NodeConfig> nodeConfigSet, Set<Role> roles) {
         if (nodeConfigSet == null || nodeConfigSet.isEmpty()) {
-            ConsolePrinter.printWarning("[NetworkManager] No nodes found to send broadcast message.");
+            log.warn("[NetworkManager] No nodes found to send broadcast message.");
             return;
         }
 
@@ -122,9 +126,9 @@ public class NetworkManager {
         }
 
         if (sentCount > 0) {
-            ConsolePrinter.printSuccess("[NetworkManager] Broadcasted message to " + sentCount + " nodes.");
+            log.info("[NetworkManager] Broadcasted message to " + sentCount + " nodes.");
         } else {
-            ConsolePrinter.printWarning("[NetworkManager] Broadcast skipped, no valid nodes.");
+            log.warn("[NetworkManager] Broadcast skipped, no valid nodes.");
         }
     }
 
@@ -137,7 +141,7 @@ public class NetworkManager {
     public static void sendFile(String peerIp, String filePath) {
         File file = new File(filePath);
         if (!file.exists() || !file.isFile()) {
-            ConsolePrinter.printFail("[NetworkManager] File not found: " + filePath);
+            log.error("[NetworkManager] File not found: " + filePath);
             return;
         }
 
@@ -160,9 +164,9 @@ public class NetworkManager {
             }
             dos.flush();
 
-            ConsolePrinter.printSuccess("[NetworkManager] File sent successfully (" + totalSent + " bytes) to " + peerIp);
+            log.info("[NetworkManager] File sent successfully (" + totalSent + " bytes) to " + peerIp);
         } catch (Exception e) {
-            ConsolePrinter.printFail("[NetworkManager] Failed to send file to " + peerIp + ": " + e.getMessage());
+            log.error("[NetworkManager] Failed to send file to " + peerIp + ": " + e.getMessage());
         }
     }
 
@@ -171,7 +175,7 @@ public class NetworkManager {
      */
     public void registerHandler(MessageHandler handler) {
         handlers.add(handler);
-        ConsolePrinter.printInfo("[NetworkManager] Registered handler: " + handler.getClass().getSimpleName());
+        log.info("[NetworkManager] Registered handler: " + handler.getClass().getSimpleName());
     }
 
 
@@ -184,14 +188,14 @@ public class NetworkManager {
      */
     public void unregisterHandler(MessageHandler handler) {
         handlers.remove(handler);
-        ConsolePrinter.printWarning("[NetworkManager] Unregistered handler: " + handler.getClass().getSimpleName());
+        log.warn("[NetworkManager] Unregistered handler: " + handler.getClass().getSimpleName());
     }
 
     /**
      * Starts background listener threads for UDP broadcasts, multicasts, and TCP messages.
      */
     public void startListeners() {
-        ConsolePrinter.printInfo("[NetworkManager] Starting network listeners...");
+        log.info("[NetworkManager] Starting network listeners...");
         executor.submit(this::listenForUdpBroadcastsAndMulticasts);
         executor.submit(this::listenForTcpDirectMessages);
         executor.submit(this::listenForFileTransfers);
@@ -207,7 +211,7 @@ public class NetworkManager {
     public void stop() {
         this.running = false;
         executor.shutdownNow();
-        ConsolePrinter.printWarning("[NetworkManager] Network listeners stopped.");
+        log.warn("[NetworkManager] Network listeners stopped.");
     }
 
     private void dispatchBroadcast(String message) {
@@ -238,7 +242,7 @@ public class NetworkManager {
             InetAddress group = InetAddress.getByName(MULTICAST_GROUP_IP);
             socket.joinGroup(group);
 
-            ConsolePrinter.printInfo("[NetworkManager] Listening for UDP Broadcasts and Multicasts on port " + BROADCAST_PORT);
+            log.info("[NetworkManager] Listening for UDP Broadcasts and Multicasts on port " + BROADCAST_PORT);
 
             while (running) {
                 byte[] buffer = new byte[65535];
@@ -254,7 +258,7 @@ public class NetworkManager {
             }
         } catch (Exception e) {
             if (running) {
-                ConsolePrinter.printFail("[NetworkManager] UDP listener error: " + e.getMessage());
+                log.error("[NetworkManager] UDP listener error: " + e.getMessage());
             }
         }
     }
@@ -266,7 +270,7 @@ public class NetworkManager {
 
     private void listenForTcpDirectMessages() {
         try (ServerSocket serverSocket = new ServerSocket(DIRECT_MESSAGE_PORT)) {
-            ConsolePrinter.printInfo("[NetworkManager] Listening for TCP Direct Messages on port " + DIRECT_MESSAGE_PORT);
+            log.info("[NetworkManager] Listening for TCP Direct Messages on port " + DIRECT_MESSAGE_PORT);
             while (running) {
                 Socket clientSocket = serverSocket.accept();
                 executor.submit(() -> {
@@ -276,13 +280,13 @@ public class NetworkManager {
                             dispatchDirect(message);
                         }
                     } catch (IOException e) {
-                        ConsolePrinter.printFail("[NetworkManager] Error reading direct message: " + e.getMessage());
+                        log.error("[NetworkManager] Error reading direct message: " + e.getMessage());
                     }
                 });
             }
         } catch (Exception e) {
             if (running) {
-                ConsolePrinter.printFail("[NetworkManager] TCP listener error: " + e.getMessage());
+                log.error("[NetworkManager] TCP listener error: " + e.getMessage());
             }
         }
     }
@@ -292,7 +296,7 @@ public class NetworkManager {
      */
     private void listenForFileTransfers() {
         try (ServerSocket serverSocket = new ServerSocket(FILE_TRANSFER_PORT)) {
-            ConsolePrinter.printInfo("[NetworkManager] Listening for file transfers on port " + FILE_TRANSFER_PORT);
+            log.info("[NetworkManager] Listening for file transfers on port " + FILE_TRANSFER_PORT);
 
             while (running) {
                 Socket clientSocket = serverSocket.accept();
@@ -300,7 +304,7 @@ public class NetworkManager {
             }
         } catch (Exception e) {
             if (running) {
-                ConsolePrinter.printFail("[NetworkManager] File transfer listener error: " + e.getMessage());
+                log.error("[NetworkManager] File transfer listener error: " + e.getMessage());
             }
         }
     }
@@ -310,7 +314,7 @@ public class NetworkManager {
      */
     private void handleIncomingFile(Socket clientSocket) {
         try (DataInputStream dis = new DataInputStream(new BufferedInputStream(clientSocket.getInputStream()))) {
-            ConsolePrinter.printInfo("[NetworkManager] Receiving file from "+ clientSocket.getInetAddress().toString());
+            log.info("[NetworkManager] Receiving file from "+ clientSocket.getInetAddress().toString());
             String originalFileName = dis.readUTF();
             long fileSize = dis.readLong();
 
@@ -331,12 +335,12 @@ public class NetworkManager {
                 }
                 bos.flush();
 
-                ConsolePrinter.printSuccess("[NetworkManager] Received file '" + originalFileName + "' (" + received + " bytes) and saved to: " + outputPath);
+                log.info("[NetworkManager] Received file '" + originalFileName + "' (" + received + " bytes) and saved to: " + outputPath);
                 NodesManager.sync();
             }
 
         } catch (IOException e) {
-            ConsolePrinter.printFail("[NetworkManager] Error receiving file: " + e.getMessage());
+            log.error("[NetworkManager] Error receiving file: " + e.getMessage());
         }
     }
 }

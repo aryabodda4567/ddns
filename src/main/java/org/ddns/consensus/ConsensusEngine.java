@@ -1,5 +1,8 @@
 package org.ddns.consensus;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.ddns.bc.Block;
 import org.ddns.bc.Transaction;
 import org.ddns.db.BlockDb;
@@ -8,7 +11,6 @@ import org.ddns.db.TransactionDb;
 import org.ddns.net.Message;
 import org.ddns.net.MessageHandler;
 import org.ddns.node.NodesManager;
-import org.ddns.util.ConsolePrinter;
 import org.ddns.util.ConversionUtil;
 import org.ddns.util.TimeUtil;
 
@@ -16,6 +18,8 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class ConsensusEngine implements MessageHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(ConsensusEngine.class);
 
     private static final Set<Transaction> transactions =
             ConcurrentHashMap.newKeySet();
@@ -32,7 +36,7 @@ public final class ConsensusEngine implements MessageHandler {
 
         // Verify before accepting
         if (!transaction.verifySignature(transaction.getSenderPublicKey())) {
-            ConsolePrinter.printWarning("Rejected invalid transaction signature");
+            log.warn("Rejected invalid transaction signature");
             return;
         }
 
@@ -42,7 +46,7 @@ public final class ConsensusEngine implements MessageHandler {
         // Broadcast to network
         Transaction.publish(transaction);
 
-        ConsolePrinter.printInfo("Transaction published: " + transaction.getHash());
+        log.info("Transaction published: " + transaction.getHash());
     }
 
 
@@ -74,7 +78,7 @@ public final class ConsensusEngine implements MessageHandler {
         if (!isSelfLeader) return;
         if (transactions.isEmpty()) return;
 
-        ConsolePrinter.printInfo("I am leader. Producing block...");
+        log.info("I am leader. Producing block...");
         engine.publishBlock();
     }
 
@@ -96,21 +100,21 @@ public final class ConsensusEngine implements MessageHandler {
     // ================= Logic =================
 
     private void appendTransaction(Message message) {
-        ConsolePrinter.printInfo("[ConsensusEngine] Transaction received");
+        log.info("[ConsensusEngine] Transaction received");
         Transaction tx = ConversionUtil.fromJson(message.payload, Transaction.class);
         if (!tx.verifySignature(tx.getSenderPublicKey())) return;
         transactions.add(tx);
     }
 
     private void onBlockReceived(Message message) {
-        ConsolePrinter.printInfo("[ConsensusEngine] Block received");
+        log.info("[ConsensusEngine] Block received");
         Block block = ConversionUtil.fromJson(message.payload, Block.class);
 
 //        if (BlockDb.getInstance().hasBlock(block.getHash())) return;
 
         String latest = BlockDb.getInstance().getLatestBlockHash();
         if (!block.getPreviousHash().equals(latest)) {
-            ConsolePrinter.printWarning("Rejected block: wrong previous hash");
+            log.warn("Rejected block: wrong previous hash");
             return;
         }
 
@@ -132,7 +136,7 @@ public final class ConsensusEngine implements MessageHandler {
     }
 
     public void publishBlock() {
-        ConsolePrinter.printInfo("[ConsensusEngine] Publishing block");
+        log.info("[ConsensusEngine] Publishing block");
         Block block = new Block(
                 BlockDb.getInstance().getLatestBlockHash(),
                 new ArrayList<>(transactions),

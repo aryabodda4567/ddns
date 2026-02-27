@@ -1,5 +1,8 @@
 package org.ddns.node;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.ddns.bc.Block;
 import org.ddns.bc.Transaction;
 import org.ddns.bc.TransactionType;
@@ -17,7 +20,6 @@ import org.ddns.net.Message;
 import org.ddns.net.MessageHandler;
 import org.ddns.net.MessageType;
 import org.ddns.net.NetworkManager;
-import org.ddns.util.ConsolePrinter;
 import org.ddns.util.ConversionUtil;
 import org.ddns.util.NetworkUtility;
 import org.ddns.util.TimeUtil;
@@ -36,6 +38,8 @@ import java.util.*;
  */
 public class NodesManager implements MessageHandler {
 
+    private static final Logger log = LoggerFactory.getLogger(NodesManager.class);
+
     private final Election election;
     private final static int PORT = 53;
 
@@ -47,7 +51,7 @@ public class NodesManager implements MessageHandler {
     public NodesManager(NetworkManager networkManager, Election election) {
         networkManager.registerHandler(this);
         this.election = election;
-        ConsolePrinter.printInfo("[NodesManager] Registered with NetworkManager.");
+        log.info("[NodesManager] Registered with NetworkManager.");
     }
 
     @Override
@@ -63,7 +67,7 @@ public class NodesManager implements MessageHandler {
     @Override
     public void onDirectMessage(String message) {
         if (message == null || message.isEmpty()) {
-            ConsolePrinter.printWarning("[NodesManager] Received null or empty direct message.");
+            log.warn("[NodesManager] Received null or empty direct message.");
             return;
         }
 
@@ -71,16 +75,16 @@ public class NodesManager implements MessageHandler {
         try {
             incoming = ConversionUtil.fromJson(message, Message.class);
         } catch (Exception e) {
-            ConsolePrinter.printFail("[NodesManager] Failed to parse incoming Message: " + e.getMessage());
+            log.error("[NodesManager] Failed to parse incoming Message: " + e.getMessage());
             return;
         }
 
         if (incoming == null || incoming.type == null || incoming.payload == null) {
-            ConsolePrinter.printWarning("[NodesManager] Received malformed message (null type or payload).");
+            log.warn("[NodesManager] Received malformed message (null type or payload).");
             return;
         }
 
-        ConsolePrinter.printInfo("[NodesManager] Received direct message: " + incoming.type);
+        log.info("[NodesManager] Received direct message: " + incoming.type);
         String payload = incoming.payload;
 
         // Route message to the appropriate handler
@@ -92,7 +96,7 @@ public class NodesManager implements MessageHandler {
             case SYNC_REQUEST -> resolveSyncRequest(incoming);
             case QUEUE_UPDATE -> resolveQueueUpdate(payload);
             default -> {
-                // ConsolePrinter.printInfo("[NodesManager] Ignored message type: " +
+                // log.info("[NodesManager] Ignored message type: " +
                 // incoming.type);
             }
         }
@@ -114,7 +118,7 @@ public class NodesManager implements MessageHandler {
         // Replace entire local queue with authoritative state
         CircularQueue.getInstance().resetWith(list);
 
-        ConsolePrinter.printSuccess("[Consensus] Queue updated. New size = " + list.size());
+        log.info("[Consensus] Queue updated. New size = " + list.size());
     }
 
     @Override
@@ -137,15 +141,15 @@ public class NodesManager implements MessageHandler {
         try {
             NodeConfig nodeConfig = ConversionUtil.fromJson(payload, NodeConfig.class);
             if (nodeConfig == null || nodeConfig.getIp() == null || nodeConfig.getPublicKey() == null) {
-                ConsolePrinter.printWarning("[NodesManager] Invalid ADD_NODE payload received.");
+                log.warn("[NodesManager] Invalid ADD_NODE payload received.");
                 return;
             }
 
             DBUtil.getInstance().addNode(nodeConfig); // This is an upsert
-            ConsolePrinter.printSuccess("[NodesManager] Added/Updated node in local DB: " + nodeConfig.getIp());
+            log.info("[NodesManager] Added/Updated node in local DB: " + nodeConfig.getIp());
 
         } catch (Exception e) {
-            ConsolePrinter.printFail("[NodesManager] Error resolving ADD_NODE: " + e.getMessage());
+            log.error("[NodesManager] Error resolving ADD_NODE: " + e.getMessage());
         }
     }
 
@@ -160,19 +164,19 @@ public class NodesManager implements MessageHandler {
         try {
             NodeConfig nodeConfig = ConversionUtil.fromJson(payload, NodeConfig.class);
             if (nodeConfig == null || nodeConfig.getPublicKey() == null) {
-                ConsolePrinter.printWarning("[NodesManager] Invalid DELETE_NODE payload received.");
+                log.warn("[NodesManager] Invalid DELETE_NODE payload received.");
                 return;
             }
 
             boolean success = DBUtil.getInstance().deleteNode(nodeConfig.getPublicKey());
             if (success) {
-                ConsolePrinter.printSuccess("[NodesManager] Removed node from local DB: " + nodeConfig.getIp());
+                log.info("[NodesManager] Removed node from local DB: " + nodeConfig.getIp());
             } else {
-                ConsolePrinter.printWarning("[NodesManager] Failed to remove node (not found?): " + nodeConfig.getIp());
+                log.warn("[NodesManager] Failed to remove node (not found?): " + nodeConfig.getIp());
             }
 
         } catch (Exception e) {
-            ConsolePrinter.printFail("[NodesManager] Error resolving DELETE_NODE: " + e.getMessage());
+            log.error("[NodesManager] Error resolving DELETE_NODE: " + e.getMessage());
         }
     }
 
@@ -186,9 +190,9 @@ public class NodesManager implements MessageHandler {
             return;
         try {
             // No role promotions in egalitarian system - all nodes equal
-            ConsolePrinter.printInfo("[NodesManager] Node promotion message ignored (egalitarian system)");
+            log.info("[NodesManager] Node promotion message ignored (egalitarian system)");
         } catch (Exception e) {
-            ConsolePrinter.printFail("[NodesManager] Error resolving PROMOTE_NODE: " + e.getMessage());
+            log.error("[NodesManager] Error resolving PROMOTE_NODE: " + e.getMessage());
         }
     }
 
@@ -200,7 +204,7 @@ public class NodesManager implements MessageHandler {
      */
     public void resolveFetchResponse(String payload) {
         if (payload == null) {
-            ConsolePrinter.printWarning("[NodesManager] FETCH_NODES_RESPONSE payload is null.");
+            log.warn("[NodesManager] FETCH_NODES_RESPONSE payload is null.");
             return;
         }
 
@@ -219,29 +223,28 @@ public class NodesManager implements MessageHandler {
             // At this point nodeConfigSet may be null or empty
             if (nodeConfigSet == null || nodeConfigSet.isEmpty()) {
                 // No nodes returned -> first node joins as regular participant
-                ConsolePrinter.printInfo(
+                log.info(
                         "[NodesManager] FETCH_NODES_RESPONSE: no nodes returned. Starting as first node.");
 
                 NodeConfig self = DBUtil.getInstance().getSelfNode();
 
                 if (self == null) {
-                    ConsolePrinter.printFail("[NodesManager] Self node not configured; cannot start node.");
+                    log.error("[NodesManager] Self node not configured; cannot start node.");
                     return;
                 }
 
                 setupEqualNode();
-                ConsolePrinter
-                        .printSuccess("[NodesManager] Node started and persisted locally: " + self.getIp());
+                log.info("[NodesManager] Node started and persisted locally: " + self.getIp());
                 return;
             }
 
             // There are existing nodes in the network: sync them into local DB
             System.out.println(nodeConfigSet);
             DBUtil.getInstance().addNodes(nodeConfigSet);
-            ConsolePrinter.printSuccess("[NodesManager] Synced " + nodeConfigSet.size() + " nodes from Bootstrap.");
+            log.info("[NodesManager] Synced " + nodeConfigSet.size() + " nodes from Bootstrap.");
 
         } catch (Exception e) {
-            ConsolePrinter.printFail("[NodesManager] Error resolving FETCH_NODES_RESPONSE: " + e.getMessage());
+            log.error("[NodesManager] Error resolving FETCH_NODES_RESPONSE: " + e.getMessage());
         }
     }
 
@@ -256,7 +259,7 @@ public class NodesManager implements MessageHandler {
      * @throws Exception If public key or self-node config is missing.
      */
     public static void createAddNodeRequest() throws Exception {
-        ConsolePrinter.printInfo("[NodesManager] Sending ADD_NODE request to Bootstrap...");
+        log.info("[NodesManager] Sending ADD_NODE request to Bootstrap...");
         sendBootstrapRequest(MessageType.ADD_NODE);
     }
 
@@ -267,7 +270,7 @@ public class NodesManager implements MessageHandler {
      * @throws Exception If public key or self-node config is missing.
      */
     public void createRemoveRequest() throws Exception {
-        ConsolePrinter.printInfo("[NodesManager] Sending DELETE_NODE request to Bootstrap...");
+        log.info("[NodesManager] Sending DELETE_NODE request to Bootstrap...");
         sendBootstrapRequest(MessageType.DELETE_NODE);
     }
 
@@ -277,7 +280,7 @@ public class NodesManager implements MessageHandler {
      * @throws Exception If public key or self-node config is missing.
      */
     public static void createPromoteRequest() throws Exception {
-        ConsolePrinter.printInfo("[NodesManager] Sending PROMOTE_NODE request to Bootstrap...");
+        log.info("[NodesManager] Sending PROMOTE_NODE request to Bootstrap...");
         sendBootstrapRequest(MessageType.PROMOTE_NODE);
     }
 
@@ -290,7 +293,7 @@ public class NodesManager implements MessageHandler {
     public static void createFetchRequest() throws Exception {
         String bootstrapIp = DBUtil.getInstance().getBootstrapIp();
         if (bootstrapIp == null) {
-            ConsolePrinter.printFail("[NodesManager] Cannot createFetchRequest: Bootstrap IP is not set.");
+            log.error("[NodesManager] Cannot createFetchRequest: Bootstrap IP is not set.");
             return;
         }
 
@@ -303,7 +306,7 @@ public class NodesManager implements MessageHandler {
                 selfKey,
                 ConversionUtil.toJson(Map.of("IP", NetworkUtility.getLocalIpAddress())));
 
-        ConsolePrinter.printInfo("[NodesManager] Sending FETCH_NODES request to Bootstrap at " + bootstrapIp);
+        log.info("[NodesManager] Sending FETCH_NODES request to Bootstrap at " + bootstrapIp);
         NetworkManager.sendDirectMessage(bootstrapIp, ConversionUtil.toJson(message));
     }
 
@@ -321,13 +324,13 @@ public class NodesManager implements MessageHandler {
     private static void sendBootstrapRequest(MessageType type) throws Exception {
         String bootstrapIp = DBUtil.getInstance().getBootstrapIp();
         if (bootstrapIp == null) {
-            ConsolePrinter.printFail("[NodesManager] Cannot send request: Bootstrap IP is not set.");
+            log.error("[NodesManager] Cannot send request: Bootstrap IP is not set.");
             throw new IllegalStateException("Bootstrap IP not found in DBUtil.");
         }
 
         NodeConfig selfNode = DBUtil.getInstance().getSelfNode();
         if (selfNode == null) {
-            ConsolePrinter.printFail("[NodesManager] Cannot send request: Self node config is not set.");
+            log.error("[NodesManager] Cannot send request: Self node config is not set.");
             throw new IllegalStateException("Self node config not found in DBUtil.");
         }
 
@@ -362,10 +365,10 @@ public class NodesManager implements MessageHandler {
             if (targetNode != null) {
                 NetworkManager.sendDirectMessage(targetNode.getIp(), ConversionUtil.toJson(message));
             } else {
-                ConsolePrinter.printFail("[Node Manager] No peer node found for sync");
+                log.error("[Node Manager] No peer node found for sync");
                 return;
             }
-            ConsolePrinter.printInfo("[Node Manager] Sync request sent to peer " + targetNode.getIp());
+            log.info("[Node Manager] Sync request sent to peer " + targetNode.getIp());
 
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -375,7 +378,7 @@ public class NodesManager implements MessageHandler {
     public void resolveSyncRequest(Message message) {
         String requestNodeIp = message.senderIp;
         // share current db snapshot
-        ConsolePrinter.printInfo("[Node Manager] Sending db snapshot to " + requestNodeIp);
+        log.info("[Node Manager] Sending db snapshot to " + requestNodeIp);
         NetworkManager.sendFile(
                 requestNodeIp,
                 BlockDb.getInstance().exportSnapshot());
@@ -437,7 +440,7 @@ public class NodesManager implements MessageHandler {
 
         if (!onlyLast) {
 
-            ConsolePrinter.printInfo("[StateApplier] Rebuilding DNS state from blockchain...");
+            log.info("[StateApplier] Rebuilding DNS state from blockchain...");
 
             // 1. Clear current state
             dnsDb.truncateDatabase(true);
@@ -449,7 +452,7 @@ public class NodesManager implements MessageHandler {
                 applySingleBlock(block, dnsDb);
             }
 
-            ConsolePrinter.printSuccess("[StateApplier] Full state rebuild completed. Blocks=" + blocks.size());
+            log.info("[StateApplier] Full state rebuild completed. Blocks=" + blocks.size());
 
         } else {
             // ⚡ APPLY ONLY LAST BLOCK
@@ -462,7 +465,7 @@ public class NodesManager implements MessageHandler {
             if (lastBlock == null)
                 return;
 
-            ConsolePrinter.printInfo("[StateApplier] Applying last block: " + lastBlock.getHash());
+            log.info("[StateApplier] Applying last block: " + lastBlock.getHash());
 
             applySingleBlock(lastBlock, dnsDb);
         }
@@ -485,17 +488,17 @@ public class NodesManager implements MessageHandler {
                     case REGISTER -> {
                         ok = persistence.addRecord(dnsModel);
                         if (ok)
-                            ConsolePrinter.printSuccess("[STATE] REGISTER applied: " + dnsModel.getName());
+                            log.info("[STATE] REGISTER applied: " + dnsModel.getName());
                         else
-                            ConsolePrinter.printFail("[STATE] REGISTER failed: " + dnsModel.getName());
+                            log.error("[STATE] REGISTER failed: " + dnsModel.getName());
                     }
 
                     case UPDATE_RECORDS -> {
                         ok = persistence.updateRecord(dnsModel);
                         if (ok)
-                            ConsolePrinter.printSuccess("[STATE] UPDATE applied: " + dnsModel.getName());
+                            log.info("[STATE] UPDATE applied: " + dnsModel.getName());
                         else
-                            ConsolePrinter.printFail("[STATE] UPDATE failed: " + dnsModel.getName());
+                            log.error("[STATE] UPDATE failed: " + dnsModel.getName());
                     }
 
                     case DELETE_RECORDS -> {
@@ -504,9 +507,9 @@ public class NodesManager implements MessageHandler {
                                 dnsModel.getType(),
                                 dnsModel.getRdata());
                         if (ok)
-                            ConsolePrinter.printSuccess("[STATE] DELETE applied: " + dnsModel.getName());
+                            log.info("[STATE] DELETE applied: " + dnsModel.getName());
                         else
-                            ConsolePrinter.printFail("[STATE] DELETE failed: " + dnsModel.getName());
+                            log.error("[STATE] DELETE failed: " + dnsModel.getName());
                     }
                 }
             }
