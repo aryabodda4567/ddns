@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Node Join | DDNS Console</title>
     <link rel="stylesheet" href="/css/common.css">
+    <script src="/js/auth-guard.js"></script>
 </head>
 <body>
 <div class="page-shell">
@@ -25,9 +26,9 @@
             <nav class="menu">
                 <a class="active" href="/join.html">1. Join Network</a>
                 <a href="/create_election.html">2. Create Election</a>
-                <a href="/vote.html">3. Vote</a>
+                <a data-requires-accepted="true" href="/vote.html">3. Vote</a>
                 <a href="/join_result.html">4. Join Result</a>
-                <a href="/index.html">DNS Control</a>
+                <a data-requires-accepted="true" href="/index.html">DNS Control</a>
             </nav>
         </aside>
 
@@ -184,7 +185,17 @@
     async function goNext() {
         try {
             const res = await fetch("/checkfetchresult");
-            const data = await res.json();
+            const raw = await res.text();
+            let data = {};
+            try {
+                data = raw ? JSON.parse(raw) : {};
+            } catch (e) {
+                throw new Error("Invalid server response. Please login again.");
+            }
+
+            if (!res.ok) {
+                throw new Error(data.error || "Failed to fetch next step");
+            }
 
             if (data.election === true) {
                 window.location.href = "/create_election.html";

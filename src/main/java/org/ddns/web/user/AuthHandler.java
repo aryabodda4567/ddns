@@ -20,9 +20,9 @@ public class AuthHandler {
             return Map.of("error", "Username and password are required");
         }
 
-        if (!infoService.IsAccepted()) {
-            res.status(403);
-            return Map.of("error", "Node is not accepted in network yet");
+        if (User.getUser() == null) {
+            res.status(400);
+            return Map.of("error", "No web user configured. Complete join setup first.");
         }
 
         if (!User.verifyCredentials(body.username, body.password)) {
@@ -41,15 +41,17 @@ public class AuthHandler {
     }
 
     public Object session(Request req, Response res) {
+        boolean userConfigured = User.getUser() != null;
         boolean accepted = infoService.IsAccepted();
-        boolean authenticated = !accepted || SessionManager.isSessionValid(req);
+        boolean authenticated = !userConfigured || SessionManager.isSessionValid(req);
         long expiresAt = SessionManager.getExpiresAt();
 
         res.type("application/json");
 
         return Map.of(
+                "userConfigured", userConfigured,
                 "accepted", accepted,
-                "requireLogin", accepted,
+                "requireLogin", userConfigured,
                 "authenticated", authenticated,
                 "expiresAt", expiresAt,
                 "sessionSeconds", SessionManager.SESSION_DURATION_SECONDS

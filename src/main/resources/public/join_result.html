@@ -26,9 +26,9 @@
             <nav class="menu">
                 <a href="/join.html">Join Network</a>
                 <a href="/create_election.html">Create Election</a>
-                <a href="/vote.html">Vote</a>
+                <a data-requires-accepted="true" href="/vote.html">Vote</a>
                 <a class="active" href="/join_result.html">Join Result</a>
-                <a href="/index.html">DNS Control</a>
+                <a data-requires-accepted="true" href="/index.html">DNS Control</a>
             </nav>
         </aside>
 
@@ -44,7 +44,7 @@
 
                 <div class="action-row" style="margin-top: 12px;">
                     <button onclick="checkResult()">Check Result</button>
-                    <button class="secondary" onclick="location.href='/vote.html'">Back To Vote</button>
+                    <button class="secondary" data-requires-accepted="true" onclick="location.href='/vote.html'">Back To Vote</button>
                 </div>
 
                 <div id="result"></div>

@@ -138,16 +138,21 @@ public class User {
         if (candidatePassword == null || getPassword() == null) {
             return false;
         }
+        String stored = getPassword().trim();
+        String candidate = candidatePassword.trim();
+        String candidateHash = hashString(candidate);
 
-        return Objects.equals(getPassword(), hashString(candidatePassword));
+        // Backward compatibility:
+        // - current format: SHA-256 hash in DB
+        // - legacy/dirty data: plain-text password accidentally persisted
+        return Objects.equals(stored, candidateHash) || Objects.equals(stored, candidate);
     }
 
     public boolean checkUsername(String candidateUsername) {
         if (candidateUsername == null || getUsername() == null) {
             return false;
         }
-
-        return Objects.equals(getUsername(), candidateUsername.trim());
+        return getUsername().trim().equalsIgnoreCase(candidateUsername.trim());
     }
 
     public boolean login(String username, String password) {

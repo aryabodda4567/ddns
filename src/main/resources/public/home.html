@@ -26,10 +26,10 @@
             <nav class="menu">
                 <a href="/join.html">Join Network</a>
                 <a href="/create_election.html">Create Election</a>
-                <a href="/vote.html">Vote</a>
+                <a data-requires-accepted="true" href="/vote.html">Vote</a>
                 <a href="/join_result.html">Join Result</a>
                 <a class="active" href="/home.html">Home</a>
-                <a href="/index.html">DNS Control</a>
+                <a data-requires-accepted="true" href="/index.html">DNS Control</a>
             </nav>
         </aside>
 
@@ -38,8 +38,8 @@
                 <h1>Node Activated</h1>
                 <p class="subtle" style="margin-top: 8px;">This node has completed join flow. Continue with DNS operations or governance tasks.</p>
                 <div class="grid-2" style="margin-top: 14px;">
-                    <button onclick="location.href='/index.html'">Open DNS Control Panel</button>
-                    <button class="secondary" onclick="location.href='/vote.html'">Open Voting Console</button>
+                    <button data-requires-accepted="true" onclick="location.href='/index.html'">Open DNS Control Panel</button>
+                    <button class="secondary" data-requires-accepted="true" onclick="location.href='/vote.html'">Open Voting Console</button>
                 </div>
             </section>
         </main>

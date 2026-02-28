@@ -102,6 +102,11 @@
             const res = await fetch("/auth/session");
             const json = await res.json();
 
+            if (!json.userConfigured) {
+                window.location.href = "/join.html";
+                return;
+            }
+
             if (json.requireLogin && json.authenticated) {
                 window.location.href = getNextPath();
             }

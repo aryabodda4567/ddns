@@ -10,6 +10,7 @@ import org.ddns.db.DBUtil;
 import org.ddns.node.NodeConfig;
 import org.ddns.node.NodesManager;
 import org.ddns.util.NetworkUtility;
+import org.ddns.web.user.SessionManager;
 import org.ddns.web.user.User;
 import spark.Request;
 import spark.Response;
@@ -74,6 +75,7 @@ public class JoiningHandler {
         String localIp = NetworkUtility.getLocalIpAddress();
         DBUtil.getInstance().setSelfNode(new NodeConfig(localIp, Role.NONE, publicKey));
         User.saveUser(User.fromCredentials(username, password));
+        long expiresAt = SessionManager.createSession(res);
 
         // respond
         res.type("application/json");
@@ -90,7 +92,9 @@ public class JoiningHandler {
                 "status", "ok",
                 "publicKey", publicKey.toString(),
                 "localIp", localIp,
-                "username", username
+                "username", username,
+                "expiresAt", expiresAt,
+                "sessionSeconds", SessionManager.SESSION_DURATION_SECONDS
         );
     }
 
