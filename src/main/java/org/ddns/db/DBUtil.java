@@ -341,10 +341,8 @@ public class DBUtil {
     public void addNode(NodeConfig node) {
         if (node == null) return;
 //        Update RR Queue
-        System.out.println(CircularQueue.getInstance().size());
         CircularQueue.getInstance().addNode(new QueueNode(node,
                 CircularQueue.getInstance().size()+1));
-        System.out.println(CircularQueue.getInstance().size());
 
         withWrite(() -> {
             try (Connection conn = connect()) {

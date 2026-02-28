@@ -239,7 +239,6 @@ public class NodesManager implements MessageHandler {
             }
 
             // There are existing nodes in the network: sync them into local DB
-            System.out.println(nodeConfigSet);
             DBUtil.getInstance().addNodes(nodeConfigSet);
             log.info("[NodesManager] Synced " + nodeConfigSet.size() + " nodes from Bootstrap.");
 

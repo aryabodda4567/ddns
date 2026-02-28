@@ -7,7 +7,6 @@ import org.ddns.node.NodeConfig;
 import org.ddns.util.TimeUtil;
 
 import java.security.Security;
-import java.util.Objects;
 
 public class Test {
 
@@ -31,34 +30,25 @@ public class Test {
             TimeUtil.waitForSeconds(3);
             if (i == 0) {
                 circularQueue.addNode(new QueueNode(node1, 1));
-                System.out.println("Node 1 added");
             }
 
             if (i == 3) {
                 circularQueue.addNode(new QueueNode(node2, 2));
-                System.out.println("Node 2 added");
             }
 
             if (i == 6) {
                 circularQueue.addNode(new QueueNode(node3, 3));
-                System.out.println("Node 3 added");
             }
 
             if (i == 9) {
                 circularQueue.addNode(new QueueNode(node4, 4));
-                System.out.println("Node 4 added");
             }
-
-            System.out.println("Before circle: " + Objects.requireNonNull(circularQueue.peek()).sno);
             circularQueue.rotate();
-            System.out.println("After circle: " + Objects.requireNonNull(circularQueue.peek()).sno);
 
         }
     }
 
     public void consensusFailoverTest() throws Exception {
-
-        System.out.println("=== CONSENSUS FAILOVER TEST START ===");
 
         CircularQueue queue = CircularQueue.getInstance();
 
@@ -70,8 +60,6 @@ public class Test {
         queue.addNode(new QueueNode(node2, 2));
         queue.addNode(new QueueNode(node3, 3));
 
-        System.out.println("Initial Leader: " + queue.peek().nodeConfig.getIp());
-
         // Start consensus scheduler
         ConsensusSystem.start();
 
@@ -80,14 +68,8 @@ public class Test {
         // Wait longer than BLOCK_BUFFER_TIME (15s in your engine)
         Thread.sleep(20000);
 
-        System.out.println("Leader after timeout: " + queue.peek().nodeConfig.getIp());
-
         // Wait again to see next rotation
         Thread.sleep(20000);
-
-        System.out.println("Leader after second timeout: " + queue.peek().nodeConfig.getIp());
-
-        System.out.println("=== TEST END ===");
     }
 
 }

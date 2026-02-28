@@ -84,8 +84,8 @@ public class Main {
         // Print short fingerprint for debug - avoid leaking private key
         try {
             String fp = SignatureUtil.getStringFromKey(Wallet.getKeyPair().getPrivate());
-//            log.info("Local key fingerprint (short): " + (fp.length() > 40 ? fp.substring(0, 40) : fp))
-            System.out.println(fp);
+            System.out.printf(" %s\n", fp);
+            log.debug("Local key fingerprint (short): {}", (fp.length() > 40 ? fp.substring(0, 40) : fp));
         } catch (Throwable ignored) {}
     }
 

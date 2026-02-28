@@ -5,21 +5,15 @@ import org.ddns.bc.Block;
 import org.ddns.bc.Transaction;
 import org.ddns.bc.TransactionType;
 import org.ddns.chain.Wallet;
-import org.ddns.constants.FileNames;
 import org.ddns.db.BlockDb;
-import org.ddns.db.TransactionDb;
 import org.ddns.dns.DNSModel;
-import org.ddns.net.NetworkManager;
 import org.ddns.node.NodesManager;
-import org.ddns.util.ConversionUtil;
-import org.ddns.util.NetworkUtility;
 import org.ddns.util.TimeUtil;
 
 import java.security.KeyPair;
 import java.security.Security;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Creates a chain of 35 blocks, each containing multiple transactions.
@@ -38,8 +32,6 @@ public class BlockChainBuilder {
 
             List<Block> chain = new ArrayList<>();
             String previousHash = "0"; // Genesis block previous hash
-
-            System.out.println("=== Building Blockchain with " + BLOCK_COUNT + " Blocks ===\n");
 
             for (int i = 0; i < BLOCK_COUNT; i++) {
                 List<Transaction> transactions = new ArrayList<>();
@@ -110,8 +102,6 @@ public class BlockChainBuilder {
 
 
             // === Display chain in order ===
-            System.out.println("=== Blockchain Details ===\n");
-
 //            for (int i = 0; i < chain.size(); i++) {
 //                Block block = chain.get(i);
 //

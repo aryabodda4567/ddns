@@ -7,31 +7,34 @@ import spark.Response;
 
 import java.util.Map;
 
+/**
+ * Authentication API for login/session/logout.
+ */
 public class AuthHandler {
 
     private final Gson gson = new Gson();
     private final infos infoService = new infos();
 
-    public Object login(Request req, Response res) {
-        LoginRequest body = gson.fromJson(req.body(), LoginRequest.class);
+    public Object login(Request request, Response response) {
+        LoginRequest loginRequest = gson.fromJson(request.body(), LoginRequest.class);
 
-        if (body == null || body.username == null || body.password == null) {
-            res.status(400);
+        if (loginRequest == null || loginRequest.username == null || loginRequest.password == null) {
+            response.status(400);
             return Map.of("error", "Username and password are required");
         }
 
         if (User.getUser() == null) {
-            res.status(400);
+            response.status(400);
             return Map.of("error", "No web user configured. Complete join setup first.");
         }
 
-        if (!User.verifyCredentials(body.username, body.password)) {
-            res.status(401);
+        if (!User.verifyCredentials(loginRequest.username, loginRequest.password)) {
+            response.status(401);
             return Map.of("error", "Invalid username or password");
         }
 
-        long expiresAt = SessionManager.createSession(res);
-        res.type("application/json");
+        long expiresAt = SessionManager.createSession(response);
+        response.type("application/json");
 
         return Map.of(
                 "status", "ok",
@@ -40,13 +43,13 @@ public class AuthHandler {
         );
     }
 
-    public Object session(Request req, Response res) {
+    public Object session(Request request, Response response) {
         boolean userConfigured = User.getUser() != null;
         boolean accepted = infoService.IsAccepted();
-        boolean authenticated = SessionManager.isSessionValid(req);
+        boolean authenticated = SessionManager.isSessionValid(request);
         long expiresAt = SessionManager.getExpiresAt();
 
-        res.type("application/json");
+        response.type("application/json");
 
         return Map.of(
                 "userConfigured", userConfigured,
@@ -59,9 +62,9 @@ public class AuthHandler {
         );
     }
 
-    public Object logout(Request req, Response res) {
-        SessionManager.clearSession(res);
-        res.type("application/json");
+    public Object logout(Request request, Response response) {
+        SessionManager.clearSession(response);
+        response.type("application/json");
         return Map.of("status", "ok");
     }
 }

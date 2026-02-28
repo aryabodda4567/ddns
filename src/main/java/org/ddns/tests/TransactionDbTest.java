@@ -37,7 +37,7 @@ public class TransactionDbTest {
         Security.addProvider(new BouncyCastleProvider());
 
        // System.out.println(TransactionDb.getInstance().readTransactionByHash("822ac459d68b40206d4a808b61ffd680e6765631c3084fd6b20631d429cb6cd3"));
-        System.out.println(BlockDb.getInstance().readBlockByHash("e2c400901367c57d18678230984546b76c78f3b2c5c216657837345cd3f513d2"));
+        BlockDb.getInstance().readBlockByHash("e2c400901367c57d18678230984546b76c78f3b2c5c216657837345cd3f513d2");
      //   System.out.println(BlockDb.getInstance().readBlockByHash("5c83e7b8ca3485dbdf493629a97b61ca63bb5d4940475ae4a584e5bb79eecdd6"));
 
 //        System.out.println("=== TransactionDbSimpleTest START ===");

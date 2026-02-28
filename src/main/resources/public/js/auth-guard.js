@@ -1,4 +1,5 @@
 (function () {
+    // Pages that are visible only after node acceptance.
     const acceptanceOnlyPaths = new Set([
         '/index.html',
         '/create.html',
@@ -8,6 +9,8 @@
         '/status.html',
         '/vote.html'
     ]);
+
+    // Pages that always require a valid login session.
     const protectedPaths = new Set([
         '/home.html',
         '/create_election.html',
@@ -22,37 +25,37 @@
     ]);
 
     function redirectToLogin() {
-        const next = encodeURIComponent(window.location.pathname);
-        window.location.replace('/login.html?next=' + next);
+        const nextPath = encodeURIComponent(window.location.pathname);
+        window.location.replace('/login.html?next=' + nextPath);
     }
 
     async function checkAuth() {
         try {
             const response = await fetch('/auth/session', { credentials: 'same-origin' });
-            const session = await response.json();
+            const sessionState = await response.json();
 
-            if (session.requireJoin && protectedPaths.has(window.location.pathname)) {
+            if (sessionState.requireJoin && protectedPaths.has(window.location.pathname)) {
                 window.location.replace('/join.html');
                 return;
             }
 
-            if (session.requireLogin && !session.authenticated) {
+            if (sessionState.requireLogin && !sessionState.authenticated) {
                 redirectToLogin();
                 return;
             }
 
-            if (!session.accepted) {
+            if (!sessionState.accepted) {
                 document
-                    .querySelectorAll('[data-requires-accepted=\"true\"]')
-                    .forEach((el) => {
-                        el.style.display = 'none';
+                    .querySelectorAll('[data-requires-accepted="true"]')
+                    .forEach((element) => {
+                        element.style.display = 'none';
                     });
 
                 if (acceptanceOnlyPaths.has(window.location.pathname)) {
                     window.location.href = '/home.html';
                 }
             }
-        } catch (e) {
+        } catch (error) {
             if (protectedPaths.has(window.location.pathname)) {
                 redirectToLogin();
             }
