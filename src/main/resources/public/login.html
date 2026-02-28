@@ -92,7 +92,10 @@
         const params = new URLSearchParams(window.location.search);
         const next = params.get("next");
         if (!next || !next.startsWith("/")) {
-            return "/home.html";
+            return null;
+        }
+        if (next === "/login.html") {
+            return null;
         }
         return next;
     }
@@ -103,12 +106,20 @@
             const json = await res.json();
 
             if (!json.userConfigured) {
-                window.location.href = "/join.html";
+                showMessage({ status: "No user configured. Please complete Join setup first." }, false);
                 return;
             }
 
             if (json.requireLogin && json.authenticated) {
-                window.location.href = getNextPath();
+                const next = getNextPath();
+                const redirected = sessionStorage.getItem("login_redirect_done") === "1";
+                if (next && !redirected && next !== window.location.pathname) {
+                    sessionStorage.setItem("login_redirect_done", "1");
+                    window.location.replace(next);
+                    return;
+                }
+
+                showMessage({ status: "Already logged in. Continue to Home." }, true);
             }
         } catch (e) {
             // Ignore and stay on login page.
@@ -140,7 +151,9 @@
 
             showMessage({ status: "Login successful", details: json }, true);
             setTimeout(() => {
-                window.location.href = getNextPath();
+                const next = getNextPath() || "/home.html";
+                sessionStorage.setItem("login_redirect_done", "1");
+                window.location.replace(next);
             }, 700);
         } catch (err) {
             showMessage({ error: "Server not reachable", details: err.toString() }, false);

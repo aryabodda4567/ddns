@@ -43,13 +43,14 @@ public class AuthHandler {
     public Object session(Request req, Response res) {
         boolean userConfigured = User.getUser() != null;
         boolean accepted = infoService.IsAccepted();
-        boolean authenticated = !userConfigured || SessionManager.isSessionValid(req);
+        boolean authenticated = SessionManager.isSessionValid(req);
         long expiresAt = SessionManager.getExpiresAt();
 
         res.type("application/json");
 
         return Map.of(
                 "userConfigured", userConfigured,
+                "requireJoin", !userConfigured,
                 "accepted", accepted,
                 "requireLogin", userConfigured,
                 "authenticated", authenticated,
