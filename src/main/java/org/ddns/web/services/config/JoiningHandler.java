@@ -1,13 +1,17 @@
 package org.ddns.web.services.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.ddns.bc.SignatureUtil;
 import org.ddns.chain.Wallet;
 import org.ddns.constants.Role;
 import org.ddns.db.DBUtil;
 import org.ddns.node.NodeConfig;
 import org.ddns.node.NodesManager;
-import org.ddns.util.ConsolePrinter;
 import org.ddns.util.NetworkUtility;
+import org.ddns.web.user.SessionManager;
+import org.ddns.web.user.User;
 import spark.Request;
 import spark.Response;
 
@@ -18,6 +22,8 @@ import java.util.Map;
 
 
 public class JoiningHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(JoiningHandler.class);
 
     private final Gson gson = new Gson();
 
@@ -31,18 +37,28 @@ public class JoiningHandler {
 
         String bootstrapNodeIp = body.bootstrapIp;
         String privateKeyString = body.privateKey;
+        String username = body.username;
+        String password = body.password;
 
-        JoinRequestValidator.validate(bootstrapNodeIp, privateKeyString);
+        JoinRequestValidator.validate(bootstrapNodeIp, privateKeyString, username, password);
 
 // Normalize
         bootstrapNodeIp = bootstrapNodeIp.trim();
         privateKeyString = privateKeyString.trim();
+        username = username.trim();
+        password = password.trim();
 
         if (bootstrapNodeIp == null || bootstrapNodeIp.trim().isEmpty())
             throw new IllegalArgumentException("No bootstrap IP entered");
 
         if (privateKeyString == null || privateKeyString.trim().isEmpty())
             throw new IllegalArgumentException("No private key entered");
+
+        if (username == null || username.trim().isEmpty())
+            throw new IllegalArgumentException("No username entered");
+
+        if (password == null || password.trim().isEmpty())
+            throw new IllegalArgumentException("No password entered");
 
         bootstrapNodeIp = bootstrapNodeIp.trim();
 
@@ -52,12 +68,14 @@ public class JoiningHandler {
         PrivateKey privateKey = SignatureUtil.getPrivateKeyFromString(privateKeyString);
         PublicKey publicKey = Wallet.getPublicKeyFromPrivateKey(privateKey);
 
-        ConsolePrinter.printInfo("Public key: " + publicKey);
+        log.info("Public key: " + publicKey);
         DBUtil.getInstance().saveKeys(publicKey, privateKey);
 
         // set self node using local IP
         String localIp = NetworkUtility.getLocalIpAddress();
         DBUtil.getInstance().setSelfNode(new NodeConfig(localIp, Role.NONE, publicKey));
+        User.saveUser(User.fromCredentials(username, password));
+        long expiresAt = SessionManager.createSession(res);
 
         // respond
         res.type("application/json");
@@ -73,7 +91,10 @@ public class JoiningHandler {
         return Map.of(
                 "status", "ok",
                 "publicKey", publicKey.toString(),
-                "localIp", localIp
+                "localIp", localIp,
+                "username", username,
+                "expiresAt", expiresAt,
+                "sessionSeconds", SessionManager.SESSION_DURATION_SECONDS
         );
     }
 

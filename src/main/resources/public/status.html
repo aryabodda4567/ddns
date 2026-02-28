@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaction Status | DDNS Console</title>
+    <link rel="stylesheet" href="/css/common.css">
+    <script src="/js/auth-guard.js"></script>
+</head>
+<body>
+<div class="page-shell">
+    <div class="topbar">
+        <div class="brand">
+            <div class="brand-badge">DD</div>
+            <div>
+                <div class="brand-title">DDNS Network Console</div>
+                <div class="brand-sub">Transaction Tracking</div>
+            </div>
+        </div>
+        <span class="status-pill"><span class="status-dot"></span> DNS Read</span>
+    </div>
+
+    <div class="main-grid">
+        <aside class="sidebar">
+            <div class="menu-title">DNS Operations</div>
+            <nav class="menu">
+                <a href="/index.html">Control Panel</a>
+                <a href="/create.html">Create</a>
+                <a href="/update.html">Update</a>
+                <a href="/delete.html">Delete</a>
+                <a href="/lookup.html">Lookup</a>
+                <a class="active" href="/status.html">Status</a>
+            </nav>
+        </aside>
+
+        <main class="content-stack">
+            <section class="card">
+                <h2>Transaction Status</h2>
+                <p class="subtle">Query a transaction by hash to inspect consensus processing details.</p>
+
+                <div class="form-group">
+                    <label for="txHash">Transaction Hash</label>
+                    <input id="txHash" placeholder="Enter tx hash">
+                </div>
+
+                <div class="action-row" style="margin-top: 12px;">
+                    <button onclick="checkStatus()">Check Status</button>
+                    <button class="secondary" onclick="location.href='/index.html'">Back To Panel</button>
+                </div>
+
+                <div id="result"></div>
+            </section>
+        </main>
+    </div>
+</div>
+
+<script>
+    function renderJSON(obj, container) {
+        for (let key in obj) {
+            const value = obj[key];
+            const row = document.createElement("div");
+            row.className = "kv";
+
+            const k = document.createElement("div");
+            k.className = "key";
+            k.textContent = key;
+
+            const v = document.createElement("div");
+            if (typeof value === "object" && value !== null) {
+                const nested = document.createElement("div");
+                nested.className = "nested";
+                renderJSON(value, nested);
+                v.appendChild(nested);
+            } else {
+                v.textContent = value;
+            }
+
+            row.appendChild(k);
+            row.appendChild(v);
+            container.appendChild(row);
+        }
+    }
+
+    function showMessage(obj, ok) {
+        const result = document.getElementById("result");
+        result.innerHTML = "";
+
+        const box = document.createElement("div");
+        box.className = "alert " + (ok ? "success" : "error");
+        box.style.display = "block";
+
+        if (typeof obj === "object") {
+            renderJSON(obj, box);
+        } else {
+            box.textContent = obj;
+        }
+
+        result.appendChild(box);
+    }
+
+    async function checkStatus() {
+        const txHash = document.getElementById("txHash").value.trim();
+
+        if (!txHash) {
+            showMessage({ error: "Transaction hash is required" }, false);
+            return;
+        }
+
+        try {
+            const res = await fetch("/dns/status?txHash=" + encodeURIComponent(txHash));
+            const json = await res.json();
+
+            if (!res.ok || json.error) {
+                showMessage(json, false);
+                return;
+            }
+
+            showMessage(json, true);
+        } catch (err) {
+            showMessage({ error: "Server not reachable", details: err.toString() }, false);
+        }
+    }
+</script>
+</body>
+</html>
+
+

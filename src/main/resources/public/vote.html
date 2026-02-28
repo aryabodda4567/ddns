@@ -1,25 +1,56 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Vote</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vote | DDNS Console</title>
     <link rel="stylesheet" href="/css/common.css">
+    <script src="/js/auth-guard.js"></script>
 </head>
 <body>
+<div class="page-shell">
+    <div class="topbar">
+        <div class="brand">
+            <div class="brand-badge">DD</div>
+            <div>
+                <div class="brand-title">DDNS Network Console</div>
+                <div class="brand-sub">Governance Voting</div>
+            </div>
+        </div>
+        <span class="status-pill"><span class="status-dot"></span> Nominations Live</span>
+    </div>
 
-<div class="card" style="width: 700px;">
-    <h2>Cast Your Vote</h2>
+    <div class="main-grid">
+        <aside class="sidebar">
+            <div class="menu-title">Governance</div>
+            <nav class="menu">
+                <a href="/join.html">Join Network</a>
+                <a href="/create_election.html">Create Election</a>
+                <a class="active" href="/vote.html">Vote</a>
+                <a href="/join_result.html">Join Result</a>
+                <a href="/index.html">DNS Control</a>
+            </nav>
+        </aside>
 
-    <div id="list"></div>
-
-    <button style="margin-top:16px;" onclick="submitVote()">Vote</button>
-
-    <div id="result"></div>
+        <main class="content-stack">
+            <section class="card">
+                <h2>Cast Your Vote</h2>
+                <p class="subtle">Review candidate nominations and cast one vote.</p>
+                <div id="list" style="margin-top: 12px;"></div>
+                <div class="action-row" style="margin-top: 12px;">
+                    <button onclick="submitVote()">Submit Vote</button>
+                    <button class="secondary" onclick="loadNominations()">Refresh Nominations</button>
+                    <button class="secondary" onclick="location.href='/join_result.html'">Check Result</button>
+                </div>
+                <div id="result"></div>
+            </section>
+        </main>
+    </div>
 </div>
 
 <script>
     let nominations = [];
 
-    /* ========== SMART JSON RENDERER (for responses) ========== */
     function renderJSON(obj, container) {
         for (let key in obj) {
             const value = obj[key];
@@ -65,7 +96,6 @@
         result.appendChild(box);
     }
 
-    /* ========== UTIL ========== */
     function shortKey(k) {
         if (!k) return "";
         if (k.length < 40) return k;
@@ -79,12 +109,9 @@
         return v;
     }
 
-    /* ========== UI BUILDERS ========== */
     function buildNominationCard(n) {
         const card = document.createElement("div");
-        card.className = "card";
-        card.style.marginBottom = "16px";
-        card.style.width = "100%";
+        card.className = "record";
 
         const header = document.createElement("div");
         header.style.display = "flex";
@@ -98,15 +125,12 @@
         radio.type = "radio";
         radio.name = "vote";
         radio.value = n.index;
+        radio.style.width = "18px";
+        radio.style.height = "18px";
 
         header.appendChild(title);
         header.appendChild(radio);
-
         card.appendChild(header);
-
-        const hr = document.createElement("hr");
-        hr.style.opacity = "0.2";
-        card.appendChild(hr);
 
         const fields = {
             "Node IP": n.nodeIp,
@@ -122,30 +146,24 @@
 
         for (let key in fields) {
             const row = document.createElement("div");
-            row.style.display = "flex";
-            row.style.fontSize = "13px";
-            row.style.marginBottom = "6px";
+            row.className = "kv";
 
             const k = document.createElement("div");
-            k.style.width = "140px";
-            k.style.color = "#94a3b8";
+            k.className = "key";
             k.textContent = key;
 
             const v = document.createElement("div");
-            v.style.flex = "1";
-            v.style.fontFamily = "monospace";
+            v.style.fontFamily = "Consolas, monospace";
             v.textContent = formatValue(fields[key]);
 
             row.appendChild(k);
             row.appendChild(v);
-
             card.appendChild(row);
         }
 
         return card;
     }
 
-    /* ========== LOAD NOMINATIONS ========== */
     async function loadNominations() {
         const list = document.getElementById("list");
         list.innerHTML = "Loading nominations...";
@@ -161,7 +179,6 @@
             }
 
             nominations = json.nominations || [];
-
             list.innerHTML = "";
 
             if (nominations.length === 0) {
@@ -180,7 +197,6 @@
         }
     }
 
-    /* ========== SUBMIT VOTE ========== */
     async function submitVote() {
         const checked = document.querySelector("input[name='vote']:checked");
 
@@ -208,8 +224,6 @@
             }
 
             showMessage({ status: "Vote cast successfully", details: json }, true);
-
-            // Optionally reload nominations
             setTimeout(loadNominations, 1500);
 
         } catch (err) {
@@ -217,9 +231,9 @@
         }
     }
 
-    /* ========== INIT ========== */
     loadNominations();
 </script>
-
 </body>
 </html>
+
+

@@ -12,7 +12,7 @@ public class NodeConfig {
 
     public NodeConfig(String ip, Role role, PublicKey publicKey) {
         this.ip = ip;
-        this.role = role;
+        this.role = role != null ? role : Role.NONE;
         this.publicKey = publicKey;
     }
 
@@ -56,21 +56,12 @@ public class NodeConfig {
 
         NodeConfig that = (NodeConfig) o;
 
-        boolean ipEquals = Objects.equals(this.ip, that.ip);
-        boolean roleEquals = this.role == that.role;
-
-        // Normalize keys (remove whitespace and newlines)
-//        String thisKey = this.publicKey != null ? SignatureUtil.getStringFromKey(this.publicKey).replaceAll("\\s+", "") : null;
-//        String thatKey = that.publicKey != null ? SignatureUtil.getStringFromKey(that.publicKey).replaceAll("\\s+", "") : null;
-//        boolean keyEquals = Objects.equals(thisKey, thatKey);
-
-        return ipEquals && roleEquals;//&& keyEquals;
+        return Objects.equals(this.ip, that.ip);
     }
 
     @Override
     public int hashCode() {
-//        String keyStr = publicKey != null ? SignatureUtil.getStringFromKey(publicKey).replaceAll("\\s+", "") : null;
-        return Objects.hash(ip, role);
+        return Objects.hash(ip);
     }
 
 

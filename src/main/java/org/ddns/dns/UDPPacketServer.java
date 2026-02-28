@@ -1,13 +1,17 @@
 package org.ddns.dns;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 import org.ddns.dns.DNSResolver; // custom resolver we’ll write
-import org.ddns.util.ConsolePrinter;
 import org.xbill.DNS.*;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 public class UDPPacketServer implements Runnable {
+
+    private static final Logger log = LoggerFactory.getLogger(UDPPacketServer.class);
 
     private final DNSResolver resolver;
     private final int port;
@@ -23,7 +27,7 @@ public class UDPPacketServer implements Runnable {
     public void run() {
         try {
             socket = new DatagramSocket(port);
-            ConsolePrinter.printSuccess("UDP DNS listening on " + port);
+            log.info("UDP DNS listening on " + port);
 
             while (running) {
                 byte[] buf = new byte[4096];

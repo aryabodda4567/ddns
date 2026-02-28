@@ -1,5 +1,8 @@
 package org.ddns.governance;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.ddns.constants.ConfigKey;
 import org.ddns.constants.ElectionType;
 import org.ddns.constants.Role;
@@ -9,7 +12,6 @@ import org.ddns.net.MessageHandler;
 import org.ddns.net.MessageType;
 import org.ddns.net.NetworkManager;
 import org.ddns.node.NodeConfig;
-import org.ddns.util.ConsolePrinter;
 import org.ddns.util.ConversionUtil;
 import org.ddns.util.NetworkUtility;
 import org.ddns.util.TimeUtil;
@@ -32,7 +34,7 @@ import static org.ddns.Main.ELECTION_PASSWORD;
  * - Receives nominations from others and persists a local "to vote" list.
  * - Casts a vote exactly once per nomination (no dup votes).
  * - Receives votes and stores them in a local vote-box (deduped).
- * - Computes result against a snapshot quorum (leaders + genesis).
+ * - Computes result against a snapshot quorum of all known nodes.
  * <p>
  * Operational notes:
  * - Storage keys used: NOMINATIONS (Set<Nomination> JSON), VOTE_BOX (Set<Vote>
@@ -43,6 +45,8 @@ import static org.ddns.Main.ELECTION_PASSWORD;
  * upgrades.
  */
 public class Election implements MessageHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(Election.class);
     public static final int ELECTION_CREATED = 8;
     public static int ACCEPTED = 1;
     public static int REJECTED = 2;
@@ -110,17 +114,17 @@ public class Election implements MessageHandler {
             String description) {
 
         if (electionType == null) {
-            ConsolePrinter.printFail("[Election] electionType must not be null");
+            log.error("[Election] electionType must not be null");
             return;
         }
         if (timeInMinutes <= 0) {
-            ConsolePrinter.printFail("[Election] timeInMinutes must be > 0");
+            log.error("[Election] timeInMinutes must be > 0");
             return;
         }
 
         final NodeConfig selfNode = DBUtil.getInstance().getSelfNode();
         if (selfNode == null || selfNode.getPublicKey() == null) {
-            ConsolePrinter.printFail("[Election] Self node or its public key not configured.");
+            log.error("[Election] Self node or its public key not configured.");
             return;
         }
 
@@ -153,10 +157,10 @@ public class Election implements MessageHandler {
                     DBUtil.getInstance().getAllNodes(),
                     Set.of(Role.ANY));
 
-            ConsolePrinter.printSuccess(
+            log.info(
                     "[Election] Broadcasted CREATE_ELECTION (" + electionType + "), expires at " + endTime);
         } catch (Exception e) {
-            ConsolePrinter.printFail("[Election] Failed to broadcast CREATE_ELECTION: " + e.getMessage());
+            log.error("[Election] Failed to broadcast CREATE_ELECTION: " + e.getMessage());
         }
     }
 
@@ -168,20 +172,20 @@ public class Election implements MessageHandler {
      */
     public static void casteVote(Nomination nomination) {
         if (nomination == null) {
-            ConsolePrinter.printWarning("[Election] casteVote called with null nomination");
+            log.warn("[Election] casteVote called with null nomination");
             return;
         }
 
         long now = TimeUtil.getCurrentUnixTime();
         if (TimeUtil.isExpired(now, nomination.getExpireTime())) {
-            ConsolePrinter.printFail("[Election] Voting window expired; cannot vote. Removing local nomination.");
+            log.error("[Election] Voting window expired; cannot vote. Removing local nomination.");
             removeNomination(nomination);
             return;
         }
 
         NodeConfig selfNode = DBUtil.getInstance().getSelfNode();
         if (selfNode == null || selfNode.getPublicKey() == null) {
-            ConsolePrinter.printFail("[Election] Self node/public key missing; cannot vote.");
+            log.error("[Election] Self node/public key missing; cannot vote.");
             return;
         }
 
@@ -197,9 +201,9 @@ public class Election implements MessageHandler {
             NetworkManager.sendDirectMessage(nomination.getIpAddress(), ConversionUtil.toJson(msg));
             // Mark as handled locally by simply removing the nomination
             removeNomination(nomination);
-            ConsolePrinter.printSuccess("[Election] Vote sent to " + nomination.getIpAddress());
+            log.info("[Election] Vote sent to " + nomination.getIpAddress());
         } catch (Exception e) {
-            ConsolePrinter.printFail("[Election] Failed to send vote: " + e.getMessage());
+            log.error("[Election] Failed to send vote: " + e.getMessage());
         }
     }
 
@@ -243,7 +247,7 @@ public class Election implements MessageHandler {
      */
     public void addVote(String payload) {
         if (payload == null || payload.isBlank()) {
-            ConsolePrinter.printWarning("[Election] addVote: empty payload");
+            log.warn("[Election] addVote: empty payload");
             return;
         }
 
@@ -251,12 +255,12 @@ public class Election implements MessageHandler {
         try {
             vote = ConversionUtil.fromJson(payload, Vote.class);
         } catch (Exception e) {
-            ConsolePrinter.printWarning("[Election] addVote: malformed Vote JSON ignored: " + e.getMessage());
+            log.warn("[Election] addVote: malformed Vote JSON ignored: " + e.getMessage());
             return;
         }
 
         if (vote == null || vote.getNodeConfig() == null || vote.getNodeConfig().getPublicKey() == null) {
-            ConsolePrinter.printWarning("[Election] addVote: missing voter public key, ignoring.");
+            log.warn("[Election] addVote: missing voter public key, ignoring.");
             return;
         }
 
@@ -266,18 +270,18 @@ public class Election implements MessageHandler {
         Vote finalVote = vote;
         boolean alreadyVoted = votes.stream().anyMatch(v -> sameVoter(v, finalVote));
         if (alreadyVoted) {
-            ConsolePrinter.printInfo("[Election] Duplicate vote from same voter ignored.");
+            log.info("[Election] Duplicate vote from same voter ignored.");
             return;
         }
 
         votes.add(vote);
         saveVotes(votes);
-        ConsolePrinter.printSuccess("[Election] Vote recorded. Total votes: " + votes.size());
+        log.info("[Election] Vote recorded. Total votes: " + votes.size());
     }
 
     /**
      * Compute the result using the current vote-box, then clear it.
-     * Quorum rule: votes >= requiredVotes (leaders + genesis).
+     * Quorum rule: votes >= requiredVotes (all known nodes).
      *
      * @return true if quorum met; false otherwise.
      */
@@ -285,7 +289,7 @@ public class Election implements MessageHandler {
         int requiredVotes = getRequiredVotes();
         int votesReceived = safeSet(loadVotes()).size();
         deleteVoteBox(); // make result read-once
-        ConsolePrinter.printInfo("[Election] Result check: received=" + votesReceived + ", required=" + requiredVotes);
+        log.info("[Election] Result check: received=" + votesReceived + ", required=" + requiredVotes);
         return votesReceived >= requiredVotes;
     }
 
@@ -305,12 +309,12 @@ public class Election implements MessageHandler {
         try {
             envelope = ConversionUtil.fromJson(message, Message.class);
         } catch (Exception e) {
-            ConsolePrinter.printWarning("[Election] Dropped malformed direct message: " + e.getMessage());
+            log.warn("[Election] Dropped malformed direct message: " + e.getMessage());
             return;
         }
 
         if (envelope == null || envelope.type == null) {
-            ConsolePrinter.printWarning("[Election] Dropped message with null type.");
+            log.warn("[Election] Dropped message with null type.");
             return;
         }
 
@@ -322,7 +326,7 @@ public class Election implements MessageHandler {
                     /* ignore others */ }
             }
         } catch (Exception e) {
-            ConsolePrinter.printFail("[Election] Error processing " + envelope.type + ": " + e.getMessage());
+            log.error("[Election] Error processing " + envelope.type + ": " + e.getMessage());
         }
     }
 
@@ -337,7 +341,7 @@ public class Election implements MessageHandler {
      */
     public void addNomination(String payload) {
         if (payload == null || payload.isBlank()) {
-            ConsolePrinter.printWarning("[Election] addNomination: empty payload");
+            log.warn("[Election] addNomination: empty payload");
             return;
         }
 
@@ -345,26 +349,25 @@ public class Election implements MessageHandler {
         try {
             nomination = ConversionUtil.fromJson(payload, Nomination.class);
         } catch (Exception e) {
-            ConsolePrinter
-                    .printWarning("[Election] addNomination: malformed Nomination JSON ignored: " + e.getMessage());
+            log.warn("[Election] addNomination: malformed Nomination JSON ignored: " + e.getMessage());
             return;
         }
 
         if (!isNominationValid(nomination)) {
-            ConsolePrinter.printWarning("[Election] addNomination: invalid nomination ignored.");
+            log.warn("[Election] addNomination: invalid nomination ignored.");
             return;
         }
 
         long now = TimeUtil.getCurrentUnixTime();
         if (TimeUtil.isExpired(now, nomination.getExpireTime())) {
-            ConsolePrinter.printInfo("[Election] addNomination: already expired; ignoring.");
+            log.info("[Election] addNomination: already expired; ignoring.");
             return;
         }
 
         Set<Nomination> nominations = safeSet(loadNominations());
         nominations.add(nomination);
         saveNomination(nominations);
-        ConsolePrinter.printSuccess("[Election] Nomination stored from " + nomination.getIpAddress());
+        log.info("[Election] Nomination stored from " + nomination.getIpAddress());
 
     }
 
@@ -448,8 +451,11 @@ public class Election implements MessageHandler {
             return WRONG_PASSWORD;
 
         boolean result = getResult();
-        if (result)
+        if (result){
+            DBUtil.getInstance().putInt(ConfigKey.IS_ACCEPTED.toString(), 1);
             return ACCEPTED;
+        }
+
         return REJECTED;
 
     }
@@ -475,7 +481,7 @@ public class Election implements MessageHandler {
 
         if (time <= 0 || time > 60 * 24) {
 
-            ConsolePrinter.printWarning("Invalid time limit. Must be between 1 and 1440 minutes.");
+            log.warn("Invalid time limit. Must be between 1 and 1440 minutes.");
 
             return INVALID_TIME;
         }

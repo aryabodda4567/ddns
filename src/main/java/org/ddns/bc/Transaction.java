@@ -1,12 +1,14 @@
 package org.ddns.bc;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.ddns.constants.Role;
 import org.ddns.db.DBUtil;
 import org.ddns.dns.DNSModel;
 import org.ddns.net.Message;
 import org.ddns.net.MessageType;
 import org.ddns.net.NetworkManager;
-import org.ddns.util.ConsolePrinter;
 import org.ddns.util.ConversionUtil;
 import org.ddns.util.NetworkUtility;
 
@@ -22,6 +24,8 @@ import java.util.Set;
  * transactions to carry one or more DNS records.
  */
 public class Transaction {
+
+    private static final Logger log = LoggerFactory.getLogger(Transaction.class);
 
     private final String hash;
     private final PublicKey senderPublicKey;
@@ -127,7 +131,7 @@ public class Transaction {
             throw new RuntimeException(e);
         }
 
-        ConsolePrinter.printInfo("[Transaction] Sending transaction ");
+        log.info("[Transaction] Sending transaction ");
         NetworkManager.broadcast(ConversionUtil.toJson(message),
                 DBUtil.getInstance().getAllNodes(),
                 Set.of(Role.ANY));

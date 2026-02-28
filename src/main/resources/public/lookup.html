@@ -1,33 +1,65 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>DNS Lookup</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DNS Lookup | DDNS Console</title>
     <link rel="stylesheet" href="/css/common.css">
+    <script src="/js/auth-guard.js"></script>
 </head>
 <body>
-
-<div class="card">
-    <h2>DNS Lookup</h2>
-
-    <div class="form-group">
-        <label>Domain</label>
-        <input id="dnsName" placeholder="example.com">
+<div class="page-shell">
+    <div class="topbar">
+        <div class="brand">
+            <div class="brand-badge">DD</div>
+            <div>
+                <div class="brand-title">DDNS Network Console</div>
+                <div class="brand-sub">Record Query</div>
+            </div>
+        </div>
+        <span class="status-pill"><span class="status-dot"></span> DNS Read</span>
     </div>
 
-    <div class="form-group">
-        <label>Type (optional)</label>
-        <input id="dnsType" placeholder="A, AAAA, TXT, NS, CNAME or empty">
+    <div class="main-grid">
+        <aside class="sidebar">
+            <div class="menu-title">DNS Operations</div>
+            <nav class="menu">
+                <a href="/index.html">Control Panel</a>
+                <a href="/create.html">Create</a>
+                <a href="/update.html">Update</a>
+                <a href="/delete.html">Delete</a>
+                <a class="active" href="/lookup.html">Lookup</a>
+                <a href="/status.html">Status</a>
+            </nav>
+        </aside>
+
+        <main class="content-stack">
+            <section class="card">
+                <h2>DNS Lookup</h2>
+
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label for="dnsName">Domain</label>
+                        <input id="dnsName" placeholder="example.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="dnsType">Type (optional)</label>
+                        <input id="dnsType" placeholder="A, AAAA, TXT, NS, CNAME or empty">
+                    </div>
+                </div>
+
+                <div class="action-row" style="margin-top: 12px;">
+                    <button onclick="lookupDNS()">Run Lookup</button>
+                    <button class="secondary" onclick="location.href='/index.html'">Back To Panel</button>
+                </div>
+
+                <div id="result"></div>
+            </section>
+        </main>
     </div>
-
-    <button onclick="lookupDNS()">Lookup</button>
-
-    <div id="result"></div>
 </div>
 
 <script>
-    /* ========== SMART RENDERERS ========== */
-
-    // Render any value (string, number, object, array)
     function renderValue(value, container) {
         if (Array.isArray(value)) {
             value.forEach((item, i) => {
@@ -89,16 +121,8 @@
         box.style.display = "block";
 
         if (typeof json === "object") {
-
-            // Special handling for DNS response
             if (Array.isArray(json.records)) {
-                box.innerHTML = `
-                    <div style="margin-bottom:10px;">
-                        <b>Domain:</b> ${json.name}<br>
-                        <b>Query Type:</b> ${json.type}<br>
-                        <b>Total Records:</b> ${json.count}
-                    </div>
-                `;
+                box.innerHTML = "<div style='margin-bottom:10px;'><b>Domain:</b> " + json.name + "<br><b>Query Type:</b> " + json.type + "<br><b>Total Records:</b> " + json.count + "</div>";
 
                 if (json.records.length === 0) {
                     box.innerHTML += "<div>No records found</div>";
@@ -116,10 +140,8 @@
                     });
                 }
             } else {
-                // Fallback generic render
                 renderObject(json, box);
             }
-
         } else {
             box.textContent = json;
         }
@@ -127,7 +149,6 @@
         result.appendChild(box);
     }
 
-    /* ========== VALIDATION ========== */
     function isValidDomain(domain) {
         return /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(domain);
     }
@@ -137,7 +158,6 @@
         return allowed.includes(type.toUpperCase());
     }
 
-    /* ========== API CALL ========== */
     async function lookupDNS() {
         const name = document.getElementById("dnsName").value.trim();
         const type = document.getElementById("dnsType").value.trim().toUpperCase();
@@ -176,6 +196,7 @@
         }
     }
 </script>
-
 </body>
 </html>
+
+

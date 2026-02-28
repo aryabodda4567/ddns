@@ -1,26 +1,59 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Election Result</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join Result | DDNS Console</title>
     <link rel="stylesheet" href="/css/common.css">
+    <script src="/js/auth-guard.js"></script>
 </head>
 <body>
-
-<div class="card">
-    <h2>Election Result</h2>
-
-    <div class="form-group">
-        <label>Password</label>
-        <input id="password" type="password" placeholder="Election password">
+<div class="page-shell">
+    <div class="topbar">
+        <div class="brand">
+            <div class="brand-badge">DD</div>
+            <div>
+                <div class="brand-title">DDNS Network Console</div>
+                <div class="brand-sub">Election Outcome</div>
+            </div>
+        </div>
+        <span class="status-pill"><span class="status-dot"></span> Finalization</span>
     </div>
 
-    <button onclick="checkResult()">Check Result</button>
+    <div class="main-grid">
+        <aside class="sidebar">
+            <div class="menu-title">Governance</div>
+            <nav class="menu">
+                <a href="/join.html">Join Network</a>
+                <a href="/create_election.html">Create Election</a>
+                <a data-requires-accepted="true" href="/vote.html">Vote</a>
+                <a class="active" href="/join_result.html">Join Result</a>
+                <a data-requires-accepted="true" href="/index.html">DNS Control</a>
+            </nav>
+        </aside>
 
-    <div id="result"></div>
+        <main class="content-stack">
+            <section class="card">
+                <h2>Election Result</h2>
+                <p class="subtle">Enter election password to retrieve acceptance or rejection status.</p>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input id="password" type="password" placeholder="Election password">
+                </div>
+
+                <div class="action-row" style="margin-top: 12px;">
+                    <button onclick="checkResult()">Check Result</button>
+                    <button class="secondary" data-requires-accepted="true" onclick="location.href='/vote.html'">Back To Vote</button>
+                </div>
+
+                <div id="result"></div>
+            </section>
+        </main>
+    </div>
 </div>
 
 <script>
-    /* ========== SMART JSON RENDERER ========== */
     function renderJSON(obj, container) {
         for (let key in obj) {
             const value = obj[key];
@@ -66,14 +99,11 @@
         result.appendChild(box);
     }
 
-    /* ========== VALIDATION ========== */
     function validatePassword(pw) {
-        if (!pw || pw.trim().length < 3)
-            return "Password is required (allowed only if length >= 3)";
+        if (!pw || pw.trim().length < 3) return "Password is required (allowed only if length >= 3)";
         return null;
     }
 
-    /* ========== API CALL ========== */
     async function checkResult() {
         const password = document.getElementById("password").value.trim();
 
@@ -97,7 +127,6 @@
                 return;
             }
 
-            // If accepted
             if (json.accepted === true) {
                 showMessage({ status: "Accepted to network", details: json }, true);
                 setTimeout(() => location.href = "/home.html", 1500);
@@ -110,6 +139,7 @@
         }
     }
 </script>
-
 </body>
 </html>
+
+

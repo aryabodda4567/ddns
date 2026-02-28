@@ -1,11 +1,15 @@
 package org.ddns.dns;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.ddns.db.DNSDb;
-import org.ddns.util.ConsolePrinter;
 
 import java.util.List;
 
 public final class DNSServer {
+
+    private static final Logger log = LoggerFactory.getLogger(DNSServer.class);
 
     private static volatile DNSServer instance;
 
@@ -25,7 +29,7 @@ public final class DNSServer {
             synchronized (DNSServer.class) {
                 if (instance == null) {
                     instance = new DNSServer(DNSDb.getInstance());
-                    ConsolePrinter.printSuccess("[DNSServer] Started.");
+                    log.info("[DNSServer] Started.");
                 }
             }
         }

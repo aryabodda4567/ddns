@@ -1,9 +1,11 @@
 package org.ddns.db;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.ddns.bc.Block;
 import org.ddns.bc.Transaction;
 import org.ddns.constants.FileNames;
-import org.ddns.util.ConsolePrinter;
 import org.ddns.util.ConversionUtil;
 
 import java.io.IOException;
@@ -31,6 +33,8 @@ import java.util.concurrent.Future;
  * - executeInsertSQL(insertSQL) -> execute a validated INSERT into blocks via writer thread
  */
 public final class BlockDb {
+
+    private static final Logger log = LoggerFactory.getLogger(BlockDb.class);
 
     private static final int SQLITE_BUSY_RETRY = 5;
     private static final long SQLITE_BUSY_BASE_DELAY_MS = 25L;
@@ -85,9 +89,9 @@ public final class BlockDb {
             stmt.execute(createTable);
             stmt.execute(idxHash);
             stmt.execute(idxTs);
-            ConsolePrinter.printSuccess("[BlockDb] initialized.");
+            log.info("[BlockDb] initialized.");
         } catch (SQLException e) {
-            ConsolePrinter.printFail("[BlockDb] init failed: " + e.getMessage());
+            log.error("[BlockDb] init failed: " + e.getMessage());
         }
     }
 
@@ -109,7 +113,7 @@ public final class BlockDb {
      */
     public boolean insertBlock(Block block ) {
         if (block == null) {
-            ConsolePrinter.printFail("[BlockDb] insertBlock failed: block is null.");
+            log.error("[BlockDb] insertBlock failed: block is null.");
             return false;
         }
 
@@ -119,7 +123,7 @@ public final class BlockDb {
             List<Transaction> txs = block.getTransactions();
             txJson = (txs == null) ? null : ConversionUtil.toJson(txs);
         } catch (Exception e) {
-            ConsolePrinter.printFail("[BlockDb] insertBlock: failed to serialize transactions: " + e.getMessage());
+            log.error("[BlockDb] insertBlock: failed to serialize transactions: " + e.getMessage());
             return false;
         }
 
@@ -142,10 +146,10 @@ public final class BlockDb {
                     try {
                         int updated = ps.executeUpdate();
                         if (updated > 0) {
-                            ConsolePrinter.printSuccess("[BlockDb] insertBlock succeeded: " + block.getHash());
+                            log.info("[BlockDb] insertBlock succeeded: " + block.getHash());
                             return true;
                         } else {
-                            ConsolePrinter.printFail("[BlockDb] insertBlock ignored (duplicate?) hash=" + block.getHash());
+                            log.error("[BlockDb] insertBlock ignored (duplicate?) hash=" + block.getHash());
                             return false;
                         }
                     } catch (SQLException e) {
@@ -156,13 +160,13 @@ public final class BlockDb {
                             Thread.sleep(sleepMs);
                             continue;
                         } else {
-                            ConsolePrinter.printFail("[BlockDb] insertBlock failed (SQL): " + e.getMessage());
+                            log.error("[BlockDb] insertBlock failed (SQL): " + e.getMessage());
                             return false;
                         }
                     }
                 }
             } catch (SQLException e) {
-                ConsolePrinter.printFail("[BlockDb] insertBlock failed (connect): " + e.getMessage());
+                log.error("[BlockDb] insertBlock failed (connect): " + e.getMessage());
                 return false;
             }
         };
@@ -171,7 +175,7 @@ public final class BlockDb {
         try {
             f.get();
         } catch (Exception e) {
-            ConsolePrinter.printFail("[BlockDb] insertBlock writer failure: " + e.getMessage());
+            log.error("[BlockDb] insertBlock writer failure: " + e.getMessage());
             return  false;
         }
         return true;
@@ -200,7 +204,7 @@ public final class BlockDb {
                 return block;
             }
         } catch (SQLException e) {
-            ConsolePrinter.printFail("[BlockDb] readBlockByHash failed: " + e.getMessage());
+            log.error("[BlockDb] readBlockByHash failed: " + e.getMessage());
             return null;
         }
     }
@@ -214,13 +218,13 @@ public final class BlockDb {
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     String latestHash = rs.getString("hash");
-                    ConsolePrinter.printInfo("[BlockDb] Latest block hash: " + latestHash);
+                    log.info("[BlockDb] Latest block hash: " + latestHash);
                     return latestHash;
                 }
                 return "0";
             }
         } catch (SQLException e) {
-            ConsolePrinter.printFail("[BlockDb] getLatestBlockHash failed: " + e.getMessage());
+            log.error("[BlockDb] getLatestBlockHash failed: " + e.getMessage());
             return null;
         }
     }
@@ -233,9 +237,9 @@ public final class BlockDb {
             conn.setAutoCommit(false);
             int deleted = s.executeUpdate("DELETE FROM blocks;");
             conn.commit();
-            ConsolePrinter.printSuccess("[BlockDb] Truncated blocks. Rows deleted: " + deleted);
+            log.info("[BlockDb] Truncated blocks. Rows deleted: " + deleted);
         } catch (SQLException e) {
-            ConsolePrinter.printFail("[BlockDb] truncateDatabase failed: " + e.getMessage());
+            log.error("[BlockDb] truncateDatabase failed: " + e.getMessage());
             return false;
         }
 
@@ -243,7 +247,7 @@ public final class BlockDb {
             try (Connection c = connect(); Statement s = c.createStatement()) {
                 s.execute("VACUUM;");
             } catch (SQLException e) {
-                ConsolePrinter.printFail("[BlockDb] VACUUM failed: " + e.getMessage());
+                log.error("[BlockDb] VACUUM failed: " + e.getMessage());
             }
         }
         return true;
@@ -257,7 +261,7 @@ public final class BlockDb {
         try {
             Files.createDirectories(snapshotDir);
         } catch (IOException e) {
-            ConsolePrinter.printFail("[BlockDb] Snapshot dir creation failed: " + e.getMessage());
+            log.error("[BlockDb] Snapshot dir creation failed: " + e.getMessage());
             return null;
         }
 
@@ -267,20 +271,20 @@ public final class BlockDb {
         try (Connection conn = DriverManager.getConnection(dbUrl); Statement s = conn.createStatement()) {
             String abs = snapshotPath.toAbsolutePath().toString().replace("'", "''");
             s.execute("VACUUM INTO '" + abs + "';");
-            ConsolePrinter.printSuccess("[BlockDb] Snapshot created: " + snapshotPath);
+            log.info("[BlockDb] Snapshot created: " + snapshotPath);
             return snapshotPath.toString();
         } catch (SQLException e) {
-            ConsolePrinter.printFail("[BlockDb] Snapshot VACUUM INTO failed, fallback to copy: " + e.getMessage());
+            log.error("[BlockDb] Snapshot VACUUM INTO failed, fallback to copy: " + e.getMessage());
         }
 
         Path original = Path.of(dbUrl.replace("jdbc:sqlite:", ""));
         try {
             Files.copy(original, snapshotPath, StandardCopyOption.REPLACE_EXISTING);
-            ConsolePrinter.printSuccess("[BlockDb] Snapshot copied: " + snapshotPath);
-            ConsolePrinter.printFail("[BlockDb] NOTE: file copy snapshot may not be crash-consistent if DB is being written to. Prefer VACUUM INTO where supported.");
+            log.info("[BlockDb] Snapshot copied: " + snapshotPath);
+            log.error("[BlockDb] NOTE: file copy snapshot may not be crash-consistent if DB is being written to. Prefer VACUUM INTO where supported.");
             return snapshotPath.toString();
         } catch (IOException e) {
-            ConsolePrinter.printFail("[BlockDb] Fallback copy failed: " + e.getMessage());
+            log.error("[BlockDb] Fallback copy failed: " + e.getMessage());
             return null;
         }
     }
@@ -296,7 +300,7 @@ public final class BlockDb {
         try {
             writer.shutdownNow();
         } catch (Exception e) {
-            ConsolePrinter.printFail("[BlockDb] shutdownWriter failed: " + e.getMessage());
+            log.error("[BlockDb] shutdownWriter failed: " + e.getMessage());
         }
     }
 
@@ -311,13 +315,13 @@ public final class BlockDb {
     public synchronized List<String> extractInsertStatementsFromDbFile(String sourceDbFilePath) {
         List<String> inserts = new ArrayList<>();
         if (sourceDbFilePath == null || sourceDbFilePath.trim().isEmpty()) {
-            ConsolePrinter.printFail("[BlockDb] extractInsertStatementsFromDbFile failed: source path is null/empty.");
+            log.error("[BlockDb] extractInsertStatementsFromDbFile failed: source path is null/empty.");
             return inserts;
         }
 
         Path src = Path.of(sourceDbFilePath).toAbsolutePath();
         if (!Files.exists(src)) {
-            ConsolePrinter.printFail("[BlockDb] extractInsertStatementsFromDbFile failed: source DB not found: " + src);
+            log.error("[BlockDb] extractInsertStatementsFromDbFile failed: source DB not found: " + src);
             return inserts;
         }
 
@@ -345,10 +349,10 @@ public final class BlockDb {
                 inserts.add(sb);
             }
 
-            ConsolePrinter.printSuccess("[BlockDb] extractInsertStatementsFromDbFile completed, rows=" + inserts.size());
+            log.info("[BlockDb] extractInsertStatementsFromDbFile completed, rows=" + inserts.size());
             return inserts;
         } catch (SQLException e) {
-            ConsolePrinter.printFail("[BlockDb] extractInsertStatementsFromDbFile failed: " + e.getMessage());
+            log.error("[BlockDb] extractInsertStatementsFromDbFile failed: " + e.getMessage());
             return inserts;
         }
     }
@@ -365,16 +369,16 @@ public final class BlockDb {
      */
     public synchronized void executeInsertSQL(String insertSQL) {
         if (insertSQL == null || insertSQL.trim().isEmpty()) {
-            ConsolePrinter.printFail("[BlockDb] executeInsertSQL failed: SQL is null/empty.");
+            log.error("[BlockDb] executeInsertSQL failed: SQL is null/empty.");
             return;
         }
         String trimmed = insertSQL.trim().toUpperCase();
         if (!trimmed.startsWith("INSERT")) {
-            ConsolePrinter.printFail("[BlockDb] executeInsertSQL rejected: only INSERT statements are allowed.");
+            log.error("[BlockDb] executeInsertSQL rejected: only INSERT statements are allowed.");
             return;
         }
         if (!trimmed.contains("BLOCKS")) {
-            ConsolePrinter.printFail("[BlockDb] executeInsertSQL rejected: statement must target 'blocks' table.");
+            log.error("[BlockDb] executeInsertSQL rejected: statement must target 'blocks' table.");
             return;
         }
 
@@ -383,10 +387,10 @@ public final class BlockDb {
                 conn.setAutoCommit(false);
                 int rows = stmt.executeUpdate(insertSQL);
                 conn.commit();
-                ConsolePrinter.printSuccess("[BlockDb] executeInsertSQL succeeded, rowsInserted=" + rows);
+                log.info("[BlockDb] executeInsertSQL succeeded, rowsInserted=" + rows);
                 return rows > 0;
             } catch (SQLException e) {
-                ConsolePrinter.printFail("[BlockDb] executeInsertSQL failed: " + e.getMessage());
+                log.error("[BlockDb] executeInsertSQL failed: " + e.getMessage());
                 return false;
             }
         };
@@ -395,7 +399,7 @@ public final class BlockDb {
         try {
             f.get();
         } catch (Exception e) {
-            ConsolePrinter.printFail("[BlockDb] executeInsertSQL writer failure: " + e.getMessage());
+            log.error("[BlockDb] executeInsertSQL writer failure: " + e.getMessage());
         }
     }
 
@@ -464,10 +468,10 @@ public final class BlockDb {
                 blocks.add(block);
             }
 
-            ConsolePrinter.printSuccess("[BlockDb] readAllBlocks loaded " + blocks.size() + " blocks.");
+            log.info("[BlockDb] readAllBlocks loaded " + blocks.size() + " blocks.");
 
         } catch (Exception e) {
-            ConsolePrinter.printFail("[BlockDb] readAllBlocks failed: " + e.getMessage());
+            log.error("[BlockDb] readAllBlocks failed: " + e.getMessage());
             e.printStackTrace();
         }
 
@@ -488,7 +492,7 @@ public final class BlockDb {
                 if (b != null) out.add(b);
             }
         } catch (Exception e) {
-            ConsolePrinter.printFail("[BlockDb] readAllBlocksOrdered failed: " + e.getMessage());
+            log.error("[BlockDb] readAllBlocksOrdered failed: " + e.getMessage());
         }
         return out;
     }

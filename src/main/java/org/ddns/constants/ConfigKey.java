@@ -23,7 +23,8 @@ public enum ConfigKey {
 //    Election
 
     ELECTION,
-    VOTE_BOX;
+    VOTE_BOX,
+    IS_ACCEPTED;
 
     public String key() {
         return this.name();
