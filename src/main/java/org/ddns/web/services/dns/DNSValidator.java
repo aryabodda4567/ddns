@@ -1,8 +1,6 @@
 package org.ddns.web.services.dns;
 
 import org.ddns.dns.DNSModel;
-import org.ddns.dns.RecordType;
-
 import java.net.InetAddress;
 
 public final class DNSValidator {
@@ -58,6 +56,28 @@ public final class DNSValidator {
                 if (!isValidDomain(rdata)) {
                     throw new IllegalArgumentException("Invalid CNAME target: " + rdata);
                 }
+            }
+            case 2 -> { // NS
+                if (!isValidDomain(rdata)) {
+                    throw new IllegalArgumentException("Invalid NS target: " + rdata);
+                }
+            }
+            case 15 -> { // MX
+                // Accept either host only or "priority host"
+                if (!isValidMx(rdata)) {
+                    throw new IllegalArgumentException("Invalid MX value: " + rdata);
+                }
+            }
+            case 16 -> { // TXT
+                // non-empty already enforced above
+            }
+            case 12 -> { // PTR
+                if (!isValidDomain(rdata)) {
+                    throw new IllegalArgumentException("Invalid PTR target: " + rdata);
+                }
+            }
+            case 6 -> { // SOA
+                // SOA is usually composite; allow non-empty string payload for now
             }
             default -> {
                 // Should never happen because isValidType blocks it
@@ -136,6 +156,24 @@ public final class DNSValidator {
                     throw new IllegalArgumentException("Invalid CNAME target: " + rdata);
                 }
             }
+            case 2 -> { // NS
+                if (!isValidDomain(rdata)) {
+                    throw new IllegalArgumentException("Invalid NS target: " + rdata);
+                }
+            }
+            case 15 -> { // MX
+                if (!isValidMx(rdata)) {
+                    throw new IllegalArgumentException("Invalid MX value: " + rdata);
+                }
+            }
+            case 12 -> { // PTR
+                if (!isValidDomain(rdata)) {
+                    throw new IllegalArgumentException("Invalid PTR target: " + rdata);
+                }
+            }
+            case 16, 6 -> {
+                // TXT / SOA: non-empty already validated
+            }
             default -> {
                 // For future types
                 // Accept but require non-empty rdata
@@ -144,9 +182,14 @@ public final class DNSValidator {
     }
 
     private static boolean isValidType(int type) {
-        return type == 1   // A
-                || type == 28  // AAAA
-                || type == 5;  // CNAME (optional, but good)
+        return type == 1    // A
+                || type == 2    // NS
+                || type == 5    // CNAME
+                || type == 6    // SOA
+                || type == 12   // PTR
+                || type == 15   // MX
+                || type == 16   // TXT
+                || type == 28;  // AAAA
     }
 
     private static boolean isValidDomain(String domain) {
@@ -182,6 +225,25 @@ public final class DNSValidator {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    private static boolean isValidMx(String value) {
+        String[] parts = value.trim().split("\\s+");
+        if (parts.length == 1) {
+            return isValidDomain(parts[0]);
+        }
+
+        if (parts.length == 2) {
+            try {
+                int preference = Integer.parseInt(parts[0]);
+                if (preference < 0 || preference > 65535) return false;
+            } catch (NumberFormatException e) {
+                return false;
+            }
+            return isValidDomain(parts[1]);
+        }
+
+        return false;
     }
 
 
