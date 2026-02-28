@@ -1,5 +1,8 @@
 package org.ddns;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.ddns.bc.SignatureUtil;
 import org.ddns.bootstrap.BootstrapNode;
@@ -9,7 +12,6 @@ import org.ddns.db.*;
 import org.ddns.governance.Election;
 import org.ddns.net.NetworkManager;
 import org.ddns.node.NodesManager;
-import org.ddns.util.ConsolePrinter;
 import org.ddns.web.WebServer;
 
 import java.security.Security;
@@ -29,6 +31,8 @@ import java.security.Security;
  * - Election password is hashed (SHA-256) before being stored in DBUtil.
  */
 public class Main {
+
+    private static final Logger log = LoggerFactory.getLogger(Main.class);
     private NetworkManager networkManager;
     private Election election;
     public static final String ELECTION_PASSWORD = "election_password"; // DB key
@@ -53,13 +57,13 @@ public class Main {
 //        }
 
 //
-        ConsolePrinter.printInfo("Bootstrap nodes: " + BootstrapDB.getInstance().getAllNodes());
-        ConsolePrinter.printInfo("Local node: " + DBUtil.getInstance().getSelfNode());
-        ConsolePrinter.printInfo("Known nodes: " + DBUtil.getInstance().getAllNodes());
+        log.info("Bootstrap nodes: " + BootstrapDB.getInstance().getAllNodes());
+        log.info("Local node: " + DBUtil.getInstance().getSelfNode());
+        log.info("Known nodes: " + DBUtil.getInstance().getAllNodes());
 
         Main app = new Main();
         app.init();
-        ConsolePrinter.printInfo("BootstrapNode bound to NetworkManager. Listeners running.");
+        log.info("BootstrapNode bound to NetworkManager. Listeners running.");
 
 
 
@@ -80,7 +84,7 @@ public class Main {
         // Print short fingerprint for debug - avoid leaking private key
         try {
             String fp = SignatureUtil.getStringFromKey(Wallet.getKeyPair().getPrivate());
-//            ConsolePrinter.printInfo("Local key fingerprint (short): " + (fp.length() > 40 ? fp.substring(0, 40) : fp))
+//            log.info("Local key fingerprint (short): " + (fp.length() > 40 ? fp.substring(0, 40) : fp))
             System.out.println(fp);
         } catch (Throwable ignored) {}
     }

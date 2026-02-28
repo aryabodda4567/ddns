@@ -10,7 +10,6 @@ import org.ddns.db.TransactionDb;
 import org.ddns.dns.DNSModel;
 import org.ddns.dns.DNSServer;
 import org.ddns.dns.RecordType;
-import org.ddns.util.ConsolePrinter;
 import org.ddns.util.TimeUtil;
 import org.sqlite.core.DB;
 import spark.Request;

@@ -1,23 +1,58 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>DDNS Control Panel</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DNS Control Panel | DDNS Console</title>
     <link rel="stylesheet" href="/css/common.css">
+    <script src="/js/auth-guard.js"></script>
 </head>
 <body>
+<div class="page-shell">
+    <div class="topbar">
+        <div class="brand">
+            <div class="brand-badge">DD</div>
+            <div>
+                <div class="brand-title">DDNS Network Console</div>
+                <div class="brand-sub">Operations Dashboard</div>
+            </div>
+        </div>
+        <span class="status-pill"><span class="status-dot"></span> Node Active</span>
+    </div>
 
-<div class="card">
-    <h1>DDNS Control Panel</h1>
+    <div class="main-grid">
+        <aside class="sidebar">
+            <div class="menu-title">Navigation</div>
+            <nav class="menu">
+                <a href="/join.html">Join Network</a>
+                <a href="/create_election.html">Create Election</a>
+                <a href="/vote.html">Vote</a>
+                <a href="/join_result.html">Join Result</a>
+                <a class="active" href="/index.html">DNS Control</a>
+                <a href="/home.html">Home</a>
+            </nav>
+        </aside>
 
-    <p style="text-align:center; color: var(--text-muted); margin-bottom: 20px;">
-        Manage DNS records on your decentralized DNS network
-    </p>
+        <main class="content-stack">
+            <section class="card">
+                <h1>DNS Control Panel</h1>
+                <p class="subtle" style="margin-top: 8px;">Manage decentralized DNS transactions and query network state.</p>
+            </section>
 
-    <button onclick="go('create.html')">➕ Create Record</button>
-    <button onclick="go('update.html')">✏️ Update Record</button>
-    <button onclick="go('delete.html')">🗑️ Delete Record</button>
-    <button onclick="go('lookup.html')">🔍 Lookup Record</button>
-    <button onclick="go('status.html')">📦 Transaction Status</button>
+            <section class="card">
+                <h2>Record Operations</h2>
+                <div class="grid-2" style="margin-top: 12px;">
+                    <button onclick="go('create.html')">Create Record</button>
+                    <button onclick="go('update.html')">Update Record</button>
+                    <button onclick="go('delete.html')">Delete Record</button>
+                    <button onclick="go('lookup.html')">Lookup Record</button>
+                </div>
+                <div class="action-row" style="margin-top: 10px;">
+                    <button class="secondary" onclick="go('status.html')">Transaction Status</button>
+                </div>
+            </section>
+        </main>
+    </div>
 </div>
 
 <script>
@@ -25,6 +60,7 @@
         location.href = page;
     }
 </script>
-
 </body>
 </html>
+
+

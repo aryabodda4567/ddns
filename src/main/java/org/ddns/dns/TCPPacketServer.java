@@ -1,6 +1,8 @@
 package org.ddns.dns;
 
-import org.ddns.util.ConsolePrinter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.xbill.DNS.Message;
 
 import java.io.*;
@@ -8,6 +10,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 public class TCPPacketServer implements Runnable {
+
+    private static final Logger log = LoggerFactory.getLogger(TCPPacketServer.class);
 
     private final DNSResolver resolver;
     private final int port;
@@ -23,7 +27,7 @@ public class TCPPacketServer implements Runnable {
     public void run() {
         try {
             serverSocket = new ServerSocket(port);
-            ConsolePrinter.printSuccess("TCP DNS listening on " + port);
+            log.info("TCP DNS listening on " + port);
 
             while (running) {
                 Socket client = serverSocket.accept();
@@ -33,7 +37,7 @@ public class TCPPacketServer implements Runnable {
             }
         } catch (IOException e) {
             if (running) {
-                ConsolePrinter.printFail("[TCP DNS] Server error: " + e.getMessage());
+                log.error("[TCP DNS] Server error: " + e.getMessage());
             }
         }
     }

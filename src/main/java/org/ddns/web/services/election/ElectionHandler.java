@@ -6,6 +6,7 @@ import org.ddns.governance.Election;
 import org.ddns.governance.Nomination;
 import org.ddns.node.NodesManager;
 import org.ddns.util.ConversionUtil;
+import org.ddns.web.user.SessionManager;
 import spark.Request;
 import spark.Response;
 
@@ -117,7 +118,12 @@ public class ElectionHandler {
         if (result == Election.ACCEPTED) {
             NodesManager.setupEqualNode();
             NodesManager.createSyncRequest();
-            return Map.of("accepted", true);
+            long expiresAt = SessionManager.createSession(res);
+            return Map.of(
+                    "accepted", true,
+                    "expiresAt", expiresAt,
+                    "sessionSeconds", SessionManager.SESSION_DURATION_SECONDS
+            );
         }
 
         if (result == Election.REJECTED) {

@@ -1,47 +1,82 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Update DNS Record</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update DNS Record | DDNS Console</title>
     <link rel="stylesheet" href="/css/common.css">
+    <script src="/js/auth-guard.js"></script>
 </head>
 <body>
-
-<div class="card">
-    <h2>Update DNS Record</h2>
-
-    <div class="form-group">
-        <label>Domain</label>
-        <input id="name" placeholder="example.com">
+<div class="page-shell">
+    <div class="topbar">
+        <div class="brand">
+            <div class="brand-badge">DD</div>
+            <div>
+                <div class="brand-title">DDNS Network Console</div>
+                <div class="brand-sub">Record Modification</div>
+            </div>
+        </div>
+        <span class="status-pill"><span class="status-dot"></span> DNS Write</span>
     </div>
 
-    <div class="form-group">
-        <label>Type</label>
-        <select id="type">
-            <option value="1">A</option>
-            <option value="28">AAAA</option>
-            <option value="5">CNAME</option>
-            <option value="16">TXT</option>
-            <option value="2">NS</option>
-        </select>
+    <div class="main-grid">
+        <aside class="sidebar">
+            <div class="menu-title">DNS Operations</div>
+            <nav class="menu">
+                <a href="/index.html">Control Panel</a>
+                <a href="/create.html">Create</a>
+                <a class="active" href="/update.html">Update</a>
+                <a href="/delete.html">Delete</a>
+                <a href="/lookup.html">Lookup</a>
+                <a href="/status.html">Status</a>
+            </nav>
+        </aside>
+
+        <main class="content-stack">
+            <section class="card">
+                <h2>Update DNS Record</h2>
+
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label for="name">Domain</label>
+                        <input id="name" placeholder="example.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="type">Type</label>
+                        <select id="type">
+                            <option value="1">A</option>
+                            <option value="28">AAAA</option>
+                            <option value="5">CNAME</option>
+                            <option value="16">TXT</option>
+                            <option value="2">NS</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label for="ttl">TTL</label>
+                        <input id="ttl" type="number" value="300">
+                    </div>
+                    <div class="form-group">
+                        <label for="rdata">RDATA</label>
+                        <input id="rdata" placeholder="5.5.5.5">
+                    </div>
+                </div>
+
+                <div class="action-row" style="margin-top: 12px;">
+                    <button onclick="updateRecord()">Submit Update</button>
+                    <button class="secondary" onclick="location.href='/index.html'">Back To Panel</button>
+                </div>
+
+                <div id="result"></div>
+            </section>
+        </main>
     </div>
-
-    <div class="form-group">
-        <label>TTL</label>
-        <input id="ttl" type="number" value="300">
-    </div>
-
-    <div class="form-group">
-        <label>RDATA</label>
-        <input id="rdata" placeholder="5.5.5.5">
-    </div>
-
-    <button onclick="updateRecord()">Update</button>
-
-    <div id="result"></div>
 </div>
 
 <script>
-    /* ========== SMART JSON RENDERER ========== */
     function renderJSON(obj, container) {
         for (let key in obj) {
             const value = obj[key];
@@ -54,7 +89,6 @@
             k.textContent = key;
 
             const v = document.createElement("div");
-
             if (typeof value === "object" && value !== null) {
                 const nested = document.createElement("div");
                 nested.className = "nested";
@@ -87,7 +121,6 @@
         result.appendChild(box);
     }
 
-    /* ========== VALIDATION ========== */
     function isValidDomain(domain) {
         return /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(domain);
     }
@@ -97,28 +130,18 @@
     }
 
     function validateUpdate(data) {
-        if (!data.name)
-            return "Domain name is required";
+        if (!data.name) return "Domain name is required";
+        if (!isValidDomain(data.name)) return "Invalid domain format. Example: example.com";
+        if (!Number.isInteger(data.ttl) || data.ttl <= 0) return "TTL must be a positive number";
+        if (!data.rdata) return "RDATA value is required";
 
-        if (!isValidDomain(data.name))
-            return "Invalid domain format. Example: example.com";
-
-        if (!Number.isInteger(data.ttl) || data.ttl <= 0)
-            return "TTL must be a positive number";
-
-        if (!data.rdata)
-            return "RDATA value is required";
-
-        // If type is A or AAAA, expect IP (your backend seems IPv4-focused)
         if (data.type === 1 || data.type === 28) {
-            if (!isValidIPv4(data.rdata))
-                return "For A/AAAA record, RDATA must be a valid IP address";
+            if (!isValidIPv4(data.rdata)) return "For A/AAAA record, RDATA must be a valid IP address";
         }
 
         return null;
     }
 
-    /* ========== API CALL ========== */
     async function updateRecord() {
         const data = {
             name: document.getElementById("name").value.trim(),
@@ -127,7 +150,6 @@
             rdata: document.getElementById("rdata").value.trim()
         };
 
-        // Client-side validation
         const error = validateUpdate(data);
         if (error) {
             showMessage({ error: error }, false);
@@ -155,6 +177,7 @@
         }
     }
 </script>
-
 </body>
 </html>
+
+

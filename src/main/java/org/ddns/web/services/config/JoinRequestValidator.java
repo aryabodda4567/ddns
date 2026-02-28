@@ -15,6 +15,12 @@ public final class JoinRequestValidator {
 
     private JoinRequestValidator() {}
 
+    public static void validate(String bootstrapHost, String privateKeyString, String username, String password) {
+        validateHost(bootstrapHost);
+        validatePrivateKey(privateKeyString);
+        validateCredentials(username, password);
+    }
+
     public static void validate(String bootstrapHost, String privateKeyString) {
         validateHost(bootstrapHost);
         validatePrivateKey(privateKeyString);
@@ -89,5 +95,19 @@ public final class JoinRequestValidator {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    private static void validateCredentials(String username, String password) {
+        if (username == null || username.isBlank())
+            throw new IllegalArgumentException("Username is required");
+
+        if (username.trim().length() < 3 || username.trim().length() > 64)
+            throw new IllegalArgumentException("Username must be between 3 and 64 characters");
+
+        if (password == null || password.isBlank())
+            throw new IllegalArgumentException("Password is required");
+
+        if (password.trim().length() < 6 || password.trim().length() > 128)
+            throw new IllegalArgumentException("Password must be between 6 and 128 characters");
     }
 }

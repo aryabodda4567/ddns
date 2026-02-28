@@ -1,51 +1,84 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Create DNS Record</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create DNS Record | DDNS Console</title>
     <link rel="stylesheet" href="/css/common.css">
+    <script src="/js/auth-guard.js"></script>
 </head>
 <body>
-
-<div class="card">
-    <h2>Create DNS Record</h2>
-
-    <div class="form-group">
-        <label>Domain</label>
-        <input id="name" placeholder="example.com">
+<div class="page-shell">
+    <div class="topbar">
+        <div class="brand">
+            <div class="brand-badge">DD</div>
+            <div>
+                <div class="brand-title">DDNS Network Console</div>
+                <div class="brand-sub">Record Provisioning</div>
+            </div>
+        </div>
+        <span class="status-pill"><span class="status-dot"></span> DNS Write</span>
     </div>
 
-    <div class="form-group">
-        <label>Type</label>
-        <select id="type">
-            <option value="1">A</option>
-            <option value="28">AAAA</option>
-            <option value="5">CNAME</option>
-            <option value="16">TXT</option>
-            <option value="2">NS</option>
-        </select>
+    <div class="main-grid">
+        <aside class="sidebar">
+            <div class="menu-title">DNS Operations</div>
+            <nav class="menu">
+                <a href="/index.html">Control Panel</a>
+                <a class="active" href="/create.html">Create</a>
+                <a href="/update.html">Update</a>
+                <a href="/delete.html">Delete</a>
+                <a href="/lookup.html">Lookup</a>
+                <a href="/status.html">Status</a>
+            </nav>
+        </aside>
+
+        <main class="content-stack">
+            <section class="card">
+                <h2>Create DNS Record</h2>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label for="name">Domain</label>
+                        <input id="name" placeholder="example.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="type">Type</label>
+                        <select id="type">
+                            <option value="1">A</option>
+                            <option value="28">AAAA</option>
+                            <option value="5">CNAME</option>
+                            <option value="16">TXT</option>
+                            <option value="2">NS</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label for="ttl">TTL</label>
+                        <input id="ttl" type="number" value="300">
+                    </div>
+                    <div class="form-group">
+                        <label for="rdata">RDATA</label>
+                        <input id="rdata" placeholder="1.2.3.4">
+                    </div>
+                </div>
+
+                <div class="action-row" style="margin-top: 12px;">
+                    <button onclick="createRecord()">Submit Create</button>
+                    <button class="secondary" onclick="location.href='/index.html'">Back To Panel</button>
+                </div>
+
+                <div id="result"></div>
+            </section>
+        </main>
     </div>
-
-    <div class="form-group">
-        <label>TTL</label>
-        <input id="ttl" type="number" value="300">
-    </div>
-
-    <div class="form-group">
-        <label>RDATA</label>
-        <input id="rdata" placeholder="1.2.3.4">
-    </div>
-
-    <button onclick="createRecord()">Create</button>
-
-    <div id="result"></div>
 </div>
 
 <script>
-    /* ================= UI HELPERS ================= */
     function renderJSON(obj, container) {
         for (let key in obj) {
             const value = obj[key];
-
             const row = document.createElement("div");
             row.className = "kv";
 
@@ -54,7 +87,6 @@
             k.textContent = key;
 
             const v = document.createElement("div");
-
             if (typeof value === "object" && value !== null) {
                 const nested = document.createElement("div");
                 nested.className = "nested";
@@ -78,16 +110,12 @@
         box.className = "alert " + (ok ? "success" : "error");
         box.style.display = "block";
 
-        if (typeof obj === "object") {
-            renderJSON(obj, box);
-        } else {
-            box.textContent = obj;
-        }
+        if (typeof obj === "object") renderJSON(obj, box);
+        else box.textContent = obj;
 
         result.appendChild(box);
     }
 
-    /* ================= VALIDATION ================= */
     function isValidDomain(domain) {
         return /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(domain);
     }
@@ -97,28 +125,18 @@
     }
 
     function validateForm(data) {
-        if (!data.name || data.name.trim() === "")
-            return "Domain name is required";
+        if (!data.name || data.name.trim() === "") return "Domain name is required";
+        if (!isValidDomain(data.name)) return "Invalid domain format. Example: example.com";
+        if (!data.rdata || data.rdata.trim() === "") return "RDATA value is required";
+        if (data.ttl <= 0) return "TTL must be greater than 0";
 
-        if (!isValidDomain(data.name))
-            return "Invalid domain format. Example: example.com";
-
-        if (!data.rdata || data.rdata.trim() === "")
-            return "RDATA value is required";
-
-        if (data.ttl <= 0)
-            return "TTL must be greater than 0";
-
-        // Type specific checks
-        if (data.type === 1 || data.type === 28) { // A or AAAA
-            if (!isValidIPv4(data.rdata))
-                return "For A/AAAA record, RDATA must be a valid IP address";
+        if (data.type === 1 || data.type === 28) {
+            if (!isValidIPv4(data.rdata)) return "For A/AAAA record, RDATA must be a valid IP address";
         }
 
-        return null; // OK
+        return null;
     }
 
-    /* ================= API CALL ================= */
     async function createRecord() {
         const data = {
             name: document.getElementById("name").value.trim(),
@@ -127,7 +145,6 @@
             rdata: document.getElementById("rdata").value.trim()
         };
 
-        // Client-side validation
         const error = validateForm(data);
         if (error) {
             showMessage({ error: error }, false);
@@ -144,7 +161,6 @@
             const json = await res.json();
 
             if (!res.ok) {
-                // Server returned error
                 showMessage(json, false);
                 return;
             }
@@ -156,6 +172,7 @@
         }
     }
 </script>
-
 </body>
 </html>
+
+

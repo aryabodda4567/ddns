@@ -1,7 +1,9 @@
 package org.ddns.dns;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.ddns.db.DNSDb;
-import org.ddns.util.ConsolePrinter;
 import org.xbill.DNS.*;
 import org.xbill.DNS.Record;
 
@@ -10,6 +12,8 @@ import java.time.Duration;
 import java.util.List;
 
 public class DNSResolver implements Resolver {
+
+    private static final Logger log = LoggerFactory.getLogger(DNSResolver.class);
 
     private final Resolver forwarder;
 
@@ -72,7 +76,7 @@ public class DNSResolver implements Resolver {
             return forwarder.send(query);
 
         } catch (Exception e) {
-            ConsolePrinter.printFail("[DNS] Resolver error: " + e.getMessage());
+            log.error("[DNS] Resolver error: " + e.getMessage());
             response.getHeader().setRcode(Rcode.SERVFAIL);
             return response;
         }

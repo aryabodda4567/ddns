@@ -1,5 +1,8 @@
 package org.ddns.bootstrap;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.ddns.consensus.QueueNode;
 import org.ddns.constants.Role;
 import org.ddns.db.BootstrapDB;
@@ -9,51 +12,48 @@ import org.ddns.net.MessageHandler;
 import org.ddns.net.MessageType;
 import org.ddns.net.NetworkManager;
 import org.ddns.node.NodeConfig;
-import org.ddns.util.ConsolePrinter;
 import org.ddns.util.ConversionUtil;
 import org.ddns.util.NetworkUtility;
 
 import java.security.PublicKey;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Logger;
 
 public class BootstrapNode implements MessageHandler {
 
-    // Use a proper logger or ConsolePrinter
-    private static final Logger LOGGER = Logger.getLogger(BootstrapNode.class.getName());
+    private static final Logger log = LoggerFactory.getLogger(BootstrapNode.class);
 
     // Bind to NetworkManager on construction
     public BootstrapNode(NetworkManager networkManager) {
         networkManager.registerHandler(this);
-        ConsolePrinter.printSuccess("[BootstrapNode] Registered with NetworkManager. Ready to serve.");
+        log.info("[BootstrapNode] Registered with NetworkManager. Ready to serve.");
     }
 
     @Override
     public void onBroadcastMessage(String message) {
-        LOGGER.finer("Received unhandled broadcast message.");
+        log.debug("Received unhandled broadcast message.");
     }
 
     @Override
     public void onDirectMessage(String message) {
         Message requestMessage;
         if (message == null || message.isEmpty()) {
-            ConsolePrinter.printWarning("[BootstrapNode] Received null or empty direct message.");
+            log.warn("[BootstrapNode] Received null or empty direct message.");
             return;
         }
         try {
             requestMessage = ConversionUtil.fromJson(message, Message.class);
         } catch (Exception e) {
-            ConsolePrinter.printFail("[BootstrapNode] Failed to parse incoming message: " + e.getMessage());
+            log.error("[BootstrapNode] Failed to parse incoming message: " + e.getMessage());
             return; // Can't proceed
         }
 
         if (requestMessage == null || requestMessage.type == null || requestMessage.payload == null) {
-            ConsolePrinter.printWarning("[BootstrapNode] Received malformed message (null type or payload).");
+            log.warn("[BootstrapNode] Received malformed message (null type or payload).");
             return;
         }
 
-        ConsolePrinter.printInfo("[BootstrapNode] Received request: " + requestMessage.type +
+        log.info("[BootstrapNode] Received request: " + requestMessage.type +
                 " from " + requestMessage.senderIp);
 
         try {
@@ -63,12 +63,11 @@ public class BootstrapNode implements MessageHandler {
                 case DELETE_NODE -> resolveRemoveRequest(requestMessage);
                 case PROMOTE_NODE -> resolvePromoteRequest(requestMessage);
                 default -> {
-                    ConsolePrinter
-                            .printWarning("[BootstrapNode] Received unhandled message type: " + requestMessage.type);
+                    log.warn("[BootstrapNode] Received unhandled message type: " + requestMessage.type);
                 }
             }
         } catch (Exception e) {
-            ConsolePrinter.printFail("[BootstrapNode] Unhandled exception processing message type "
+            log.error("[BootstrapNode] Unhandled exception processing message type "
                     + requestMessage.type + ": " + e.getMessage());
             e.printStackTrace(); // Print stack trace for debugging
         }
@@ -76,7 +75,7 @@ public class BootstrapNode implements MessageHandler {
 
     @Override
     public void onMulticastMessage(String message) {
-        LOGGER.finer("Received unhandled multicast message.");
+        log.debug("Received unhandled multicast message.");
     }
 
     // --- RESOLVERS (Handle incoming requests from nodes) ---
@@ -85,7 +84,7 @@ public class BootstrapNode implements MessageHandler {
         String senderIp = requestMessage.senderIp;
 
         if (senderIp == null || senderIp.isEmpty()) {
-            ConsolePrinter.printWarning("[BootstrapNode] Cannot resolve FETCH_NODES: Sender IP is missing.");
+            log.warn("[BootstrapNode] Cannot resolve FETCH_NODES: Sender IP is missing.");
             return; // Cannot reply
         }
 
@@ -94,8 +93,7 @@ public class BootstrapNode implements MessageHandler {
         try {
             myPublicKey = DBUtil.getInstance().getPublicKey();
         } catch (Exception e) {
-            ConsolePrinter
-                    .printWarning("[BootstrapNode] Failed to get local public key for response: " + e.getMessage());
+            log.warn("[BootstrapNode] Failed to get local public key for response: " + e.getMessage());
         }
 
         Message response = new Message(
@@ -104,7 +102,7 @@ public class BootstrapNode implements MessageHandler {
                 myPublicKey,
                 ConversionUtil.toJson(nodeConfigSet));
 
-        ConsolePrinter.printInfo("[BootstrapNode] Sending node list (" + nodeConfigSet.size() +
+        log.info("[BootstrapNode] Sending node list (" + nodeConfigSet.size() +
                 " nodes) to " + senderIp);
 
         NetworkManager.sendDirectMessage(senderIp, ConversionUtil.toJson(response));
@@ -115,13 +113,14 @@ public class BootstrapNode implements MessageHandler {
             NodeConfig nodeConfig = ConversionUtil.fromJson(requestMessage.payload, NodeConfig.class);
 
             if (nodeConfig == null || nodeConfig.getPublicKey() == null || nodeConfig.getIp() == null) {
-                ConsolePrinter
-                        .printWarning("[BootstrapNode] Invalid ADD_NODE request payload: " + requestMessage.payload);
+                log.warn("[BootstrapNode] Invalid ADD_NODE request payload: " + requestMessage.payload);
                 return;
             }
+            // Force egalitarian role
+            nodeConfig.setRole(Role.NONE);
 
             BootstrapDB.getInstance().saveNode(nodeConfig);
-            ConsolePrinter.printSuccess("[BootstrapNode] Added/Updated node: " + nodeConfig.getIp());
+            log.info("[BootstrapNode] Added/Updated node: " + nodeConfig.getIp());
 
             // Update the queue
             int next = BootstrapDB.getInstance().getNextQueueSequence();
@@ -149,7 +148,7 @@ public class BootstrapNode implements MessageHandler {
                     Set.of(Role.ANY));
 
         } catch (Exception e) {
-            ConsolePrinter.printFail("[BootstrapNode] Error processing ADD_NODE request: " + e.getMessage());
+            log.error("[BootstrapNode] Error processing ADD_NODE request: " + e.getMessage());
         }
     }
 
@@ -159,8 +158,7 @@ public class BootstrapNode implements MessageHandler {
             NodeConfig nodeConfig = ConversionUtil.fromJson(requestMessage.payload, NodeConfig.class);
 
             if (nodeConfig == null || nodeConfig.getPublicKey() == null) {
-                ConsolePrinter
-                        .printWarning("[BootstrapNode] Invalid DELETE_NODE request payload: " + requestMessage.payload);
+                log.warn("[BootstrapNode] Invalid DELETE_NODE request payload: " + requestMessage.payload);
                 return;
             }
 
@@ -170,14 +168,14 @@ public class BootstrapNode implements MessageHandler {
 
             // 2. Now, delete the node from the database.
             BootstrapDB.getInstance().deleteNode(nodeConfig.getPublicKey());
-            ConsolePrinter.printSuccess("[BootstrapNode] Deleted node: " + nodeConfig.getIp());
+            log.info("[BootstrapNode] Deleted node: " + nodeConfig.getIp());
 
             // 3. Broadcast the update using the list from step 1.
             broadcastNodeUpdate(MessageType.DELETE, nodeConfig, nodesToInform);
             // --- END FIX ---
 
         } catch (Exception e) {
-            ConsolePrinter.printFail("[BootstrapNode] Error processing DELETE_NODE request: " + e.getMessage());
+            log.error("[BootstrapNode] Error processing DELETE_NODE request: " + e.getMessage());
         }
     }
 
@@ -186,13 +184,13 @@ public class BootstrapNode implements MessageHandler {
             NodeConfig nodeConfig = ConversionUtil.fromJson(requestMessage.payload, NodeConfig.class);
 
             if (nodeConfig == null || nodeConfig.getPublicKey() == null) {
-                ConsolePrinter.printWarning(
+                log.warn(
                         "[BootstrapNode] Invalid PROMOTE_NODE request payload: " + requestMessage.payload);
                 return;
             }
 
             // No role promotion needed - all nodes are equal
-            ConsolePrinter.printInfo("[BootstrapNode] Node update: " + nodeConfig.getIp());
+            log.info("[BootstrapNode] Node update: " + nodeConfig.getIp());
 
             // --- CHANGE ---
             // Pass the *current* full node list to the broadcast helper
@@ -202,7 +200,7 @@ public class BootstrapNode implements MessageHandler {
                     BootstrapDB.getInstance().getAllNodes());
 
         } catch (Exception e) {
-            ConsolePrinter.printFail("[BootstrapNode] Error processing PROMOTE_NODE request: " + e.getMessage());
+            log.error("[BootstrapNode] Error processing PROMOTE_NODE request: " + e.getMessage());
         }
     }
 
@@ -218,7 +216,7 @@ public class BootstrapNode implements MessageHandler {
      * @param nodesToBroadcastTo The set of nodes to send the broadcast to.
      */
     private void broadcastNodeUpdate(MessageType type, NodeConfig nodeConfig, Set<NodeConfig> nodesToBroadcastTo) {
-        ConsolePrinter.printInfo("[BootstrapNode] Broadcasting " + type + " for node " + nodeConfig.getIp());
+        log.info("[BootstrapNode] Broadcasting " + type + " for node " + nodeConfig.getIp());
         try {
             Message message = new Message(
                     type,
@@ -252,8 +250,7 @@ public class BootstrapNode implements MessageHandler {
                     Set.of(Role.ANY));
 
         } catch (Exception e) {
-            ConsolePrinter
-                    .printFail("[BootstrapNode] Failed to broadcast node update (" + type + "): " + e.getMessage());
+            log.error("[BootstrapNode] Failed to broadcast node update (" + type + "): " + e.getMessage());
         }
     }
 }
