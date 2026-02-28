@@ -10,6 +10,7 @@ import org.ddns.db.DBUtil;
 import org.ddns.node.NodeConfig;
 import org.ddns.node.NodesManager;
 import org.ddns.util.NetworkUtility;
+import org.ddns.web.user.User;
 import spark.Request;
 import spark.Response;
 
@@ -35,18 +36,28 @@ public class JoiningHandler {
 
         String bootstrapNodeIp = body.bootstrapIp;
         String privateKeyString = body.privateKey;
+        String username = body.username;
+        String password = body.password;
 
-        JoinRequestValidator.validate(bootstrapNodeIp, privateKeyString);
+        JoinRequestValidator.validate(bootstrapNodeIp, privateKeyString, username, password);
 
 // Normalize
         bootstrapNodeIp = bootstrapNodeIp.trim();
         privateKeyString = privateKeyString.trim();
+        username = username.trim();
+        password = password.trim();
 
         if (bootstrapNodeIp == null || bootstrapNodeIp.trim().isEmpty())
             throw new IllegalArgumentException("No bootstrap IP entered");
 
         if (privateKeyString == null || privateKeyString.trim().isEmpty())
             throw new IllegalArgumentException("No private key entered");
+
+        if (username == null || username.trim().isEmpty())
+            throw new IllegalArgumentException("No username entered");
+
+        if (password == null || password.trim().isEmpty())
+            throw new IllegalArgumentException("No password entered");
 
         bootstrapNodeIp = bootstrapNodeIp.trim();
 
@@ -62,6 +73,7 @@ public class JoiningHandler {
         // set self node using local IP
         String localIp = NetworkUtility.getLocalIpAddress();
         DBUtil.getInstance().setSelfNode(new NodeConfig(localIp, Role.NONE, publicKey));
+        User.saveUser(User.fromCredentials(username, password));
 
         // respond
         res.type("application/json");
@@ -77,7 +89,8 @@ public class JoiningHandler {
         return Map.of(
                 "status", "ok",
                 "publicKey", publicKey.toString(),
-                "localIp", localIp
+                "localIp", localIp,
+                "username", username
         );
     }
 

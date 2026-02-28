@@ -2,50 +2,82 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Join Node</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Node Join | DDNS Console</title>
     <link rel="stylesheet" href="/css/common.css">
 </head>
 <body>
-
-<div class="card">
-    <h2>Join Node</h2>
-
-    <div class="form-group">
-        <label>Bootstrap IP / Host</label>
-        <input id="bootstrapIp" placeholder="192.168.1.10 or node.example.com">
+<div class="page-shell">
+    <div class="topbar">
+        <div class="brand">
+            <div class="brand-badge">DD</div>
+            <div>
+                <div class="brand-title">DDNS Network Console</div>
+                <div class="brand-sub">Secure Node Onboarding</div>
+            </div>
+        </div>
+        <span class="status-pill"><span class="status-dot"></span> Bootstrap Mode</span>
     </div>
 
-    <div class="form-group">
-        <label>Private Key (PEM / Base64)</label>
-        <textarea id="privateKey" placeholder="-----BEGIN PRIVATE KEY-----"></textarea>
-    </div>
+    <div class="main-grid">
+        <aside class="sidebar">
+            <div class="menu-title">Onboarding Flow</div>
+            <nav class="menu">
+                <a class="active" href="/join.html">1. Join Network</a>
+                <a href="/create_election.html">2. Create Election</a>
+                <a href="/vote.html">3. Vote</a>
+                <a href="/join_result.html">4. Join Result</a>
+                <a href="/index.html">DNS Control</a>
+            </nav>
+        </aside>
 
-    <button id="joinBtn" onclick="joinNode()">Join Network</button>
+        <main class="content-stack">
+            <section class="card">
+                <h2>Join Network</h2>
+                <p class="subtle">Provide bootstrap endpoint, key material, and web credentials for secure app access.</p>
 
-    <div id="result"></div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label for="username">Web Username</label>
+                        <input id="username" placeholder="network-admin">
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Web Password</label>
+                        <input id="password" type="password" placeholder="At least 6 characters">
+                    </div>
+                </div>
 
-    <!-- Success Area -->
-    <div id="successBox" style="display:none; margin-top: 16px;">
-        <div class="alert success" style="display:block;">
-            ✅ Node configured successfully.
-        </div>
+                <div class="form-group">
+                    <label for="bootstrapIp">Bootstrap IP / Host</label>
+                    <input id="bootstrapIp" placeholder="192.168.1.10 or node.example.com">
+                </div>
 
-        <div style="margin-top:10px; font-size: 13px; color: #94a3b8;">
-            Public Key:
-            <div id="pubKeyShort" style="margin-top:4px; font-family: monospace; color:#e5e7eb;"></div>
-        </div>
+                <div class="form-group">
+                    <label for="privateKey">Private Key (PEM / Base64)</label>
+                    <textarea id="privateKey" placeholder="-----BEGIN PRIVATE KEY-----"></textarea>
+                </div>
 
-        <button style="margin-top:16px;" onclick="goNext()">Next</button>
+                <div class="action-row" style="margin-top: 14px;">
+                    <button id="joinBtn" onclick="joinNode()">Join Network</button>
+                    <button class="secondary" onclick="goNext()">Next Step</button>
+                </div>
+
+                <div id="result"></div>
+
+                <div id="successBox" class="muted-box" style="display:none; margin-top: 14px;">
+                    Node configured successfully.
+                    <div style="margin-top:8px;">Public Key:</div>
+                    <div id="pubKeyShort" style="margin-top:4px; font-family: Consolas, monospace;"></div>
+                </div>
+            </section>
+        </main>
     </div>
 </div>
 
 <script>
-    /* ========== SMART JSON RENDERER ========== */
     function renderJSON(obj, container) {
         for (let key in obj) {
             const value = obj[key];
-
             const row = document.createElement("div");
             row.className = "kv";
 
@@ -87,24 +119,22 @@
         result.appendChild(box);
     }
 
-    /* ========== VALIDATION ========== */
     function isValidHost(host) {
         return host.length >= 3;
     }
 
     function validateJoin(data) {
-        if (!data.bootstrapIp || !isValidHost(data.bootstrapIp))
-            return "Bootstrap IP / Host is required";
-
-        if (!data.privateKey || data.privateKey.length < 20)
-            return "Private key is required (too short / invalid)";
-
+        if (!data.username || data.username.length < 3) return "Username is required (min 3 characters)";
+        if (!data.password || data.password.length < 6) return "Password is required (min 6 characters)";
+        if (!data.bootstrapIp || !isValidHost(data.bootstrapIp)) return "Bootstrap IP / Host is required";
+        if (!data.privateKey || data.privateKey.length < 20) return "Private key is required (too short / invalid)";
         return null;
     }
 
-    /* ========== API CALL ========== */
     async function joinNode() {
         const data = {
+            username: document.getElementById("username").value.trim(),
+            password: document.getElementById("password").value.trim(),
             bootstrapIp: document.getElementById("bootstrapIp").value.trim(),
             privateKey: document.getElementById("privateKey").value.trim()
         };
@@ -115,7 +145,6 @@
         resultBox.innerHTML = "";
         successBox.style.display = "none";
 
-        // Client-side validation
         const error = validateJoin(data);
         if (error) {
             showMessage({ error: error }, false);
@@ -136,11 +165,9 @@
                 return;
             }
 
-            // Success
             document.getElementById("pubKeyShort").textContent = shortenKey(json.publicKey);
             successBox.style.display = "block";
             document.getElementById("joinBtn").disabled = true;
-
             showMessage(json, true);
 
         } catch (err) {
@@ -148,14 +175,12 @@
         }
     }
 
-    /* ========== UTIL ========== */
     function shortenKey(pk) {
         if (!pk) return "";
         if (pk.length < 30) return pk;
         return pk.substring(0, 12) + "..." + pk.substring(pk.length - 12);
     }
 
-    /* ========== NEXT STEP ========== */
     async function goNext() {
         try {
             const res = await fetch("/checkfetchresult");
@@ -171,6 +196,5 @@
         }
     }
 </script>
-
 </body>
 </html>

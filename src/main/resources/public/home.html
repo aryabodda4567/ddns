@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home | DDNS Console</title>
+    <link rel="stylesheet" href="/css/common.css">
+    <script src="/js/auth-guard.js"></script>
+</head>
+<body>
+<div class="page-shell">
+    <div class="topbar">
+        <div class="brand">
+            <div class="brand-badge">DD</div>
+            <div>
+                <div class="brand-title">DDNS Network Console</div>
+                <div class="brand-sub">Node Home</div>
+            </div>
+        </div>
+        <span class="status-pill"><span class="status-dot"></span> Network Joined</span>
+    </div>
+
+    <div class="main-grid">
+        <aside class="sidebar">
+            <div class="menu-title">Quick Access</div>
+            <nav class="menu">
+                <a href="/join.html">Join Network</a>
+                <a href="/create_election.html">Create Election</a>
+                <a href="/vote.html">Vote</a>
+                <a href="/join_result.html">Join Result</a>
+                <a class="active" href="/home.html">Home</a>
+                <a href="/index.html">DNS Control</a>
+            </nav>
+        </aside>
+
+        <main class="content-stack">
+            <section class="card">
+                <h1>Node Activated</h1>
+                <p class="subtle" style="margin-top: 8px;">This node has completed join flow. Continue with DNS operations or governance tasks.</p>
+                <div class="grid-2" style="margin-top: 14px;">
+                    <button onclick="location.href='/index.html'">Open DNS Control Panel</button>
+                    <button class="secondary" onclick="location.href='/vote.html'">Open Voting Console</button>
+                </div>
+            </section>
+        </main>
+    </div>
+</div>
+</body>
+</html>
+
+

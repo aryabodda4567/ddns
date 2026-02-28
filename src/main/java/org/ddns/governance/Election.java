@@ -451,8 +451,11 @@ public class Election implements MessageHandler {
             return WRONG_PASSWORD;
 
         boolean result = getResult();
-        if (result)
+        if (result){
+            DBUtil.getInstance().putInt(ConfigKey.IS_ACCEPTED.toString(), 1);
             return ACCEPTED;
+        }
+
         return REJECTED;
 
     }
