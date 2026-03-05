@@ -274,6 +274,17 @@ public class NodesManager implements MessageHandler {
     }
 
     /**
+     * Static variant of {@link #createRemoveRequest()} for use by web handlers
+     * that do not hold a NodesManager reference.
+     *
+     * @throws Exception If bootstrap IP or self-node config is missing.
+     */
+    public static void sendDeleteNodeRequest() throws Exception {
+        log.info("[NodesManager] (static) Sending DELETE_NODE request to Bootstrap...");
+        sendBootstrapRequest(MessageType.DELETE_NODE);
+    }
+
+    /**
      * Sends a request to the Bootstrap node to promote this node to a Leader.
      *
      * @throws Exception If public key or self-node config is missing.
@@ -348,9 +359,11 @@ public class NodesManager implements MessageHandler {
         Set<NodeConfig> nodeConfigSet = DBUtil.getInstance().getAllNodes();
         NodeConfig targetNode = null;
         for (NodeConfig nodeConfig : nodeConfigSet) {
-            if (nodeConfig == null) continue;
+            if (nodeConfig == null)
+                continue;
             NodeConfig self = DBUtil.getInstance().getSelfNode();
-            if (self != null && nodeConfig.getIp().equals(self.getIp())) continue;
+            if (self != null && nodeConfig.getIp().equals(self.getIp()))
+                continue;
             targetNode = nodeConfig;
             break;
         }
