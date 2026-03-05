@@ -3,6 +3,7 @@ package org.ddns.web;
 import com.google.gson.Gson;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.ddns.web.services.config.BootstrapHandler;
+import org.ddns.web.services.config.ExitHandler;
 import org.ddns.web.services.config.JoiningHandler;
 import org.ddns.web.services.config.AppMode;
 import org.ddns.web.services.config.AppModeStore;
@@ -42,6 +43,7 @@ public final class WebServer {
 
     private static final Gson GSON = new Gson();
 
+    private static final ExitHandler EXIT_HANDLER = new ExitHandler();
     private static final JoiningHandler JOINING_HANDLER = new JoiningHandler();
     private static final BootstrapHandler BOOTSTRAP_HANDLER = new BootstrapHandler();
     private static final ModeHandler MODE_HANDLER = new ModeHandler();
@@ -255,6 +257,8 @@ public final class WebServer {
         post("/auth/login", AUTH_HANDLER::login, GSON::toJson);
         get("/auth/session", AUTH_HANDLER::session, GSON::toJson);
         post("/auth/logout", AUTH_HANDLER::logout, GSON::toJson);
+
+        post("/node/exit", EXIT_HANDLER::exit, GSON::toJson);
 
         ElectionHandler electionHandler = new ElectionHandler();
         post("/election/create-join", electionHandler::createJoinElection, GSON::toJson);
