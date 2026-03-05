@@ -19,6 +19,7 @@ public enum ConfigKey {
     SYNC_FROM_TIME,
     DB_FILE,
     SELF_NODE,
+    BOOTSTRAP_FLAG,
 
 //    Election
 

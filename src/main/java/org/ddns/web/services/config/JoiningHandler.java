@@ -47,6 +47,7 @@ public class JoiningHandler {
         password = password.trim();
 
         DBUtil.getInstance().saveBootstrapIp(bootstrapIp);
+        AppModeStore.setMode(AppMode.NODE);
 
         PrivateKey privateKey = SignatureUtil.getPrivateKeyFromString(privateKeyInput);
         PublicKey publicKey = Wallet.getPublicKeyFromPrivateKey(privateKey);

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,205 +8,221 @@
     <link rel="stylesheet" href="/css/common.css">
     <script src="/js/auth-guard.js"></script>
 </head>
+
 <body>
-<div class="page-shell">
-    <div class="topbar">
-        <div class="brand">
-            <div class="brand-badge">DD</div>
-            <div>
-                <div class="brand-title">DDNS Network Console</div>
-                <div class="brand-sub">Secure Node Onboarding</div>
+    <div class="page-shell">
+        <div class="topbar">
+            <div class="brand">
+                <div class="brand-badge">DD</div>
+                <div>
+                    <div class="brand-title">DDNS Network Console</div>
+                    <div class="brand-sub">Secure Node Onboarding</div>
+                </div>
             </div>
+            <span class="status-pill"><span class="status-dot"></span> Bootstrap Mode</span>
         </div>
-        <span class="status-pill"><span class="status-dot"></span> Bootstrap Mode</span>
+
+        <div class="main-grid">
+            <aside class="sidebar">
+                <div class="menu-title">Onboarding Flow</div>
+                <nav class="menu">
+                    <a class="active" href="/join.html">1. Join Network</a>
+                    <a href="/create_election.html">2. Create Election</a>
+                    <a data-requires-accepted="true" href="/vote.html">3. Vote</a>
+                    <a href="/join_result.html">4. Join Result</a>
+                    <a data-requires-accepted="true" href="/control.html">DNS Control</a>
+                </nav>
+            </aside>
+
+            <main class="content-stack">
+                <section class="card">
+                    <h2>Join Network</h2>
+                    <p class="subtle">Provide bootstrap endpoint, key material, and web credentials for secure app
+                        access.</p>
+
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label for="username">Web Username</label>
+                            <input id="username" placeholder="network-admin">
+                        </div>
+                        <div class="form-group">
+                            <label for="password">Web Password</label>
+                            <input id="password" type="password" placeholder="At least 6 characters">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="bootstrapIp">Bootstrap IP / Host</label>
+                        <input id="bootstrapIp" placeholder="192.168.1.10 or node.example.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="privateKey">Private Key (PEM / Base64)</label>
+                        <textarea id="privateKey" placeholder="-----BEGIN PRIVATE KEY-----"></textarea>
+                    </div>
+
+                    <div class="action-row" style="margin-top: 14px;">
+                        <button id="joinBtn" onclick="joinNode()">Join Network</button>
+                        <button class="secondary" onclick="goNext()">Next Step</button>
+                    </div>
+
+                    <div id="result"></div>
+
+                    <div id="successBox" class="muted-box" style="display:none; margin-top: 14px;">
+                        Node configured successfully.
+                        <div style="margin-top:8px;">Public Key:</div>
+                        <div id="pubKeyShort" style="margin-top:4px; font-family: Consolas, monospace;"></div>
+                    </div>
+                </section>
+            </main>
+        </div>
     </div>
 
-    <div class="main-grid">
-        <aside class="sidebar">
-            <div class="menu-title">Onboarding Flow</div>
-            <nav class="menu">
-                <a class="active" href="/join.html">1. Join Network</a>
-                <a href="/create_election.html">2. Create Election</a>
-                <a data-requires-accepted="true" href="/vote.html">3. Vote</a>
-                <a href="/join_result.html">4. Join Result</a>
-                <a data-requires-accepted="true" href="/index.html">DNS Control</a>
-            </nav>
-        </aside>
+    <script>
+        function renderJSON(obj, container) {
+            for (let key in obj) {
+                const value = obj[key];
+                const row = document.createElement("div");
+                row.className = "kv";
 
-        <main class="content-stack">
-            <section class="card">
-                <h2>Join Network</h2>
-                <p class="subtle">Provide bootstrap endpoint, key material, and web credentials for secure app access.</p>
+                const k = document.createElement("div");
+                k.className = "key";
+                k.textContent = key;
 
-                <div class="grid-2">
-                    <div class="form-group">
-                        <label for="username">Web Username</label>
-                        <input id="username" placeholder="network-admin">
-                    </div>
-                    <div class="form-group">
-                        <label for="password">Web Password</label>
-                        <input id="password" type="password" placeholder="At least 6 characters">
-                    </div>
-                </div>
+                const v = document.createElement("div");
 
-                <div class="form-group">
-                    <label for="bootstrapIp">Bootstrap IP / Host</label>
-                    <input id="bootstrapIp" placeholder="192.168.1.10 or node.example.com">
-                </div>
+                if (typeof value === "object" && value !== null) {
+                    const nested = document.createElement("div");
+                    nested.className = "nested";
+                    renderJSON(value, nested);
+                    v.appendChild(nested);
+                } else {
+                    v.textContent = value;
+                }
 
-                <div class="form-group">
-                    <label for="privateKey">Private Key (PEM / Base64)</label>
-                    <textarea id="privateKey" placeholder="-----BEGIN PRIVATE KEY-----"></textarea>
-                </div>
+                row.appendChild(k);
+                row.appendChild(v);
+                container.appendChild(row);
+            }
+        }
 
-                <div class="action-row" style="margin-top: 14px;">
-                    <button id="joinBtn" onclick="joinNode()">Join Network</button>
-                    <button class="secondary" onclick="goNext()">Next Step</button>
-                </div>
+        function showMessage(obj, ok) {
+            const result = document.getElementById("result");
+            result.innerHTML = "";
 
-                <div id="result"></div>
+            const box = document.createElement("div");
+            box.className = "alert " + (ok ? "success" : "error");
+            box.style.display = "block";
 
-                <div id="successBox" class="muted-box" style="display:none; margin-top: 14px;">
-                    Node configured successfully.
-                    <div style="margin-top:8px;">Public Key:</div>
-                    <div id="pubKeyShort" style="margin-top:4px; font-family: Consolas, monospace;"></div>
-                </div>
-            </section>
-        </main>
-    </div>
-</div>
-
-<script>
-    function renderJSON(obj, container) {
-        for (let key in obj) {
-            const value = obj[key];
-            const row = document.createElement("div");
-            row.className = "kv";
-
-            const k = document.createElement("div");
-            k.className = "key";
-            k.textContent = key;
-
-            const v = document.createElement("div");
-
-            if (typeof value === "object" && value !== null) {
-                const nested = document.createElement("div");
-                nested.className = "nested";
-                renderJSON(value, nested);
-                v.appendChild(nested);
+            if (typeof obj === "object") {
+                renderJSON(obj, box);
             } else {
-                v.textContent = value;
+                box.textContent = obj;
             }
 
-            row.appendChild(k);
-            row.appendChild(v);
-            container.appendChild(row);
-        }
-    }
-
-    function showMessage(obj, ok) {
-        const result = document.getElementById("result");
-        result.innerHTML = "";
-
-        const box = document.createElement("div");
-        box.className = "alert " + (ok ? "success" : "error");
-        box.style.display = "block";
-
-        if (typeof obj === "object") {
-            renderJSON(obj, box);
-        } else {
-            box.textContent = obj;
+            result.appendChild(box);
         }
 
-        result.appendChild(box);
-    }
-
-    function isValidHost(host) {
-        return host.length >= 3;
-    }
-
-    function validateJoin(data) {
-        if (!data.username || data.username.length < 3) return "Username is required (min 3 characters)";
-        if (!data.password || data.password.length < 6) return "Password is required (min 6 characters)";
-        if (!data.bootstrapIp || !isValidHost(data.bootstrapIp)) return "Bootstrap IP / Host is required";
-        if (!data.privateKey || data.privateKey.length < 20) return "Private key is required (too short / invalid)";
-        return null;
-    }
-
-    async function joinNode() {
-        const data = {
-            username: document.getElementById("username").value.trim(),
-            password: document.getElementById("password").value.trim(),
-            bootstrapIp: document.getElementById("bootstrapIp").value.trim(),
-            privateKey: document.getElementById("privateKey").value.trim()
-        };
-
-        const resultBox = document.getElementById("result");
-        const successBox = document.getElementById("successBox");
-
-        resultBox.innerHTML = "";
-        successBox.style.display = "none";
-
-        const error = validateJoin(data);
-        if (error) {
-            showMessage({ error: error }, false);
-            return;
+        function isValidHost(host) {
+            return host.length >= 3;
         }
 
-        try {
-            const res = await fetch("/join", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data)
-            });
+        function validateJoin(data) {
+            if (!data.username || data.username.length < 3) return "Username is required (min 3 characters)";
+            if (!data.password || data.password.length < 6) return "Password is required (min 6 characters)";
+            if (!data.bootstrapIp || !isValidHost(data.bootstrapIp)) return "Bootstrap IP / Host is required";
+            if (!data.privateKey || data.privateKey.length < 20) return "Private key is required (too short / invalid)";
+            return null;
+        }
 
-            const json = await res.json();
+        async function joinNode() {
+            const data = {
+                username: document.getElementById("username").value.trim(),
+                password: document.getElementById("password").value.trim(),
+                bootstrapIp: document.getElementById("bootstrapIp").value.trim(),
+                privateKey: document.getElementById("privateKey").value.trim()
+            };
 
-            if (!res.ok || json.error) {
-                showMessage(json, false);
+            const resultBox = document.getElementById("result");
+            const successBox = document.getElementById("successBox");
+
+            resultBox.innerHTML = "";
+            successBox.style.display = "none";
+
+            const error = validateJoin(data);
+            if (error) {
+                showMessage({ error: error }, false);
                 return;
             }
 
-            document.getElementById("pubKeyShort").textContent = shortenKey(json.publicKey);
-            successBox.style.display = "block";
-            document.getElementById("joinBtn").disabled = true;
-            showMessage(json, true);
-
-        } catch (err) {
-            showMessage({ error: "Connection failed", details: err.toString() }, false);
-        }
-    }
-
-    function shortenKey(pk) {
-        if (!pk) return "";
-        if (pk.length < 30) return pk;
-        return pk.substring(0, 12) + "..." + pk.substring(pk.length - 12);
-    }
-
-    async function goNext() {
-        try {
-            const res = await fetch("/checkfetchresult");
-            const raw = await res.text();
-            let data = {};
             try {
-                data = raw ? JSON.parse(raw) : {};
-            } catch (e) {
-                throw new Error("Invalid server response. Please login again.");
-            }
+                const res = await fetch("/join", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(data)
+                });
 
-            if (!res.ok) {
-                throw new Error(data.error || "Failed to fetch next step");
-            }
+                const json = await res.json();
 
-            if (data.election === true) {
-                window.location.href = "/create_election.html";
-            } else {
-                window.location.href = "/index.html";
+                if (!res.ok || json.error) {
+                    showMessage(json, false);
+                    return;
+                }
+
+                document.getElementById("pubKeyShort").textContent = shortenKey(json.publicKey);
+                successBox.style.display = "block";
+                document.getElementById("joinBtn").disabled = true;
+                showMessage(json, true);
+                // Redirect to home after short delay
+                setTimeout(() => { window.location.href = '/home.html'; }, 1200);
+
+            } catch (err) {
+                showMessage({ error: "Connection failed", details: err.toString() }, false);
             }
-        } catch (e) {
-            alert("Failed to check next step: " + e.message);
         }
-    }
-</script>
+
+        function shortenKey(pk) {
+            if (!pk) return "";
+            if (pk.length < 30) return pk;
+            return pk.substring(0, 12) + "..." + pk.substring(pk.length - 12);
+        }
+
+        // Guard: redirect to '/' if not in NODE mode
+        (async function checkNodeMode() {
+            try {
+                const res = await fetch('/mode');
+                const json = await res.json();
+                if (json.mode !== 'NODE') {
+                    window.location.replace('/');
+                }
+            } catch (_) { /* allow page to load */ }
+        })();
+
+        async function goNext() {
+            try {
+                const res = await fetch("/checkfetchresult");
+                const raw = await res.text();
+                let data = {};
+                try {
+                    data = raw ? JSON.parse(raw) : {};
+                } catch (e) {
+                    throw new Error("Invalid server response. Please login again.");
+                }
+
+                if (!res.ok) {
+                    throw new Error(data.error || "Failed to fetch next step");
+                }
+
+                if (data.election === true) {
+                    window.location.href = "/create_election.html";
+                } else {
+                    window.location.href = "/index.html";
+                }
+            } catch (e) {
+                alert("Failed to check next step: " + e.message);
+            }
+        }
+    </script>
 </body>
+
 </html>

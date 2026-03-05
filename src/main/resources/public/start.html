@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Startup Mode | DDNS Console</title>
+    <link rel="stylesheet" href="/css/common.css">
+</head>
+<body>
+<div class="page-shell" style="max-width: 760px;">
+    <div class="topbar">
+        <div class="brand">
+            <div class="brand-badge">DD</div>
+            <div>
+                <div class="brand-title">DDNS Network Console</div>
+                <div class="brand-sub">Startup Mode</div>
+            </div>
+        </div>
+        <span class="status-pill"><span class="status-dot"></span> Select Mode</span>
+    </div>
+
+    <main class="content-stack" style="margin-top: 16px;">
+        <section class="card">
+            <h2>Choose Node Type</h2>
+            <p class="subtle">Select how this process should behave after startup.</p>
+
+            <div class="action-row" style="margin-top: 12px;">
+                <button onclick="selectMode('NODE')">Chain Node</button>
+                <button class="secondary" onclick="selectMode('BOOTSTRAP')">Bootstrap Node</button>
+            </div>
+
+            <div id="result"></div>
+        </section>
+    </main>
+</div>
+
+<script>
+    function showMessage(message, ok) {
+        const result = document.getElementById('result');
+        result.innerHTML = '';
+
+        const box = document.createElement('div');
+        box.className = 'alert ' + (ok ? 'success' : 'error');
+        box.style.display = 'block';
+        box.textContent = message;
+
+        result.appendChild(box);
+    }
+
+    async function selectMode(mode) {
+        try {
+            const res = await fetch('/mode/select', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mode })
+            });
+            const json = await res.json();
+
+            if (!res.ok || json.error) {
+                showMessage(json.error || 'Unable to select mode.', false);
+                return;
+            }
+
+            if (mode === 'BOOTSTRAP') {
+                window.location.href = '/bootstrap.html';
+            } else {
+                window.location.href = '/join.html';
+            }
+        } catch (e) {
+            showMessage('Failed to select mode: ' + e, false);
+        }
+    }
+
+    // In UNSET state we intentionally stay on this chooser page.
+</script>
+</body>
+</html>

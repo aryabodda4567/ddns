@@ -4,6 +4,9 @@ import com.google.gson.Gson;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.ddns.web.services.config.BootstrapHandler;
 import org.ddns.web.services.config.JoiningHandler;
+import org.ddns.web.services.config.AppMode;
+import org.ddns.web.services.config.AppModeStore;
+import org.ddns.web.services.config.ModeHandler;
 import org.ddns.web.services.config.infos;
 import org.ddns.web.services.dns.DnsWebHandler;
 import org.ddns.web.services.election.ElectionHandler;
@@ -26,11 +29,14 @@ import static spark.Spark.staticFiles;
 /**
  * Entry point for web route registration and HTTP security gating.
  *
- * <p>This server keeps the same route behavior while enforcing:
+ * <p>
+ * Three mode states drive access control:
  * <ul>
- *     <li>Login requirement for protected pages/APIs</li>
- *     <li>First-time bootstrap access when no user is configured</li>
- *     <li>Accepted-node requirement for DNS CRUD and vote panels</li>
+ * <li><b>UNSET</b> – only {@code GET /} (the setup chooser) is accessible.</li>
+ * <li><b>BOOTSTRAP</b> – only bootstrap dashboard pages are accessible;
+ * all chain-node pages are blocked.</li>
+ * <li><b>NODE</b> – bootstrap pages are blocked; chain-node login/control
+ * flow is accessible with session enforcement.</li>
  * </ul>
  */
 public final class WebServer {
@@ -39,33 +45,46 @@ public final class WebServer {
 
     private static final JoiningHandler JOINING_HANDLER = new JoiningHandler();
     private static final BootstrapHandler BOOTSTRAP_HANDLER = new BootstrapHandler();
+    private static final ModeHandler MODE_HANDLER = new ModeHandler();
     private static final AuthHandler AUTH_HANDLER = new AuthHandler();
     private static final infos INFO_SERVICE = new infos();
 
-    private static final Set<String> PUBLIC_PATHS = Set.of(
-            "/login.html",
-            "/auth/login",
-            "/auth/session",
-            "/auth/logout"
-    );
+    // Paths accessible in BOOTSTRAP mode only
+    private static final Set<String> BOOTSTRAP_MODE_ALLOWED_PATHS = Set.of(
+            "/",
+            "/bootstrap.html",
+            "/mode",
+            "/mode/select",
+            "/mode/bootstrap/setup",
+            "/mode/bootstrap/status",
+            "/bootstrap/nodes",
+            "/auth/session");
 
-    private static final Set<String> BOOTSTRAP_PATHS = Set.of(
+    // Paths accessible in NODE mode without a valid session
+    // (join flow + auth endpoints)
+    private static final Set<String> NODE_PUBLIC_PATHS = Set.of(
+            "/",
             "/join.html",
             "/join",
             "/checkfetchresult",
             "/join_result.html",
-            "/election/result"
-    );
+            "/login.html",
+            "/auth/login",
+            "/auth/session",
+            "/auth/logout",
+            "/election/result",
+            "/mode",
+            "/mode/select");
 
+    // HTML pages that require node acceptance (not just any logged-in session)
     private static final Set<String> ACCEPTANCE_ONLY_HTML_PATHS = Set.of(
-            "/index.html",
+            "/control.html",
             "/create.html",
             "/update.html",
             "/delete.html",
             "/lookup.html",
             "/status.html",
-            "/vote.html"
-    );
+            "/vote.html");
 
     private WebServer() {
     }
@@ -87,19 +106,72 @@ public final class WebServer {
                 return;
             }
 
-            if (isStaticAsset(path) || PUBLIC_PATHS.contains(path)) {
+            // Static assets are always allowed
+            if (isStaticAsset(path)) {
                 return;
             }
 
-            boolean userConfigured = User.getUser() != null;
-            if (!userConfigured && BOOTSTRAP_PATHS.contains(path)) {
+            AppMode mode = AppModeStore.getMode();
+
+            // ── UNSET: only the root chooser page is allowed ──────────────────────
+            if (mode == AppMode.UNSET) {
+                if ("/".equals(path) || "/mode".equals(path) || "/mode/select".equals(path)) {
+                    return;
+                }
+
+                if ("GET".equalsIgnoreCase(request.requestMethod()) && path.endsWith(".html")) {
+                    response.redirect("/");
+                    halt(302);
+                    return;
+                }
+
+                response.status(403);
+                response.type("application/json");
+                response.body("{\"error\":\"Node not configured. Please select a startup mode first.\"}");
+                halt(403);
                 return;
             }
 
+            // ── BOOTSTRAP mode ────────────────────────────────────────────────────
+            if (mode == AppMode.BOOTSTRAP) {
+                if (BOOTSTRAP_MODE_ALLOWED_PATHS.contains(path)) {
+                    return;
+                }
+
+                if ("GET".equalsIgnoreCase(request.requestMethod()) && path.endsWith(".html")) {
+                    response.redirect("/bootstrap.html");
+                    halt(302);
+                    return;
+                }
+
+                response.status(403);
+                response.type("application/json");
+                response.body("{\"error\":\"Bootstrap mode: only the bootstrap dashboard is available.\"}");
+                halt(403);
+                return;
+            }
+
+            // ── NODE mode ─────────────────────────────────────────────────────────
+
+            // Block any bootstrap endpoint from chain-node context
+            if (path.startsWith("/bootstrap")) {
+                response.status(403);
+                response.type("application/json");
+                response.body("{\"error\":\"Bootstrap resources are not available in chain node mode.\"}");
+                halt(403);
+                return;
+            }
+
+            // Allow public / join-flow paths without a session
+            if (NODE_PUBLIC_PATHS.contains(path)) {
+                return;
+            }
+
+            // Session enforcement for all other NODE paths
             boolean loggedIn = SessionManager.isSessionValid(request);
             if (!loggedIn) {
                 if ("GET".equalsIgnoreCase(request.requestMethod()) && path.endsWith(".html")) {
-                    response.redirect("/login.html");
+                    response.redirect("/login.html?next=" + path);
                     halt(302);
                     return;
                 }
@@ -111,6 +183,7 @@ public final class WebServer {
                 return;
             }
 
+            // Acceptance gate: some pages/APIs require the node to be accepted
             if (!INFO_SERVICE.isAccepted()) {
                 boolean blockedApi = path.startsWith("/dns/")
                         || "/election/vote".equals(path)
@@ -153,6 +226,30 @@ public final class WebServer {
     }
 
     private static void registerRoutes() {
+        // Root redirect based on current mode
+        get("/", (req, res) -> {
+            AppMode mode = AppModeStore.getMode();
+            if (mode == AppMode.BOOTSTRAP) {
+                res.redirect("/bootstrap.html");
+            } else if (mode == AppMode.NODE) {
+                // If user is already joined & session valid → home; otherwise join flow
+                boolean loggedIn = SessionManager.isSessionValid(req);
+                if (loggedIn) {
+                    res.redirect("/home.html");
+                } else {
+                    res.redirect("/join.html");
+                }
+            }
+            // UNSET: serve index.html (the chooser) — Spark staticFiles handles it
+            return "";
+        });
+
+        get("/mode", MODE_HANDLER::getMode, GSON::toJson);
+        post("/mode/select", MODE_HANDLER::selectMode, GSON::toJson);
+        get("/mode/bootstrap/status", MODE_HANDLER::bootstrapStatus, GSON::toJson);
+        post("/mode/bootstrap/setup", MODE_HANDLER::setupBootstrap, GSON::toJson);
+        get("/bootstrap/nodes", MODE_HANDLER::listBootstrapNodes, GSON::toJson);
+
         post("/join", JOINING_HANDLER::handle, GSON::toJson);
         get("/checkfetchresult", BOOTSTRAP_HANDLER::handle, GSON::toJson);
 

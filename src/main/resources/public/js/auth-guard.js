@@ -1,7 +1,7 @@
 (function () {
     // Pages that are visible only after node acceptance.
     const acceptanceOnlyPaths = new Set([
-        '/index.html',
+        '/control.html',
         '/create.html',
         '/update.html',
         '/delete.html',
@@ -15,7 +15,7 @@
         '/home.html',
         '/create_election.html',
         '/join_result.html',
-        '/index.html',
+        '/control.html',
         '/create.html',
         '/update.html',
         '/delete.html',
