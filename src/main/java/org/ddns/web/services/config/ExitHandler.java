@@ -105,7 +105,23 @@ public class ExitHandler {
         SessionManager.clearSession(response);
 
         response.type("application/json");
-        return Map.of("status", "ok", "message", "Node exited and reset to factory state.");
+        String body = "{\"status\":\"ok\",\"message\":\"Node exited and reset to factory state.\"}";
+
+        // ── Step 6: Shut down the JVM ─────────────────────────────────────────
+        // Delay just long enough for Spark to flush the HTTP response before exit.
+        Thread shutdown = new Thread(() -> {
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException ignored) {
+            }
+            log.info("[ExitHandler] Shutting down node process.");
+            System.exit(0);
+        });
+        shutdown.setDaemon(true);
+        shutdown.setName("node-exit-shutdown");
+        shutdown.start();
+
+        return body;
     }
 
     /** Recursively deletes a directory and all its contents. */
