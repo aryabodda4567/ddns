@@ -1,6 +1,8 @@
 package org.ddns.web.user;
 
 import com.google.gson.Gson;
+import org.ddns.web.services.config.AppMode;
+import org.ddns.web.services.config.AppModeStore;
 import org.ddns.web.services.config.infos;
 import spark.Request;
 import spark.Response;
@@ -16,6 +18,11 @@ public class AuthHandler {
     private final infos infoService = new infos();
 
     public Object login(Request request, Response response) {
+        if (AppModeStore.getMode() == AppMode.BOOTSTRAP) {
+            response.status(403);
+            return Map.of("error", "Login is disabled in bootstrap mode.");
+        }
+
         LoginRequest loginRequest = gson.fromJson(request.body(), LoginRequest.class);
 
         if (loginRequest == null || loginRequest.username == null || loginRequest.password == null) {
@@ -44,19 +51,23 @@ public class AuthHandler {
     }
 
     public Object session(Request request, Response response) {
+        AppMode mode = AppModeStore.getMode();
         boolean userConfigured = User.getUser() != null;
         boolean accepted = infoService.IsAccepted();
         boolean authenticated = SessionManager.isSessionValid(request);
         long expiresAt = SessionManager.getExpiresAt();
+        boolean bootstrapMode = mode == AppMode.BOOTSTRAP;
+        boolean startupModeUnset = mode == AppMode.UNSET;
 
         response.type("application/json");
 
         return Map.of(
+                "mode", mode.name(),
                 "userConfigured", userConfigured,
-                "requireJoin", !userConfigured,
+                "requireJoin", !bootstrapMode && !startupModeUnset && !userConfigured,
                 "accepted", accepted,
-                "requireLogin", userConfigured,
-                "authenticated", authenticated,
+                "requireLogin", !bootstrapMode && userConfigured,
+                "authenticated", bootstrapMode ? true : authenticated,
                 "expiresAt", expiresAt,
                 "sessionSeconds", SessionManager.SESSION_DURATION_SECONDS
         );

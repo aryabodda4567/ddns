@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,229 +8,229 @@
     <link rel="stylesheet" href="/css/common.css">
     <script src="/js/auth-guard.js"></script>
 </head>
+
 <body>
-<div class="page-shell">
-    <div class="topbar">
-        <div class="brand">
-            <div class="brand-badge">DD</div>
-            <div>
-                <div class="brand-title">DDNS Network Console</div>
-                <div class="brand-sub">Record Provisioning</div>
+    <div class="page-shell">
+        <div class="topbar">
+            <div class="brand">
+                <div class="brand-badge">DD</div>
+                <div>
+                    <div class="brand-title">DDNS Network Console</div>
+                    <div class="brand-sub">Record Provisioning</div>
+                </div>
             </div>
+            <span class="status-pill"><span class="status-dot"></span> DNS Write</span>
         </div>
-        <span class="status-pill"><span class="status-dot"></span> DNS Write</span>
+
+        <div class="main-grid">
+            <aside class="sidebar">
+                <div class="menu-title">DNS Operations</div>
+                <nav class="menu">
+                    <a href="/control.html">Control Panel</a>
+                    <a class="active" href="/create.html">Create</a>
+                    <a href="/update.html">Update</a>
+                    <a href="/delete.html">Delete</a>
+                    <a href="/lookup.html">Lookup</a>
+                    <a href="/status.html">Status</a>
+                </nav>
+            </aside>
+
+            <main class="content-stack">
+                <section class="card">
+                    <h2>Create DNS Record</h2>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label for="name">Domain</label>
+                            <input id="name" placeholder="example.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="type">Type</label>
+                            <select id="type">
+                                <option value="1">A</option>
+                                <option value="2">NS</option>
+                                <option value="5">CNAME</option>
+                                <option value="6">SOA</option>
+                                <option value="12">PTR</option>
+                                <option value="15">MX</option>
+                                <option value="16">TXT</option>
+                                <option value="28">AAAA</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label for="ttl">TTL</label>
+                            <input id="ttl" type="number" value="300">
+                        </div>
+                        <div class="form-group">
+                            <label for="rdata">RDATA</label>
+                            <input id="rdata" placeholder="1.2.3.4">
+                        </div>
+                    </div>
+
+                    <div class="action-row" style="margin-top: 12px;">
+                        <button onclick="createRecord()">Submit Create</button>
+                        <button class="secondary" onclick="location.href='/control.html'">Back To Panel</button>
+                    </div>
+
+                    <div id="result"></div>
+                </section>
+            </main>
+        </div>
     </div>
 
-    <div class="main-grid">
-        <aside class="sidebar">
-            <div class="menu-title">DNS Operations</div>
-            <nav class="menu">
-                <a href="/index.html">Control Panel</a>
-                <a class="active" href="/create.html">Create</a>
-                <a href="/update.html">Update</a>
-                <a href="/delete.html">Delete</a>
-                <a href="/lookup.html">Lookup</a>
-                <a href="/status.html">Status</a>
-            </nav>
-        </aside>
+    <script>
+        function renderJSON(obj, container) {
+            for (let key in obj) {
+                const value = obj[key];
+                const row = document.createElement("div");
+                row.className = "kv";
 
-        <main class="content-stack">
-            <section class="card">
-                <h2>Create DNS Record</h2>
-                <div class="grid-2">
-                    <div class="form-group">
-                        <label for="name">Domain</label>
-                        <input id="name" placeholder="example.com">
-                    </div>
-                    <div class="form-group">
-                        <label for="type">Type</label>
-                        <select id="type">
-                            <option value="1">A</option>
-                            <option value="2">NS</option>
-                            <option value="5">CNAME</option>
-                            <option value="6">SOA</option>
-                            <option value="12">PTR</option>
-                            <option value="15">MX</option>
-                            <option value="16">TXT</option>
-                            <option value="28">AAAA</option>
-                        </select>
-                    </div>
-                </div>
+                const k = document.createElement("div");
+                k.className = "key";
+                k.textContent = key;
 
-                <div class="grid-2">
-                    <div class="form-group">
-                        <label for="ttl">TTL</label>
-                        <input id="ttl" type="number" value="300">
-                    </div>
-                    <div class="form-group">
-                        <label for="rdata">RDATA</label>
-                        <input id="rdata" placeholder="1.2.3.4">
-                    </div>
-                </div>
+                const v = document.createElement("div");
+                if (typeof value === "object" && value !== null) {
+                    const nested = document.createElement("div");
+                    nested.className = "nested";
+                    renderJSON(value, nested);
+                    v.appendChild(nested);
+                } else {
+                    v.textContent = value;
+                }
 
-                <div class="action-row" style="margin-top: 12px;">
-                    <button onclick="createRecord()">Submit Create</button>
-                    <button class="secondary" onclick="location.href='/index.html'">Back To Panel</button>
-                </div>
+                row.appendChild(k);
+                row.appendChild(v);
+                container.appendChild(row);
+            }
+        }
 
-                <div id="result"></div>
-            </section>
-        </main>
-    </div>
-</div>
+        function showMessage(obj, ok) {
+            const result = document.getElementById("result");
+            result.innerHTML = "";
 
-<script>
-    function renderJSON(obj, container) {
-        for (let key in obj) {
-            const value = obj[key];
-            const row = document.createElement("div");
-            row.className = "kv";
+            const box = document.createElement("div");
+            box.className = "alert " + (ok ? "success" : "error");
+            box.style.display = "block";
 
-            const k = document.createElement("div");
-            k.className = "key";
-            k.textContent = key;
+            if (typeof obj === "object") renderJSON(obj, box);
+            else box.textContent = obj;
 
-            const v = document.createElement("div");
-            if (typeof value === "object" && value !== null) {
-                const nested = document.createElement("div");
-                nested.className = "nested";
-                renderJSON(value, nested);
-                v.appendChild(nested);
-            } else {
-                v.textContent = value;
+            result.appendChild(box);
+        }
+
+        function isValidDomain(domain) {
+            return /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(domain);
+        }
+
+        function isValidIPv4(ip) {
+            return /^(\d{1,3}\.){3}\d{1,3}$/.test(ip);
+        }
+
+        function isValidIPv6(ip) {
+            return /^(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|::1|::|([0-9a-fA-F]{1,4}:){1,7}:|:([0-9a-fA-F]{1,4}:){1,7}[0-9a-fA-F]{1,4})$/.test(ip);
+        }
+
+        function validateForm(data) {
+            if (!data.name || data.name.trim() === "") return "Domain name is required";
+            if (!isValidDomain(data.name)) return "Invalid domain format. Example: example.com";
+            if (!data.rdata || data.rdata.trim() === "") return "RDATA value is required";
+            if (data.ttl <= 0) return "TTL must be greater than 0";
+
+            if (data.type === 1) {
+                if (!isValidIPv4(data.rdata)) return "For A record, RDATA must be a valid IPv4 address";
             }
 
-            row.appendChild(k);
-            row.appendChild(v);
-            container.appendChild(row);
-        }
-    }
+            if (data.type === 28) {
+                if (!isValidIPv6(data.rdata)) return "For AAAA record, RDATA must be a valid IPv6 address";
+            }
 
-    function showMessage(obj, ok) {
-        const result = document.getElementById("result");
-        result.innerHTML = "";
+            if (data.type === 5 || data.type === 2) {
+                if (!isValidDomain(data.rdata)) return "For CNAME/NS record, RDATA must be a valid domain";
+            }
 
-        const box = document.createElement("div");
-        box.className = "alert " + (ok ? "success" : "error");
-        box.style.display = "block";
+            if (data.type === 12) {
+                if (!isValidDomain(data.rdata)) return "For PTR record, RDATA must be a valid domain";
+            }
 
-        if (typeof obj === "object") renderJSON(obj, box);
-        else box.textContent = obj;
+            if (data.type === 15) {
+                const mxPattern = /^(\d+\s+)?[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+                if (!mxPattern.test(data.rdata)) return "For MX record, use: <priority domain> or <domain>";
+            }
 
-        result.appendChild(box);
-    }
-
-    function isValidDomain(domain) {
-        return /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(domain);
-    }
-
-    function isValidIPv4(ip) {
-        return /^(\d{1,3}\.){3}\d{1,3}$/.test(ip);
-    }
-
-    function isValidIPv6(ip) {
-        return /^(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|::1|::|([0-9a-fA-F]{1,4}:){1,7}:|:([0-9a-fA-F]{1,4}:){1,7}[0-9a-fA-F]{1,4})$/.test(ip);
-    }
-
-    function validateForm(data) {
-        if (!data.name || data.name.trim() === "") return "Domain name is required";
-        if (!isValidDomain(data.name)) return "Invalid domain format. Example: example.com";
-        if (!data.rdata || data.rdata.trim() === "") return "RDATA value is required";
-        if (data.ttl <= 0) return "TTL must be greater than 0";
-
-        if (data.type === 1) {
-            if (!isValidIPv4(data.rdata)) return "For A record, RDATA must be a valid IPv4 address";
+            return null;
         }
 
-        if (data.type === 28) {
-            if (!isValidIPv6(data.rdata)) return "For AAAA record, RDATA must be a valid IPv6 address";
+        function updateRdataHint() {
+            const type = parseInt(document.getElementById("type").value);
+            const rdata = document.getElementById("rdata");
+
+            switch (type) {
+                case 1:
+                    rdata.placeholder = "1.2.3.4";
+                    break;
+                case 28:
+                    rdata.placeholder = "2001:db8::1";
+                    break;
+                case 5:
+                case 2:
+                case 12:
+                    rdata.placeholder = "target.example.com";
+                    break;
+                case 15:
+                    rdata.placeholder = "10 mail.example.com";
+                    break;
+                case 16:
+                    rdata.placeholder = "v=spf1 include:example.com ~all";
+                    break;
+                case 6:
+                    rdata.placeholder = "ns1.example.com hostmaster.example.com 1 7200 3600 1209600 3600";
+                    break;
+                default:
+                    rdata.placeholder = "RDATA value";
+            }
         }
 
-        if (data.type === 5 || data.type === 2) {
-            if (!isValidDomain(data.rdata)) return "For CNAME/NS record, RDATA must be a valid domain";
-        }
+        async function createRecord() {
+            const data = {
+                name: document.getElementById("name").value.trim(),
+                type: parseInt(document.getElementById("type").value),
+                ttl: parseInt(document.getElementById("ttl").value),
+                rdata: document.getElementById("rdata").value.trim()
+            };
 
-        if (data.type === 12) {
-            if (!isValidDomain(data.rdata)) return "For PTR record, RDATA must be a valid domain";
-        }
-
-        if (data.type === 15) {
-            const mxPattern = /^(\d+\s+)?[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-            if (!mxPattern.test(data.rdata)) return "For MX record, use: <priority domain> or <domain>";
-        }
-
-        return null;
-    }
-
-    function updateRdataHint() {
-        const type = parseInt(document.getElementById("type").value);
-        const rdata = document.getElementById("rdata");
-
-        switch (type) {
-            case 1:
-                rdata.placeholder = "1.2.3.4";
-                break;
-            case 28:
-                rdata.placeholder = "2001:db8::1";
-                break;
-            case 5:
-            case 2:
-            case 12:
-                rdata.placeholder = "target.example.com";
-                break;
-            case 15:
-                rdata.placeholder = "10 mail.example.com";
-                break;
-            case 16:
-                rdata.placeholder = "v=spf1 include:example.com ~all";
-                break;
-            case 6:
-                rdata.placeholder = "ns1.example.com hostmaster.example.com 1 7200 3600 1209600 3600";
-                break;
-            default:
-                rdata.placeholder = "RDATA value";
-        }
-    }
-
-    async function createRecord() {
-        const data = {
-            name: document.getElementById("name").value.trim(),
-            type: parseInt(document.getElementById("type").value),
-            ttl: parseInt(document.getElementById("ttl").value),
-            rdata: document.getElementById("rdata").value.trim()
-        };
-
-        const error = validateForm(data);
-        if (error) {
-            showMessage({ error: error }, false);
-            return;
-        }
-
-        try {
-            const res = await fetch("/dns/create", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data)
-            });
-
-            const json = await res.json();
-
-            if (!res.ok) {
-                showMessage(json, false);
+            const error = validateForm(data);
+            if (error) {
+                showMessage({ error: error }, false);
                 return;
             }
 
-            showMessage(json, true);
+            try {
+                const res = await fetch("/dns/create", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(data)
+                });
 
-        } catch (err) {
-            showMessage({ error: "Server not reachable", details: err.toString() }, false);
+                const json = await res.json();
+
+                if (!res.ok) {
+                    showMessage(json, false);
+                    return;
+                }
+
+                showMessage(json, true);
+
+            } catch (err) {
+                showMessage({ error: "Server not reachable", details: err.toString() }, false);
+            }
         }
-    }
 
-    updateRdataHint();
-    document.getElementById("type").addEventListener("change", updateRdataHint);
-</script>
+        updateRdataHint();
+        document.getElementById("type").addEventListener("change", updateRdataHint);
+    </script>
 </body>
+
 </html>
-
-

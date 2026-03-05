@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DNS Control Panel | DDNS Console</title>
+    <link rel="stylesheet" href="/css/common.css">
+    <script src="/js/auth-guard.js"></script>
+    <style>
+        .table {
+            width: 100%;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            overflow: hidden;
+            background: #fff;
+        }
+
+        .table-header,
+        .table-row {
+            display: grid;
+            grid-template-columns: 1fr 120px 1.2fr;
+            gap: 12px;
+            padding: 12px 14px;
+            align-items: center;
+        }
+
+        .table-header {
+            background: var(--panel-2);
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--text-soft);
+            border-bottom: 1px solid var(--line);
+        }
+
+        .table-row:not(:last-child) {
+            border-bottom: 1px solid var(--line);
+        }
+
+        .mono {
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            font-size: 12px;
+            word-break: break-all;
+            color: var(--text-soft);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page-shell">
+        <div class="topbar">
+            <div class="brand">
+                <div class="brand-badge">DD</div>
+                <div>
+                    <div class="brand-title">DDNS Network Console</div>
+                    <div class="brand-sub">Operations Dashboard</div>
+                </div>
+            </div>
+            <span class="status-pill"><span class="status-dot"></span> Node Active</span>
+        </div>
+
+        <div class="main-grid">
+            <aside class="sidebar">
+                <div class="menu-title">Navigation</div>
+                <nav class="menu">
+                    <a href="/join.html">Join Network</a>
+                    <a href="/create_election.html">Create Election</a>
+                    <a href="/vote.html">Vote</a>
+                    <a href="/join_result.html">Join Result</a>
+                    <a class="active" href="/control.html">DNS Control</a>
+                    <a href="/home.html">Home</a>
+                </nav>
+            </aside>
+
+            <main class="content-stack">
+                <section class="card">
+                    <h1>DNS Control Panel</h1>
+                    <p class="subtle" style="margin-top: 8px;">Manage decentralized DNS transactions and query network
+                        state.</p>
+                </section>
+
+                <section class="card">
+                    <h2>Record Operations</h2>
+                    <div class="grid-2" style="margin-top: 12px;">
+                        <button onclick="go('create.html')">Create Record</button>
+                        <button onclick="go('update.html')">Update Record</button>
+                        <button onclick="go('delete.html')">Delete Record</button>
+                        <button onclick="go('lookup.html')">Lookup Record</button>
+                    </div>
+                    <div class="action-row" style="margin-top: 10px;">
+                        <button class="secondary" onclick="go('status.html')">Transaction Status</button>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        function go(page) {
+            location.href = page;
+        }
+    </script>
+</body>
+
+</html>

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,233 +8,233 @@
     <link rel="stylesheet" href="/css/common.css">
     <script src="/js/auth-guard.js"></script>
 </head>
+
 <body>
-<div class="page-shell">
-    <div class="topbar">
-        <div class="brand">
-            <div class="brand-badge">DD</div>
-            <div>
-                <div class="brand-title">DDNS Network Console</div>
-                <div class="brand-sub">Governance Voting</div>
-            </div>
-        </div>
-        <span class="status-pill"><span class="status-dot"></span> Nominations Live</span>
-    </div>
-
-    <div class="main-grid">
-        <aside class="sidebar">
-            <div class="menu-title">Governance</div>
-            <nav class="menu">
-                <a href="/join.html">Join Network</a>
-                <a href="/create_election.html">Create Election</a>
-                <a class="active" href="/vote.html">Vote</a>
-                <a href="/join_result.html">Join Result</a>
-                <a href="/index.html">DNS Control</a>
-            </nav>
-        </aside>
-
-        <main class="content-stack">
-            <section class="card">
-                <h2>Cast Your Vote</h2>
-                <p class="subtle">Review candidate nominations and cast one vote.</p>
-                <div id="list" style="margin-top: 12px;"></div>
-                <div class="action-row" style="margin-top: 12px;">
-                    <button onclick="submitVote()">Submit Vote</button>
-                    <button class="secondary" onclick="loadNominations()">Refresh Nominations</button>
-                    <button class="secondary" onclick="location.href='/join_result.html'">Check Result</button>
+    <div class="page-shell">
+        <div class="topbar">
+            <div class="brand">
+                <div class="brand-badge">DD</div>
+                <div>
+                    <div class="brand-title">DDNS Network Console</div>
+                    <div class="brand-sub">Governance Voting</div>
                 </div>
-                <div id="result"></div>
-            </section>
-        </main>
+            </div>
+            <span class="status-pill"><span class="status-dot"></span> Nominations Live</span>
+        </div>
+
+        <div class="main-grid">
+            <aside class="sidebar">
+                <div class="menu-title">Governance</div>
+                <nav class="menu">
+                    <a href="/join.html">Join Network</a>
+                    <a href="/create_election.html">Create Election</a>
+                    <a class="active" href="/vote.html">Vote</a>
+                    <a href="/join_result.html">Join Result</a>
+                    <a href="/control.html">DNS Control</a>
+                </nav>
+            </aside>
+
+            <main class="content-stack">
+                <section class="card">
+                    <h2>Cast Your Vote</h2>
+                    <p class="subtle">Review candidate nominations and cast one vote.</p>
+                    <div id="list" style="margin-top: 12px;"></div>
+                    <div class="action-row" style="margin-top: 12px;">
+                        <button onclick="submitVote()">Submit Vote</button>
+                        <button class="secondary" onclick="loadNominations()">Refresh Nominations</button>
+                        <button class="secondary" onclick="location.href='/join_result.html'">Check Result</button>
+                    </div>
+                    <div id="result"></div>
+                </section>
+            </main>
+        </div>
     </div>
-</div>
 
-<script>
-    let nominations = [];
+    <script>
+        let nominations = [];
 
-    function renderJSON(obj, container) {
-        for (let key in obj) {
-            const value = obj[key];
+        function renderJSON(obj, container) {
+            for (let key in obj) {
+                const value = obj[key];
 
-            const row = document.createElement("div");
-            row.className = "kv";
+                const row = document.createElement("div");
+                row.className = "kv";
 
-            const k = document.createElement("div");
-            k.className = "key";
-            k.textContent = key;
+                const k = document.createElement("div");
+                k.className = "key";
+                k.textContent = key;
 
-            const v = document.createElement("div");
+                const v = document.createElement("div");
 
-            if (typeof value === "object" && value !== null) {
-                const nested = document.createElement("div");
-                nested.className = "nested";
-                renderJSON(value, nested);
-                v.appendChild(nested);
+                if (typeof value === "object" && value !== null) {
+                    const nested = document.createElement("div");
+                    nested.className = "nested";
+                    renderJSON(value, nested);
+                    v.appendChild(nested);
+                } else {
+                    v.textContent = value;
+                }
+
+                row.appendChild(k);
+                row.appendChild(v);
+                container.appendChild(row);
+            }
+        }
+
+        function showMessage(obj, ok) {
+            const result = document.getElementById("result");
+            result.innerHTML = "";
+
+            const box = document.createElement("div");
+            box.className = "alert " + (ok ? "success" : "error");
+            box.style.display = "block";
+
+            if (typeof obj === "object") {
+                renderJSON(obj, box);
             } else {
-                v.textContent = value;
+                box.textContent = obj;
             }
 
-            row.appendChild(k);
-            row.appendChild(v);
-            container.appendChild(row);
-        }
-    }
-
-    function showMessage(obj, ok) {
-        const result = document.getElementById("result");
-        result.innerHTML = "";
-
-        const box = document.createElement("div");
-        box.className = "alert " + (ok ? "success" : "error");
-        box.style.display = "block";
-
-        if (typeof obj === "object") {
-            renderJSON(obj, box);
-        } else {
-            box.textContent = obj;
+            result.appendChild(box);
         }
 
-        result.appendChild(box);
-    }
-
-    function shortKey(k) {
-        if (!k) return "";
-        if (k.length < 40) return k;
-        return k.substring(0, 20) + "..." + k.substring(k.length - 20);
-    }
-
-    function formatValue(v) {
-        if (v === null || v === undefined) return "";
-        v = String(v);
-        if (v.length > 80) return v.substring(0, 77) + "...";
-        return v;
-    }
-
-    function buildNominationCard(n) {
-        const card = document.createElement("div");
-        card.className = "record";
-
-        const header = document.createElement("div");
-        header.style.display = "flex";
-        header.style.justifyContent = "space-between";
-        header.style.alignItems = "center";
-
-        const title = document.createElement("b");
-        title.textContent = "Nomination #" + n.index;
-
-        const radio = document.createElement("input");
-        radio.type = "radio";
-        radio.name = "vote";
-        radio.value = n.index;
-        radio.style.width = "18px";
-        radio.style.height = "18px";
-
-        header.appendChild(title);
-        header.appendChild(radio);
-        card.appendChild(header);
-
-        const fields = {
-            "Node IP": n.nodeIp,
-            "Role": n.role,
-            "Vote Casted": n.vote,
-            "Start Time": n.startTime,
-            "Expire Time": n.expireTime,
-            "Election Type": n.electionType,
-            "Node Name": n.nodeName,
-            "Description": n.description,
-            "Public Key": shortKey(n.publicKey)
-        };
-
-        for (let key in fields) {
-            const row = document.createElement("div");
-            row.className = "kv";
-
-            const k = document.createElement("div");
-            k.className = "key";
-            k.textContent = key;
-
-            const v = document.createElement("div");
-            v.style.fontFamily = "Consolas, monospace";
-            v.textContent = formatValue(fields[key]);
-
-            row.appendChild(k);
-            row.appendChild(v);
-            card.appendChild(row);
+        function shortKey(k) {
+            if (!k) return "";
+            if (k.length < 40) return k;
+            return k.substring(0, 20) + "..." + k.substring(k.length - 20);
         }
 
-        return card;
-    }
+        function formatValue(v) {
+            if (v === null || v === undefined) return "";
+            v = String(v);
+            if (v.length > 80) return v.substring(0, 77) + "...";
+            return v;
+        }
 
-    async function loadNominations() {
-        const list = document.getElementById("list");
-        list.innerHTML = "Loading nominations...";
+        function buildNominationCard(n) {
+            const card = document.createElement("div");
+            card.className = "record";
 
-        try {
-            const res = await fetch("/election/nominations");
-            const json = await res.json();
+            const header = document.createElement("div");
+            header.style.display = "flex";
+            header.style.justifyContent = "space-between";
+            header.style.alignItems = "center";
 
-            if (!res.ok || json.error) {
+            const title = document.createElement("b");
+            title.textContent = "Nomination #" + n.index;
+
+            const radio = document.createElement("input");
+            radio.type = "radio";
+            radio.name = "vote";
+            radio.value = n.index;
+            radio.style.width = "18px";
+            radio.style.height = "18px";
+
+            header.appendChild(title);
+            header.appendChild(radio);
+            card.appendChild(header);
+
+            const fields = {
+                "Node IP": n.nodeIp,
+                "Role": n.role,
+                "Vote Casted": n.vote,
+                "Start Time": n.startTime,
+                "Expire Time": n.expireTime,
+                "Election Type": n.electionType,
+                "Node Name": n.nodeName,
+                "Description": n.description,
+                "Public Key": shortKey(n.publicKey)
+            };
+
+            for (let key in fields) {
+                const row = document.createElement("div");
+                row.className = "kv";
+
+                const k = document.createElement("div");
+                k.className = "key";
+                k.textContent = key;
+
+                const v = document.createElement("div");
+                v.style.fontFamily = "Consolas, monospace";
+                v.textContent = formatValue(fields[key]);
+
+                row.appendChild(k);
+                row.appendChild(v);
+                card.appendChild(row);
+            }
+
+            return card;
+        }
+
+        async function loadNominations() {
+            const list = document.getElementById("list");
+            list.innerHTML = "Loading nominations...";
+
+            try {
+                const res = await fetch("/election/nominations");
+                const json = await res.json();
+
+                if (!res.ok || json.error) {
+                    list.innerHTML = "";
+                    showMessage(json, false);
+                    return;
+                }
+
+                nominations = json.nominations || [];
                 list.innerHTML = "";
-                showMessage(json, false);
+
+                if (nominations.length === 0) {
+                    list.textContent = "No nominations available.";
+                    return;
+                }
+
+                nominations.forEach(n => {
+                    const card = buildNominationCard(n);
+                    list.appendChild(card);
+                });
+
+            } catch (err) {
+                list.innerHTML = "";
+                showMessage({ error: "Failed to load nominations", details: err.toString() }, false);
+            }
+        }
+
+        async function submitVote() {
+            const checked = document.querySelector("input[name='vote']:checked");
+
+            if (!checked) {
+                showMessage({ error: "Please select a nomination to vote" }, false);
                 return;
             }
 
-            nominations = json.nominations || [];
-            list.innerHTML = "";
+            const data = {
+                nominationIndex: parseInt(checked.value)
+            };
 
-            if (nominations.length === 0) {
-                list.textContent = "No nominations available.";
-                return;
+            try {
+                const res = await fetch("/election/vote", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(data)
+                });
+
+                const json = await res.json();
+
+                if (!res.ok || json.error) {
+                    showMessage(json, false);
+                    return;
+                }
+
+                showMessage({ status: "Vote cast successfully", details: json }, true);
+                setTimeout(loadNominations, 1500);
+
+            } catch (err) {
+                showMessage({ error: "Failed to submit vote", details: err.toString() }, false);
             }
-
-            nominations.forEach(n => {
-                const card = buildNominationCard(n);
-                list.appendChild(card);
-            });
-
-        } catch (err) {
-            list.innerHTML = "";
-            showMessage({ error: "Failed to load nominations", details: err.toString() }, false);
-        }
-    }
-
-    async function submitVote() {
-        const checked = document.querySelector("input[name='vote']:checked");
-
-        if (!checked) {
-            showMessage({ error: "Please select a nomination to vote" }, false);
-            return;
         }
 
-        const data = {
-            nominationIndex: parseInt(checked.value)
-        };
-
-        try {
-            const res = await fetch("/election/vote", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify(data)
-            });
-
-            const json = await res.json();
-
-            if (!res.ok || json.error) {
-                showMessage(json, false);
-                return;
-            }
-
-            showMessage({ status: "Vote cast successfully", details: json }, true);
-            setTimeout(loadNominations, 1500);
-
-        } catch (err) {
-            showMessage({ error: "Failed to submit vote", details: err.toString() }, false);
-        }
-    }
-
-    loadNominations();
-</script>
+        loadNominations();
+    </script>
 </body>
+
 </html>
-
-

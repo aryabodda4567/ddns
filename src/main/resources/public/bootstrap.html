@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bootstrap Console | DDNS</title>
+    <link rel="stylesheet" href="/css/common.css">
+    <style>
+        .table {
+            width: 100%;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            overflow: hidden;
+            background: #fff;
+        }
+
+        .table-header,
+        .table-row {
+            display: grid;
+            grid-template-columns: 1fr 120px 1.2fr;
+            gap: 12px;
+            padding: 12px 14px;
+            align-items: center;
+        }
+
+        .table-header {
+            background: var(--panel-2);
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--text-soft);
+            border-bottom: 1px solid var(--line);
+        }
+
+        .table-row:not(:last-child) {
+            border-bottom: 1px solid var(--line);
+        }
+
+        .mono {
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            font-size: 12px;
+            word-break: break-all;
+            color: var(--text-soft);
+        }
+
+        #configuredBanner {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            background: #edf9f2;
+            border: 1px solid #82d1a8;
+            border-radius: 12px;
+            padding: 14px 16px;
+            color: #0f5132;
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 14px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page-shell" style="max-width: 900px;">
+        <div class="topbar">
+            <div class="brand">
+                <div class="brand-badge">DD</div>
+                <div>
+                    <div class="brand-title">DDNS Network Console</div>
+                    <div class="brand-sub">Bootstrap Mode</div>
+                </div>
+            </div>
+            <span class="status-pill"><span class="status-dot"></span> Bootstrap Active</span>
+        </div>
+
+        <main class="content-stack" style="margin-top: 16px;">
+
+            <!-- Setup Form (hidden once configured) -->
+            <section class="card" id="setupSection">
+                <h1>Bootstrap Configuration</h1>
+                <p class="subtle" style="margin-top: 8px;">Enter the private key to activate this Bootstrap Node.</p>
+
+                <div class="form-group" style="margin-top: 10px;">
+                    <label for="privateKey">Private Key (PEM / Base64)</label>
+                    <textarea id="privateKey" placeholder="-----BEGIN PRIVATE KEY-----"></textarea>
+                </div>
+
+                <div class="action-row" style="margin-top: 10px;">
+                    <button id="setupButton" onclick="setupBootstrap()">Save &amp; Activate</button>
+                </div>
+
+                <div id="setupResult"></div>
+            </section>
+
+            <!-- Configured Banner (shown after setup) -->
+            <div id="configuredBanner">
+                ✅ &nbsp;Configured as Bootstrap Node &mdash; registry is active.
+            </div>
+
+            <!-- Nodes Section -->
+            <section class="card">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                    <div>
+                        <h2 style="margin:0;">Available Nodes</h2>
+                        <p class="subtle" style="margin:6px 0 0;">Nodes registered with this bootstrap instance.</p>
+                    </div>
+                    <button class="secondary" onclick="loadNodes()" style="margin-top:0;">Refresh</button>
+                </div>
+                <div class="muted-box" id="summaryBox" style="margin-top:12px;">Waiting for data...</div>
+                <div id="nodesTable" class="table" aria-live="polite" style="margin-top:12px;"></div>
+                <div id="emptyState" class="muted-box" style="display:none; margin-top:12px;">No nodes registered yet.
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        function showAlert(targetId, message, ok) {
+            const container = document.getElementById(targetId);
+            container.innerHTML = '';
+            const box = document.createElement('div');
+            box.className = 'alert ' + (ok ? 'success' : 'error');
+            box.style.display = 'block';
+            box.textContent = message;
+            container.appendChild(box);
+        }
+
+        function showConfiguredState() {
+            // Hide the setup form
+            document.getElementById('setupSection').style.display = 'none';
+            // Show the configured banner
+            const banner = document.getElementById('configuredBanner');
+            banner.style.display = 'flex';
+        }
+
+        async function setupBootstrap() {
+            const key = document.getElementById('privateKey').value.trim();
+            if (!key) {
+                showAlert('setupResult', 'Private key is required.', false);
+                return;
+            }
+
+            const btn = document.getElementById('setupButton');
+            btn.disabled = true;
+            btn.textContent = 'Activating…';
+
+            try {
+                const res = await fetch('/mode/bootstrap/setup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ privateKey: key })
+                });
+                const json = await res.json();
+                if (!res.ok || json.error) {
+                    showAlert('setupResult', json.error || 'Bootstrap setup failed.', false);
+                    btn.disabled = false;
+                    btn.textContent = 'Save & Activate';
+                    return;
+                }
+                // Transition to configured state
+                showConfiguredState();
+                await loadNodes();
+            } catch (e) {
+                showAlert('setupResult', 'Failed to configure bootstrap: ' + e, false);
+                btn.disabled = false;
+                btn.textContent = 'Save & Activate';
+            }
+        }
+
+        async function loadNodes() {
+            const table = document.getElementById('nodesTable');
+            const empty = document.getElementById('emptyState');
+            const summary = document.getElementById('summaryBox');
+
+            table.innerHTML = '';
+            empty.style.display = 'none';
+            summary.textContent = 'Loading nodes…';
+
+            try {
+                const res = await fetch('/bootstrap/nodes');
+                const data = await res.json();
+                const nodes = data.nodes || [];
+                summary.textContent = `Total nodes: ${data.count ?? nodes.length}`;
+
+                if (!nodes.length) {
+                    empty.style.display = 'block';
+                    return;
+                }
+
+                const header = document.createElement('div');
+                header.className = 'table-header';
+                header.innerHTML = '<div>IP</div><div>Role</div><div>Public Key</div>';
+                table.appendChild(header);
+
+                nodes.forEach(node => {
+                    const row = document.createElement('div');
+                    row.className = 'table-row';
+                    row.innerHTML = `
+                    <div>${node.ip || ''}</div>
+                    <div>${node.role || ''}</div>
+                    <div class="mono">${node.publicKey || ''}</div>
+                `;
+                    table.appendChild(row);
+                });
+            } catch (err) {
+                summary.textContent = 'Failed to load nodes.';
+                empty.style.display = 'block';
+                empty.textContent = 'Unable to fetch nodes.';
+            }
+        }
+
+        // On load: verify mode, show correct state
+        (async function init() {
+            try {
+                const res = await fetch('/mode/bootstrap/status');
+                const json = await res.json();
+                if (json.mode !== 'BOOTSTRAP') {
+                    window.location.replace('/');
+                    return;
+                }
+                if (json.configured) {
+                    showConfiguredState();
+                }
+            } catch (_) {
+                window.location.replace('/');
+                return;
+            }
+            await loadNodes();
+        })();
+    </script>
+</body>
+
+</html>

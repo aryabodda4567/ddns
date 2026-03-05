@@ -3,64 +3,173 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DNS Control Panel | DDNS Console</title>
+    <title>Setup | DDNS Console</title>
     <link rel="stylesheet" href="/css/common.css">
-    <script src="/js/auth-guard.js"></script>
+    <style>
+        .chooser-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .chooser-card {
+            border: 2px solid var(--line);
+            border-radius: 18px;
+            padding: 28px 22px;
+            background: var(--panel);
+            box-shadow: var(--shadow);
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.1s ease;
+        }
+
+        .chooser-card:hover {
+            border-color: var(--brand);
+            box-shadow: 0 12px 30px rgba(11, 95, 255, 0.14);
+            transform: translateY(-2px);
+        }
+
+        .chooser-card .icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 16px;
+            display: grid;
+            place-items: center;
+            margin: 0 auto 14px;
+            font-size: 24px;
+        }
+
+        .chooser-card.bootstrap .icon {
+            background: linear-gradient(145deg, #0b5fff, #0043ce);
+        }
+
+        .chooser-card.node .icon {
+            background: linear-gradient(145deg, #0f8a4f, #086e3c);
+        }
+
+        .chooser-card h2 {
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+
+        .chooser-card p {
+            font-size: 13px;
+            color: var(--text-soft);
+            line-height: 1.5;
+            margin-bottom: 18px;
+        }
+
+        .chooser-card button {
+            width: 100%;
+            margin-top: 0;
+        }
+
+        .chooser-card.node button {
+            background: linear-gradient(145deg, #0f8a4f, #086e3c);
+        }
+
+        @media (max-width: 600px) {
+            .chooser-grid { grid-template-columns: 1fr; }
+        }
+    </style>
 </head>
 <body>
-<div class="page-shell">
+<div class="page-shell" style="max-width: 700px;">
     <div class="topbar">
         <div class="brand">
             <div class="brand-badge">DD</div>
             <div>
                 <div class="brand-title">DDNS Network Console</div>
-                <div class="brand-sub">Operations Dashboard</div>
+                <div class="brand-sub">Node Setup</div>
             </div>
         </div>
-        <span class="status-pill"><span class="status-dot"></span> Node Active</span>
+        <span class="status-pill"><span class="status-dot" style="background:#e8a020;"></span> Not Configured</span>
     </div>
 
-    <div class="main-grid">
-        <aside class="sidebar">
-            <div class="menu-title">Navigation</div>
-            <nav class="menu">
-                <a href="/join.html">Join Network</a>
-                <a href="/create_election.html">Create Election</a>
-                <a href="/vote.html">Vote</a>
-                <a href="/join_result.html">Join Result</a>
-                <a class="active" href="/index.html">DNS Control</a>
-                <a href="/home.html">Home</a>
-            </nav>
-        </aside>
+    <main class="content-stack" style="margin-top: 18px;">
+        <section class="card">
+            <h1>Welcome to DDNS</h1>
+            <p class="subtle" style="margin-top: 8px;">
+                This node has not been configured yet. Choose how you want this instance to operate.
+            </p>
 
-        <main class="content-stack">
-            <section class="card">
-                <h1>DNS Control Panel</h1>
-                <p class="subtle" style="margin-top: 8px;">Manage decentralized DNS transactions and query network state.</p>
-            </section>
+            <div class="chooser-grid">
+                <div class="chooser-card bootstrap" onclick="selectMode('BOOTSTRAP')">
+                    <div class="icon">🌐</div>
+                    <h2>Bootstrap Node</h2>
+                    <p>Act as the network registry. Manage node discovery and track all peers in the DDNS network.</p>
+                    <button id="btn-bootstrap">Select Bootstrap</button>
+                </div>
 
-            <section class="card">
-                <h2>Record Operations</h2>
-                <div class="grid-2" style="margin-top: 12px;">
-                    <button onclick="go('create.html')">Create Record</button>
-                    <button onclick="go('update.html')">Update Record</button>
-                    <button onclick="go('delete.html')">Delete Record</button>
-                    <button onclick="go('lookup.html')">Lookup Record</button>
+                <div class="chooser-card node" onclick="selectMode('NODE')">
+                    <div class="icon">⛓️</div>
+                    <h2>Chain Node</h2>
+                    <p>Join a DDNS network as a participant. Register with a bootstrap node and perform DNS operations.</p>
+                    <button id="btn-node">Select Chain Node</button>
                 </div>
-                <div class="action-row" style="margin-top: 10px;">
-                    <button class="secondary" onclick="go('status.html')">Transaction Status</button>
-                </div>
-            </section>
-        </main>
-    </div>
+            </div>
+
+            <div id="result"></div>
+        </section>
+    </main>
 </div>
 
 <script>
-    function go(page) {
-        location.href = page;
+    function showMessage(message, ok) {
+        const result = document.getElementById('result');
+        result.innerHTML = '';
+        const box = document.createElement('div');
+        box.className = 'alert ' + (ok ? 'success' : 'error');
+        box.style.display = 'block';
+        box.textContent = message;
+        result.appendChild(box);
     }
+
+    function setLoading(isLoading) {
+        document.getElementById('btn-bootstrap').disabled = isLoading;
+        document.getElementById('btn-node').disabled = isLoading;
+    }
+
+    async function selectMode(mode) {
+        setLoading(true);
+        try {
+            const res = await fetch('/mode/select', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mode })
+            });
+            const json = await res.json();
+
+            if (!res.ok || json.error) {
+                showMessage(json.error || 'Unable to select mode.', false);
+                setLoading(false);
+                return;
+            }
+
+            if (mode === 'BOOTSTRAP') {
+                window.location.href = '/bootstrap.html';
+            } else {
+                window.location.href = '/join.html';
+            }
+        } catch (e) {
+            showMessage('Failed to select mode: ' + e, false);
+            setLoading(false);
+        }
+    }
+
+    // If already configured, redirect away
+    (async function checkMode() {
+        try {
+            const res = await fetch('/mode');
+            const json = await res.json();
+            if (json.mode === 'BOOTSTRAP') {
+                window.location.replace('/bootstrap.html');
+            } else if (json.mode === 'NODE') {
+                window.location.replace('/join.html');
+            }
+        } catch (_) { /* stay on this page */ }
+    })();
 </script>
 </body>
 </html>
-
-
