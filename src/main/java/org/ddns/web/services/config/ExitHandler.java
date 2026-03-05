@@ -1,25 +1,50 @@
 package org.ddns.web.services.config;
 
 import com.google.gson.Gson;
+import org.ddns.constants.FileNames;
+import org.ddns.db.DBUtil;
 import org.ddns.node.NodesManager;
 import org.ddns.web.user.SessionManager;
 import org.ddns.web.user.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import spark.Request;
 import spark.Response;
 
+import java.io.File;
 import java.util.Map;
 
 /**
- * Handles graceful node exit.
+ * Handles graceful node exit with a full factory reset.
  *
  * <p>
  * POST /node/exit — verifies the user's password, sends DELETE_NODE to the
- * bootstrap node (which broadcasts the removal to all peers), then clears the
- * local session so the UI returns to the setup chooser.
+ * bootstrap node (which broadcasts the removal to all peers), then wipes all
+ * local state so the node restarts clean as UNSET.
+ *
+ * <p>
+ * Reset steps:
+ * <ol>
+ * <li>Send DELETE_NODE to bootstrap (peers remove this node too)</li>
+ * <li>Clear all DBUtil tables (config, nodes, nominations)</li>
+ * <li>Delete all binary db files (dns.bin, block.bin, transaction.bin, …)</li>
+ * <li>Reset AppMode to UNSET (persisted in utility.db, which was just
+ * wiped)</li>
+ * <li>Clear the web session cookie</li>
+ * </ol>
  */
 public class ExitHandler {
 
+    private static final Logger log = LoggerFactory.getLogger(ExitHandler.class);
     private final Gson gson = new Gson();
+
+    /** All data files that must be deleted to reset the node to a clean state. */
+    private static final String[] DATA_FILES = {
+            FileNames.DNS_DB,
+            FileNames.BLOCK_DB,
+            FileNames.BLOCK_DB_TEMP,
+            FileNames.TRANSACTION_DB,
+    };
 
     public Object exit(Request request, Response response) {
         // Only available in NODE mode
@@ -34,27 +59,68 @@ public class ExitHandler {
             return Map.of("error", "Password is required to confirm node exit.");
         }
 
-        // Verify the password against the stored credentials
+        // Verify password against stored credentials
         if (!User.verifyCredentials(getUsername(), exitRequest.password.trim())) {
             response.status(401);
             return Map.of("error", "Incorrect password. Node exit aborted.");
         }
 
-        // Send DELETE_NODE to bootstrap — the bootstrap removes this node from
-        // BootstrapDB and broadcasts the deletion to all remaining peers, which
-        // each remove the node from their local DBs and queues.
+        // ── Step 1: Notify bootstrap + peers ─────────────────────────────────
         try {
             NodesManager.sendDeleteNodeRequest();
+            log.info("[ExitHandler] DELETE_NODE sent to bootstrap.");
         } catch (Exception e) {
-            response.status(500);
-            return Map.of("error", "Failed to send exit request to bootstrap: " + e.getMessage());
+            // Log but don't abort — we still want to reset locally even if
+            // the bootstrap is unreachable (node may be isolated).
+            log.warn("[ExitHandler] Could not notify bootstrap: " + e.getMessage());
         }
 
-        // Clear session so the browser is returned to the setup chooser
+        // ── Step 2: Wipe all in-DB state ─────────────────────────────────────
+        try {
+            DBUtil.getInstance().clearAllStorage();
+            log.info("[ExitHandler] All DB tables cleared.");
+        } catch (Exception e) {
+            log.warn("[ExitHandler] Error clearing DB tables: " + e.getMessage());
+        }
+
+        // ── Step 3: Delete all binary data files ─────────────────────────────
+        for (String fileName : DATA_FILES) {
+            File f = new File(fileName);
+            if (f.exists()) {
+                boolean deleted = f.delete();
+                log.info("[ExitHandler] " + (deleted ? "Deleted" : "Failed to delete") + " file: " + fileName);
+            }
+        }
+
+        // Also attempt to delete the snapshots directory recursively
+        deleteDirectory(new File(FileNames.SNAPSHOT_DIR));
+
+        // ── Step 4: Reset AppMode to UNSET ───────────────────────────────────
+        // clearAllStorage() already wiped config_store so the mode is now null
+        // (which AppModeStore.getMode() treats as UNSET). Explicitly set to be safe.
+        AppModeStore.setMode(AppMode.UNSET);
+        log.info("[ExitHandler] AppMode reset to UNSET.");
+
+        // ── Step 5: Clear web session ─────────────────────────────────────────
         SessionManager.clearSession(response);
 
         response.type("application/json");
-        return Map.of("status", "ok", "message", "Node exit successful.");
+        return Map.of("status", "ok", "message", "Node exited and reset to factory state.");
+    }
+
+    /** Recursively deletes a directory and all its contents. */
+    private static void deleteDirectory(File dir) {
+        if (dir == null || !dir.exists())
+            return;
+        if (dir.isDirectory()) {
+            File[] children = dir.listFiles();
+            if (children != null) {
+                for (File child : children)
+                    deleteDirectory(child);
+            }
+        }
+        boolean deleted = dir.delete();
+        log.info("[ExitHandler] " + (deleted ? "Deleted" : "Failed to delete") + ": " + dir.getPath());
     }
 
     /** Returns the username of the configured web user, or empty string if none. */
