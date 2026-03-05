@@ -1,8 +1,6 @@
 package org.ddns.web.services.config;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import com.google.gson.Gson;
 import org.ddns.bc.SignatureUtil;
 import org.ddns.chain.Wallet;
 import org.ddns.constants.Role;
@@ -12,81 +10,63 @@ import org.ddns.node.NodesManager;
 import org.ddns.util.NetworkUtility;
 import org.ddns.web.user.SessionManager;
 import org.ddns.web.user.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import spark.Request;
 import spark.Response;
 
-import com.google.gson.Gson;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.Map;
 
-
+/**
+ * Handles the join request by storing bootstrap info, keys and web credentials,
+ * then triggering node fetch/sync bootstrap logic.
+ */
 public class JoiningHandler {
 
-    private static final Logger log = LoggerFactory.getLogger(JoiningHandler.class);
-
+    private static final Logger LOG = LoggerFactory.getLogger(JoiningHandler.class);
     private final Gson gson = new Gson();
 
-
-    public Object handle(Request req, Response res) throws Exception {
-
-        JoinRequest body = gson.fromJson(req.body(), JoinRequest.class);
-
-        if (body == null)
+    public Object handle(Request request, Response response) throws Exception {
+        JoinRequest joinRequest = gson.fromJson(request.body(), JoinRequest.class);
+        if (joinRequest == null) {
             throw new IllegalArgumentException("Invalid JSON body");
+        }
 
-        String bootstrapNodeIp = body.bootstrapIp;
-        String privateKeyString = body.privateKey;
-        String username = body.username;
-        String password = body.password;
+        String bootstrapIp = joinRequest.bootstrapIp;
+        String privateKeyInput = joinRequest.privateKey;
+        String username = joinRequest.username;
+        String password = joinRequest.password;
 
-        JoinRequestValidator.validate(bootstrapNodeIp, privateKeyString, username, password);
+        JoinRequestValidator.validate(bootstrapIp, privateKeyInput, username, password);
 
-// Normalize
-        bootstrapNodeIp = bootstrapNodeIp.trim();
-        privateKeyString = privateKeyString.trim();
+        bootstrapIp = bootstrapIp.trim();
+        privateKeyInput = privateKeyInput.trim();
         username = username.trim();
         password = password.trim();
 
-        if (bootstrapNodeIp == null || bootstrapNodeIp.trim().isEmpty())
-            throw new IllegalArgumentException("No bootstrap IP entered");
+        DBUtil.getInstance().saveBootstrapIp(bootstrapIp);
 
-        if (privateKeyString == null || privateKeyString.trim().isEmpty())
-            throw new IllegalArgumentException("No private key entered");
-
-        if (username == null || username.trim().isEmpty())
-            throw new IllegalArgumentException("No username entered");
-
-        if (password == null || password.trim().isEmpty())
-            throw new IllegalArgumentException("No password entered");
-
-        bootstrapNodeIp = bootstrapNodeIp.trim();
-
-        DBUtil.getInstance().saveBootstrapIp(bootstrapNodeIp);
-
-        // Convert and save keys
-        PrivateKey privateKey = SignatureUtil.getPrivateKeyFromString(privateKeyString);
+        PrivateKey privateKey = SignatureUtil.getPrivateKeyFromString(privateKeyInput);
         PublicKey publicKey = Wallet.getPublicKeyFromPrivateKey(privateKey);
 
-        log.info("Public key: " + publicKey);
+        LOG.info("Public key: {}", publicKey);
         DBUtil.getInstance().saveKeys(publicKey, privateKey);
 
-        // set self node using local IP
         String localIp = NetworkUtility.getLocalIpAddress();
         DBUtil.getInstance().setSelfNode(new NodeConfig(localIp, Role.NONE, publicKey));
-        User.saveUser(User.fromCredentials(username, password));
-        long expiresAt = SessionManager.createSession(res);
 
-        // respond
-        res.type("application/json");
+        User.saveUser(User.fromCredentials(username, password));
+        long expiresAt = SessionManager.createSession(response);
+
+        response.type("application/json");
 
         try {
             NodesManager.createFetchRequest();
         } catch (Exception e) {
             throw new IllegalArgumentException("Failed to initiate fetch request to Bootstrap node: " + e.getMessage());
         }
-
-
 
         return Map.of(
                 "status", "ok",
@@ -97,6 +77,4 @@ public class JoiningHandler {
                 "sessionSeconds", SessionManager.SESSION_DURATION_SECONDS
         );
     }
-
-
 }

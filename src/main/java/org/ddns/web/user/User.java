@@ -6,6 +6,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Objects;
 
+/**
+ * User record used for web login credentials persisted in DBUtil config storage.
+ */
 public class User {
     private String username;
     private String password;
@@ -78,13 +81,11 @@ public class User {
         }
 
         DBUtil db = DBUtil.getInstance();
-
         db.putString(ConfigKey.USERNAME.key(), user.getUsername());
         db.putString(ConfigKey.PASSWORD.key(), hashString(user.getPassword()));
         db.putString(ConfigKey.EMAIL.key(), user.getEmail());
         db.putString(ConfigKey.FIRSTNAME.key(), user.getFirstName());
         db.putString(ConfigKey.LASTNAME.key(), user.getLastName());
-
         db.putInt(ConfigKey.IS_LOGGED_IN.key(), 0);
     }
 
@@ -112,13 +113,49 @@ public class User {
         return new User(username.trim(), password.trim(), "", "", "");
     }
 
+    public static boolean verifyCredentials(String username, String password) {
+        User storedUser = getUser();
+        if (storedUser == null) {
+            return false;
+        }
+
+        return storedUser.login(username, password);
+    }
+
+    public boolean login(String username, String password) {
+        return checkUsername(username) && checkPassword(password);
+    }
+
+    public boolean checkUsername(String candidateUsername) {
+        if (candidateUsername == null || getUsername() == null) {
+            return false;
+        }
+
+        return getUsername().trim().equalsIgnoreCase(candidateUsername.trim());
+    }
+
+    public boolean checkPassword(String candidatePassword) {
+        if (candidatePassword == null || getPassword() == null) {
+            return false;
+        }
+
+        String storedPassword = getPassword().trim();
+        String candidate = candidatePassword.trim();
+        String candidateHash = hashString(candidate);
+
+        // Backward compatibility:
+        // - current format: SHA-256 hash
+        // - fallback: plain-text value from older data
+        return Objects.equals(storedPassword, candidateHash)
+                || Objects.equals(storedPassword, candidate);
+    }
+
     private static String hashString(String input) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] hashBytes = digest.digest(input.getBytes());
 
             StringBuilder hexString = new StringBuilder();
-
             for (byte b : hashBytes) {
                 String hex = Integer.toHexString(0xff & b);
                 if (hex.length() == 1) {
@@ -128,43 +165,8 @@ public class User {
             }
 
             return hexString.toString();
-
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("Error hashing string", e);
         }
-    }
-
-    public boolean checkPassword(String candidatePassword) {
-        if (candidatePassword == null || getPassword() == null) {
-            return false;
-        }
-        String stored = getPassword().trim();
-        String candidate = candidatePassword.trim();
-        String candidateHash = hashString(candidate);
-
-        // Backward compatibility:
-        // - current format: SHA-256 hash in DB
-        // - legacy/dirty data: plain-text password accidentally persisted
-        return Objects.equals(stored, candidateHash) || Objects.equals(stored, candidate);
-    }
-
-    public boolean checkUsername(String candidateUsername) {
-        if (candidateUsername == null || getUsername() == null) {
-            return false;
-        }
-        return getUsername().trim().equalsIgnoreCase(candidateUsername.trim());
-    }
-
-    public boolean login(String username, String password) {
-        return checkUsername(username) && checkPassword(password);
-    }
-
-    public static boolean verifyCredentials(String username, String password) {
-        User storedUser = getUser();
-        if (storedUser == null) {
-            return false;
-        }
-
-        return storedUser.login(username, password);
     }
 }

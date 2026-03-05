@@ -7,15 +7,19 @@ import spark.Response;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Creates and validates short-lived web sessions.
+ */
 public final class SessionManager {
 
     public static final int SESSION_DURATION_SECONDS = 15 * 60;
-    private static final String SESSION_COOKIE = "ddns_session";
+
+    private static final String SESSION_COOKIE_NAME = "ddns_session";
 
     private SessionManager() {
     }
 
-    public static long createSession(Response res) {
+    public static long createSession(Response response) {
         String token = UUID.randomUUID().toString();
         long expiresAt = Instant.now().getEpochSecond() + SESSION_DURATION_SECONDS;
 
@@ -24,29 +28,28 @@ public final class SessionManager {
         db.putLong(ConfigKey.SESSION_EXPIRES_AT.key(), expiresAt);
         db.putInt(ConfigKey.IS_LOGGED_IN.key(), 1);
 
-        res.cookie("/", SESSION_COOKIE, token, SESSION_DURATION_SECONDS, false, true);
-
+        response.cookie("/", SESSION_COOKIE_NAME, token, SESSION_DURATION_SECONDS, false, true);
         return expiresAt;
     }
 
-    public static void clearSession(Response res) {
+    public static void clearSession(Response response) {
         DBUtil db = DBUtil.getInstance();
         db.delete(ConfigKey.SESSION_TOKEN.key());
         db.delete(ConfigKey.SESSION_EXPIRES_AT.key());
         db.putInt(ConfigKey.IS_LOGGED_IN.key(), 0);
 
-        res.cookie("/", SESSION_COOKIE, "", 0, false, true);
+        response.cookie("/", SESSION_COOKIE_NAME, "", 0, false, true);
     }
 
-    public static boolean isSessionValid(Request req) {
-        String cookieToken = req.cookie(SESSION_COOKIE);
+    public static boolean isSessionValid(Request request) {
+        String cookieToken = request.cookie(SESSION_COOKIE_NAME);
         if (cookieToken == null || cookieToken.isBlank()) {
             return false;
         }
 
         DBUtil db = DBUtil.getInstance();
-        String savedToken = db.getString(ConfigKey.SESSION_TOKEN.key());
-        if (savedToken == null || !savedToken.equals(cookieToken)) {
+        String storedToken = db.getString(ConfigKey.SESSION_TOKEN.key());
+        if (storedToken == null || !storedToken.equals(cookieToken)) {
             return false;
         }
 

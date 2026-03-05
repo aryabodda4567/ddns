@@ -1,5 +1,7 @@
 package org.ddns.util;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Utility class for printing colored console messages.
@@ -9,6 +11,7 @@ package org.ddns.util;
  * (Linux, macOS, and Windows 10+).
  */
 public final class ConsolePrinter {
+    private static final Logger log = LoggerFactory.getLogger(ConsolePrinter.class);
 
     // ANSI color codes
     private static final String RESET = "\u001B[0m";
@@ -26,7 +29,7 @@ public final class ConsolePrinter {
      * @param message The message to print
      */
     public static void printSuccess(String message) {
-        System.out.println(GREEN + message + RESET);
+        log.info(GREEN + message + RESET);
     }
 
     /**
@@ -35,7 +38,7 @@ public final class ConsolePrinter {
      * @param message The message to print
      */
     public static void printFail(String message) {
-        System.out.println(RED + message + RESET);
+        log.error(RED + message + RESET);
     }
 
     /**
@@ -44,7 +47,7 @@ public final class ConsolePrinter {
      * @param message The message to print
      */
     public static void printInfo(String message) {
-        System.out.println(BLUE + message + RESET);
+        log.info(BLUE + message + RESET);
     }
 
     /**
@@ -53,7 +56,7 @@ public final class ConsolePrinter {
      * @param message The message to print
      */
     public static void printWarning(String message) {
-        System.out.println(YELLOW + message + RESET);
+        log.warn(YELLOW + message + RESET);
     }
 }
 

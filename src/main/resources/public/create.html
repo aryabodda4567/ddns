@@ -45,10 +45,13 @@
                         <label for="type">Type</label>
                         <select id="type">
                             <option value="1">A</option>
-                            <option value="28">AAAA</option>
-                            <option value="5">CNAME</option>
-                            <option value="16">TXT</option>
                             <option value="2">NS</option>
+                            <option value="5">CNAME</option>
+                            <option value="6">SOA</option>
+                            <option value="12">PTR</option>
+                            <option value="15">MX</option>
+                            <option value="16">TXT</option>
+                            <option value="28">AAAA</option>
                         </select>
                     </div>
                 </div>
@@ -124,17 +127,68 @@
         return /^(\d{1,3}\.){3}\d{1,3}$/.test(ip);
     }
 
+    function isValidIPv6(ip) {
+        return /^(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|::1|::|([0-9a-fA-F]{1,4}:){1,7}:|:([0-9a-fA-F]{1,4}:){1,7}[0-9a-fA-F]{1,4})$/.test(ip);
+    }
+
     function validateForm(data) {
         if (!data.name || data.name.trim() === "") return "Domain name is required";
         if (!isValidDomain(data.name)) return "Invalid domain format. Example: example.com";
         if (!data.rdata || data.rdata.trim() === "") return "RDATA value is required";
         if (data.ttl <= 0) return "TTL must be greater than 0";
 
-        if (data.type === 1 || data.type === 28) {
-            if (!isValidIPv4(data.rdata)) return "For A/AAAA record, RDATA must be a valid IP address";
+        if (data.type === 1) {
+            if (!isValidIPv4(data.rdata)) return "For A record, RDATA must be a valid IPv4 address";
+        }
+
+        if (data.type === 28) {
+            if (!isValidIPv6(data.rdata)) return "For AAAA record, RDATA must be a valid IPv6 address";
+        }
+
+        if (data.type === 5 || data.type === 2) {
+            if (!isValidDomain(data.rdata)) return "For CNAME/NS record, RDATA must be a valid domain";
+        }
+
+        if (data.type === 12) {
+            if (!isValidDomain(data.rdata)) return "For PTR record, RDATA must be a valid domain";
+        }
+
+        if (data.type === 15) {
+            const mxPattern = /^(\d+\s+)?[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            if (!mxPattern.test(data.rdata)) return "For MX record, use: <priority domain> or <domain>";
         }
 
         return null;
+    }
+
+    function updateRdataHint() {
+        const type = parseInt(document.getElementById("type").value);
+        const rdata = document.getElementById("rdata");
+
+        switch (type) {
+            case 1:
+                rdata.placeholder = "1.2.3.4";
+                break;
+            case 28:
+                rdata.placeholder = "2001:db8::1";
+                break;
+            case 5:
+            case 2:
+            case 12:
+                rdata.placeholder = "target.example.com";
+                break;
+            case 15:
+                rdata.placeholder = "10 mail.example.com";
+                break;
+            case 16:
+                rdata.placeholder = "v=spf1 include:example.com ~all";
+                break;
+            case 6:
+                rdata.placeholder = "ns1.example.com hostmaster.example.com 1 7200 3600 1209600 3600";
+                break;
+            default:
+                rdata.placeholder = "RDATA value";
+        }
     }
 
     async function createRecord() {
@@ -171,6 +225,9 @@
             showMessage({ error: "Server not reachable", details: err.toString() }, false);
         }
     }
+
+    updateRdataHint();
+    document.getElementById("type").addEventListener("change", updateRdataHint);
 </script>
 </body>
 </html>

@@ -3,36 +3,40 @@
 ## Top-Level
 - `.git/` - Git metadata
 - `.idea/` - IDE project settings
+- `docs/` - project documentation
 - `snapshots/` - block snapshot database files
 - `src/` - application source code
-- `target/` - Maven build output (compiled artifacts)
+- `target/` - Maven build output
 - `pom.xml` - Maven build configuration
-- `bootstrap.db`, `dns.bin`, `block.bin`, `utility.db` - local runtime data stores
+- `README.md` - main project guide
 
-## Source Layout (`src/main`)
-- `java/org/ddns/Main.java` - application entry point
-- `java/org/ddns/bc/` (7 files) - blockchain primitives and signing
-- `java/org/ddns/bootstrap/` (1 file) - bootstrap node behavior
-- `java/org/ddns/chain/` (1 file) - wallet/chain helper logic
-- `java/org/ddns/consensus/` (7 files) - consensus engine and scheduling
-- `java/org/ddns/constants/` (5 files) - enums/constants used across modules
-- `java/org/ddns/db/` (5 files) - persistence access layers
-- `java/org/ddns/dns/` (10 files) - DNS model, cache, resolver, and servers
-- `java/org/ddns/governance/` (3 files) - election/nomination/vote models
-- `java/org/ddns/net/` (4 files) - network messaging and handlers
-- `java/org/ddns/node/` (2 files) - node config and node manager
-- `java/org/ddns/tests/` (4 files) - in-project test harness classes
-- `java/org/ddns/util/` (4 files) - shared utility functions
-- `java/org/ddns/web/` (14 files) - web server and API handlers
-- `resources/public/` (12 files) - static HTML/CSS frontend assets
+## Java Source (`src/main/java/org/ddns`)
+- `Main.java` - application bootstrap
+- `bc/` (7 files) - blockchain primitives and signing
+- `bootstrap/` (1 file) - bootstrap node behavior
+- `chain/` (1 file) - wallet/key helper
+- `consensus/` (7 files) - queue, scheduler, consensus core
+- `constants/` (5 files) - shared enums/constants
+- `db/` (5 files) - persistence layers
+- `dns/` (10 files) - DNS model/server/service/cache/resolver
+- `governance/` (3 files) - election, nomination, vote
+- `net/` (4 files) - network messaging contracts + manager
+- `node/` (2 files) - node management + sync/apply
+- `tests/` (4 files) - in-repo test harness classes
+- `util/` (4 files) - shared utility helpers
+- `web/` (19 files) - web server, handlers, auth/session
 
-## Static Web Assets (`src/main/resources/public`)
-- `index.html`, `home.html`, `status.html`
-- `create.html`, `update.html`, `delete.html`, `lookup.html`
-- `join.html`, `join_result.html`
-- `create_election.html`, `vote.html`
-- `css/common.css`
+## Static Web (`src/main/resources/public`)
+- Pages:
+  - `join.html`, `login.html`, `home.html`, `index.html`
+  - `create_election.html`, `vote.html`, `join_result.html`
+  - `create.html`, `update.html`, `delete.html`, `lookup.html`, `status.html`
+- Assets:
+  - `css/common.css`
+  - `js/auth-guard.js`
 
-## Notes
-- `target/` mirrors compiled classes for the Java packages above.
-- `snapshots/` contains timestamped DB snapshots generated at runtime.
+## Docs
+- `docs/ARCHITECTURE.md`
+- `docs/API_REFERENCE.md`
+- `docs/WEB_FLOW.md`
+- `docs/STORAGE_AND_STATE.md`

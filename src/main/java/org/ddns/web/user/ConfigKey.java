@@ -1,10 +1,11 @@
 package org.ddns.web.user;
 
+/**
+ * Storage keys used by web user/session layer.
+ */
 public enum ConfigKey {
 
-    // Login State
     IS_LOGGED_IN("is_logged_in"),
-    // User Info
     USERNAME("username"),
     PASSWORD("password"),
     EMAIL("email"),

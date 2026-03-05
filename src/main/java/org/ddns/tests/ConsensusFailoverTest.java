@@ -13,14 +13,11 @@ import org.ddns.util.TimeUtil;
 import java.security.KeyPair;
 import java.security.Security;
 import java.util.ArrayList;
-import java.util.Objects;
 
 public class ConsensusFailoverTest {
 
     public static void main(String[] args) throws Exception {
         Security.addProvider(new BouncyCastleProvider());
-
-        System.out.println("=== CONSENSUS FAILOVER TEST START ===");
 
         // ---------------- Setup nodes ----------------
         CircularQueue queue = CircularQueue.getInstance();
@@ -32,8 +29,6 @@ public class ConsensusFailoverTest {
         queue.addNode(new QueueNode(node1, 1));
         queue.addNode(new QueueNode(node2, 2));
         queue.addNode(new QueueNode(node3, 3));
-
-        System.out.println("Initial Leader: " + Objects.requireNonNull(queue.peek()).getNodeConfig().getIp());
 
         // ---------------- Create real transaction ----------------
         KeyPair kp = Wallet.getKeyPair();
@@ -48,29 +43,16 @@ public class ConsensusFailoverTest {
         // Publish transaction into consensus
         ConsensusEngine.getInstance().publishTransaction(tx);
 
-        System.out.println("Transaction published. Mempool size > 0");
-
         // ---------------- Start consensus ----------------
         ConsensusSystem.start();
 
         // ---------------- Simulate leader-1 failure ----------------
-        System.out.println("Simulating leader-1 failure (no block production)...");
-
         // Wait longer than BLOCK_BUFFER_TIME (15s)
         Thread.sleep(20000);
 
-        System.out.println("Leader after timeout: " + Objects.requireNonNull(queue.peek()).getNodeConfig().getIp());
-
         // ---------------- Now leader-2 should produce block ----------------
-        System.out.println("Waiting for leader-2 to produce block...");
 
         Thread.sleep(5000);
-
-        String latestHash = BlockDb.getInstance().getLatestBlockHash();
-        System.out.println("Latest block hash: " + latestHash);
-
-        System.out.println("Current Leader Now: " + Objects.requireNonNull(queue.peek()).getNodeConfig().getIp());
-
-        System.out.println("=== TEST END ===");
+        BlockDb.getInstance().getLatestBlockHash();
     }
 }
