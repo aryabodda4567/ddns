@@ -62,8 +62,7 @@ public class ModeHandler {
         response.type("application/json");
         return Map.of(
                 "mode", AppModeStore.getMode().name(),
-                "configured", configured
-        );
+                "configured", configured);
     }
 
     public Object setupBootstrap(Request request, Response response) throws Exception {
@@ -84,7 +83,8 @@ public class ModeHandler {
         DBUtil.getInstance().setSelfNode(selfNode);
         DBUtil.getInstance().saveBootstrapIp(localIp);
 
-        BootstrapDB.getInstance().saveNode(selfNode);
+        // Do NOT register the bootstrap node as a chain node participant.
+        // BootstrapDB only tracks real chain nodes that join the network.
         AppModeStore.setMode(AppMode.BOOTSTRAP);
 
         response.type("application/json");
@@ -92,8 +92,7 @@ public class ModeHandler {
                 "status", "ok",
                 "mode", AppMode.BOOTSTRAP.name(),
                 "localIp", localIp,
-                "role", Role.BOOTSTRAP.name()
-        );
+                "role", Role.BOOTSTRAP.name());
     }
 
     public Object listBootstrapNodes(Request request, Response response) {
@@ -111,8 +110,7 @@ public class ModeHandler {
             rows.add(Map.of(
                     "ip", node.getIp() == null ? "" : node.getIp(),
                     "role", node.getRole() == null ? "" : node.getRole().name(),
-                    "publicKey", publicKey
-            ));
+                    "publicKey", publicKey));
         }
 
         response.type("application/json");
