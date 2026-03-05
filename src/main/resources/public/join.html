@@ -173,8 +173,9 @@
                 successBox.style.display = "block";
                 document.getElementById("joinBtn").disabled = true;
                 showMessage(json, true);
-                // Redirect to home after short delay
-                setTimeout(() => { window.location.href = '/home.html'; }, 1200);
+
+                // Auto-check acceptance / election status and route accordingly
+                setTimeout(() => resolveNextStep(), 1000);
 
             } catch (err) {
                 showMessage({ error: "Connection failed", details: err.toString() }, false);
@@ -185,6 +186,42 @@
             if (!pk) return "";
             if (pk.length < 30) return pk;
             return pk.substring(0, 12) + "..." + pk.substring(pk.length - 12);
+        }
+
+        /**
+         * Calls /checkfetchresult which:
+         *  - Sets IS_ACCEPTED=1 if this is the first node (no election needed)
+         *  - Returns election:true if the node needs to go through the governance flow
+         * Then routes to the right page.
+         */
+        async function resolveNextStep() {
+            try {
+                const res = await fetch("/checkfetchresult");
+                const raw = await res.text();
+                let data = {};
+                try {
+                    data = raw ? JSON.parse(raw) : {};
+                } catch (e) {
+                    // Fallback: go to home and let auth-guard sort it out
+                    window.location.href = "/home.html";
+                    return;
+                }
+
+                if (!res.ok) {
+                    // Still redirect to home on server errors
+                    window.location.href = "/home.html";
+                    return;
+                }
+
+                if (data.election === true) {
+                    window.location.href = "/create_election.html";
+                } else {
+                    // First node or already accepted — go straight to home/control panel
+                    window.location.href = "/home.html";
+                }
+            } catch (e) {
+                window.location.href = "/home.html";
+            }
         }
 
         // Guard: redirect to '/' if not in NODE mode
@@ -216,7 +253,7 @@
                 if (data.election === true) {
                     window.location.href = "/create_election.html";
                 } else {
-                    window.location.href = "/index.html";
+                    window.location.href = "/home.html";
                 }
             } catch (e) {
                 alert("Failed to check next step: " + e.message);

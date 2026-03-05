@@ -12,7 +12,6 @@ import org.ddns.web.services.dns.DnsWebHandler;
 import org.ddns.web.services.election.ElectionHandler;
 import org.ddns.web.user.AuthHandler;
 import org.ddns.web.user.SessionManager;
-import org.ddns.web.user.User;
 
 import java.security.Security;
 import java.util.Set;
