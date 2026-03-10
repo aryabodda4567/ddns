@@ -2,6 +2,7 @@ package org.ddns.web;
 
 import com.google.gson.Gson;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.ddns.crypto.SSL;
 import org.ddns.web.services.config.BootstrapHandler;
 import org.ddns.web.services.config.ExitHandler;
 import org.ddns.web.services.config.JoiningHandler;
@@ -17,14 +18,7 @@ import org.ddns.web.user.SessionManager;
 import java.security.Security;
 import java.util.Set;
 
-import static spark.Spark.before;
-import static spark.Spark.exception;
-import static spark.Spark.get;
-import static spark.Spark.halt;
-import static spark.Spark.ipAddress;
-import static spark.Spark.port;
-import static spark.Spark.post;
-import static spark.Spark.staticFiles;
+import static spark.Spark.*;
 
 /**
  * Entry point for web route registration and HTTP security gating.
@@ -90,7 +84,10 @@ public final class WebServer {
     private WebServer() {
     }
 
-    public static void start() {
+    public static void start() throws Exception {
+        String keystorePath = SSL.createTempKeystore();
+
+        secure(keystorePath, "password123", null, null);
         port(8080);
         ipAddress("0.0.0.0");
         staticFiles.location("/public");
@@ -276,7 +273,7 @@ public final class WebServer {
         get("/dns/status", dnsHandler::status, GSON::toJson);
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         Security.addProvider(new BouncyCastleProvider());
         start();
     }
