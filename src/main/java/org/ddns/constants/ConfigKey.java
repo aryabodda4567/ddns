@@ -20,6 +20,7 @@ public enum ConfigKey {
     DB_FILE,
     SELF_NODE,
     BOOTSTRAP_FLAG,
+    BOOTSTRAP_NODE,
 
 //    Election
 

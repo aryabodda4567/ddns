@@ -8,4 +8,5 @@ public class JoinRequest {
     public String privateKey;
     public String username;
     public String password;
+    public String bootstrapPublicKey;
 }

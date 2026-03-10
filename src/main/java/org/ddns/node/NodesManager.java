@@ -301,9 +301,10 @@ public class NodesManager implements MessageHandler {
      * @throws Exception If public key or bootstrap IP is missing.
      */
     public static void createFetchRequest() throws Exception {
-        String bootstrapIp = DBUtil.getInstance().getBootstrapIp();
-        if (bootstrapIp == null) {
-            log.error("[NodesManager] Cannot createFetchRequest: Bootstrap IP is not set.");
+        NodeConfig bootstrap = DBUtil.getInstance().getBootstrapNode();
+
+        if (bootstrap == null) {
+            log.error("[NodesManager] Cannot createFetchRequest: Bootstrap Node is not set.");
             return;
         }
 
@@ -316,8 +317,8 @@ public class NodesManager implements MessageHandler {
                 selfKey,
                 ConversionUtil.toJson(Map.of("IP", NetworkUtility.getLocalIpAddress())));
 
-        log.info("[NodesManager] Sending FETCH_NODES request to Bootstrap at " + bootstrapIp);
-        NetworkManager.sendDirectMessage(bootstrapIp, ConversionUtil.toJson(message));
+        log.info("[NodesManager] Sending FETCH_NODES request to Bootstrap at " + bootstrap.getIp());
+        NetworkManager.sendDirectMessage(bootstrap, ConversionUtil.toJson(message));
     }
 
     // -------------------------------------------------------------------------
@@ -332,10 +333,10 @@ public class NodesManager implements MessageHandler {
      * @throws Exception If bootstrap IP, self-node config, or keys are missing.
      */
     private static void sendBootstrapRequest(MessageType type) throws Exception {
-        String bootstrapIp = DBUtil.getInstance().getBootstrapIp();
-        if (bootstrapIp == null) {
-            log.error("[NodesManager] Cannot send request: Bootstrap IP is not set.");
-            throw new IllegalStateException("Bootstrap IP not found in DBUtil.");
+        NodeConfig bootstrap = DBUtil.getInstance().getBootstrapNode();
+        if (bootstrap == null) {
+            log.error("[NodesManager] Cannot send request: Bootstrap Node is not set.");
+            throw new IllegalStateException("Bootstrap Node not found in DBUtil.");
         }
 
         NodeConfig selfNode = DBUtil.getInstance().getSelfNode();
@@ -351,7 +352,7 @@ public class NodesManager implements MessageHandler {
                 ConversionUtil.toJson(selfNode) // Payload is our own NodeConfig
         );
 
-        NetworkManager.sendDirectMessage(bootstrapIp, ConversionUtil.toJson(message));
+        NetworkManager.sendDirectMessage(bootstrap, ConversionUtil.toJson(message));
     }
     // This method sends a request to any peer node to send sync data
 
@@ -375,7 +376,7 @@ public class NodesManager implements MessageHandler {
                     DBUtil.getInstance().getPublicKey(),
                     "");
             if (targetNode != null) {
-                NetworkManager.sendDirectMessage(targetNode.getIp(), ConversionUtil.toJson(message));
+                NetworkManager.sendDirectMessage(targetNode, ConversionUtil.toJson(message));
             } else {
                 log.error("[Node Manager] No peer node found for sync");
                 return;

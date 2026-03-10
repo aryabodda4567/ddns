@@ -6,6 +6,7 @@ import java.net.IDN;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.util.Base64;
 
 /**
@@ -23,14 +24,24 @@ public final class JoinRequestValidator {
     private JoinRequestValidator() {
     }
 
-    public static void validate(String bootstrapHost, String privateKeyString, String username, String password) {
+    public static void validate(String bootstrapHost,
+                                String bootstrapPublicKey,
+                                String privateKeyString,
+                                String username,
+                                String password) {
+
         validateHost(bootstrapHost);
+        validatePublicKey(bootstrapPublicKey);
         validatePrivateKey(privateKeyString);
         validateCredentials(username, password);
     }
 
-    public static void validate(String bootstrapHost, String privateKeyString) {
+    public static void validate(String bootstrapHost,
+                                String bootstrapPublicKey,
+                                String privateKeyString) {
+
         validateHost(bootstrapHost);
+        validatePublicKey(bootstrapPublicKey);
         validatePrivateKey(privateKeyString);
     }
 
@@ -79,6 +90,31 @@ public final class JoinRequestValidator {
             }
         } catch (Exception e) {
             throw new IllegalArgumentException("Private key is invalid or corrupted");
+        }
+    }
+
+    private static void validatePublicKey(String key) {
+        if (key == null || key.trim().isEmpty()) {
+            throw new IllegalArgumentException("Bootstrap public key is required");
+        }
+
+        String trimmedKey = key.trim();
+        if (trimmedKey.length() > MAX_KEY_LENGTH) {
+            throw new IllegalArgumentException("Public key too large");
+        }
+
+        String normalized = stripPemIfPresent(trimmedKey);
+        if (!isBase64(normalized)) {
+            throw new IllegalArgumentException("Public key is not valid Base64 or PEM");
+        }
+
+        try {
+            PublicKey parsedKey = SignatureUtil.getPublicKeyFromString(trimmedKey);
+            if (parsedKey == null) {
+                throw new IllegalArgumentException("Public key could not be parsed");
+            }
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Public key is invalid or corrupted");
         }
     }
 

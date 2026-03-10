@@ -58,6 +58,11 @@
                     </div>
 
                     <div class="form-group">
+                        <label for="bootstrapPubKey">Bootstrap Node Public Key</label>
+                        <textarea id="bootstrapPubKey" placeholder="-----BEGIN PUBLIC KEY-----"></textarea>
+                    </div>
+
+                    <div class="form-group">
                         <label for="privateKey">Private Key (PEM / Base64)</label>
                         <textarea id="privateKey" placeholder="-----BEGIN PRIVATE KEY-----"></textarea>
                     </div>
@@ -141,6 +146,7 @@
                 username: document.getElementById("username").value.trim(),
                 password: document.getElementById("password").value.trim(),
                 bootstrapIp: document.getElementById("bootstrapIp").value.trim(),
+                bootstrapPublicKey: document.getElementById("bootstrapPubKey").value.trim(),
                 privateKey: document.getElementById("privateKey").value.trim()
             };
 

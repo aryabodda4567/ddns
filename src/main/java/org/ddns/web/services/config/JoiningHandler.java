@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import spark.Request;
 import spark.Response;
 
+import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.Map;
@@ -38,15 +39,21 @@ public class JoiningHandler {
         String privateKeyInput = joinRequest.privateKey;
         String username = joinRequest.username;
         String password = joinRequest.password;
+        String bootstrapPublicKey = joinRequest.bootstrapPublicKey;
 
-        JoinRequestValidator.validate(bootstrapIp, privateKeyInput, username, password);
+
+        JoinRequestValidator.validate(bootstrapIp, privateKeyInput, username, password, bootstrapPublicKey);
 
         bootstrapIp = bootstrapIp.trim();
         privateKeyInput = privateKeyInput.trim();
         username = username.trim();
         password = password.trim();
+        bootstrapPublicKey = bootstrapPublicKey.trim();
 
         DBUtil.getInstance().saveBootstrapIp(bootstrapIp);
+        DBUtil.getInstance().setBootstrapNode(new NodeConfig(bootstrapIp,Role.BOOTSTRAP ,
+                SignatureUtil.getPublicKeyFromString(bootstrapPublicKey)));
+
         AppModeStore.setMode(AppMode.NODE);
 
         PrivateKey privateKey = SignatureUtil.getPrivateKeyFromString(privateKeyInput);

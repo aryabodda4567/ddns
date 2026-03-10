@@ -198,7 +198,7 @@ public class Election implements MessageHandler {
                 ConversionUtil.toJson(vote));
 
         try {
-            NetworkManager.sendDirectMessage(nomination.getIpAddress(), ConversionUtil.toJson(msg));
+            NetworkManager.sendDirectMessage(nomination.getNodeConfig(), ConversionUtil.toJson(msg));
             // Mark as handled locally by simply removing the nomination
             removeNomination(nomination);
             log.info("[Election] Vote sent to " + nomination.getIpAddress());

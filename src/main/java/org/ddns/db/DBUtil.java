@@ -529,6 +529,13 @@ public class DBUtil {
     public void setSelfNode(NodeConfig nodeConfig) {
         this.putString(ConfigKey.SELF_NODE.key(), ConversionUtil.toJson(nodeConfig));
     }
+    public void setBootstrapNode(NodeConfig nodeConfig) {
+        this.putString(ConfigKey.BOOTSTRAP_NODE.key(), ConversionUtil.toJson(nodeConfig));
+    }
+    public NodeConfig getBootstrapNode() {
+        String jsonString = this.getString(ConfigKey.BOOTSTRAP_NODE.key());
+        return ConversionUtil.fromJson(jsonString, NodeConfig.class);
+    }
 
     public void clearNominations() {
         withWrite(() -> {
