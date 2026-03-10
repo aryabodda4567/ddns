@@ -69,7 +69,7 @@ public class Main {
 
     }
 
-    public void init() {
+    public void init() throws Exception {
         // one Scanner for lifecycle
 
 
