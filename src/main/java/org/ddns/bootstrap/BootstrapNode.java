@@ -144,7 +144,7 @@ public class BootstrapNode implements MessageHandler {
             Message message = new Message(
                     MessageType.QUEUE_UPDATE,
                     NetworkUtility.getLocalIpAddress(),
-                    null,
+                    DBUtil.getInstance().getPublicKey(),
                     ConversionUtil.toJson(queueNodeSet));
 
             NetworkManager.broadcast(ConversionUtil.toJson(message),
@@ -225,7 +225,7 @@ public class BootstrapNode implements MessageHandler {
             Message message = new Message(
                     type,
                     NetworkUtility.getLocalIpAddress(),
-                    null, // Signed by the Bootstrap node
+                    DBUtil.getInstance().getPublicKey(), // Signed by the Bootstrap node
                     ConversionUtil.toJson(nodeConfig));
 
             // Update the queue
@@ -246,7 +246,7 @@ public class BootstrapNode implements MessageHandler {
             Message message1 = new Message(
                     MessageType.QUEUE_UPDATE,
                     NetworkUtility.getLocalIpAddress(),
-                    null,
+                    DBUtil.getInstance().getPublicKey(),
                     ConversionUtil.toJson(queueNodeSet));
 
             NetworkManager.broadcast(ConversionUtil.toJson(message1),
