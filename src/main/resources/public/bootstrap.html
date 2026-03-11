@@ -43,18 +43,102 @@
             color: var(--text-soft);
         }
 
-        #configuredBanner {
+        /* Setup section — shown before activation */
+        #setupSection {
+            text-align: center;
+            padding: 32px 24px;
+        }
+
+        #setupSection p.subtle {
+            max-width: 480px;
+            margin: 10px auto 24px;
+        }
+
+        /* Node info card — shown after activation */
+        #nodeInfoCard {
             display: none;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        @media (max-width: 600px) {
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .info-item {
+            background: var(--panel-2);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 14px 16px;
+        }
+
+        .info-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-soft);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+        }
+
+        .info-value-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .info-value {
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            font-size: 12px;
+            word-break: break-all;
+            color: var(--text);
+            flex: 1;
+            line-height: 1.5;
+        }
+
+        .copy-btn {
+            flex-shrink: 0;
+            padding: 4px 10px;
+            font-size: 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 1px solid var(--line);
+            background: #fff;
+            color: var(--text-soft);
+            transition: background 0.15s, color 0.15s;
+        }
+
+        .copy-btn:hover {
+            background: var(--accent, #2563eb);
+            color: #fff;
+            border-color: var(--accent, #2563eb);
+        }
+
+        .copy-btn.copied {
+            background: #16a34a;
+            color: #fff;
+            border-color: #16a34a;
+        }
+
+        .status-banner {
+            display: flex;
             align-items: center;
             gap: 10px;
             background: #edf9f2;
             border: 1px solid #82d1a8;
             border-radius: 12px;
-            padding: 14px 16px;
+            padding: 12px 16px;
             color: #0f5132;
             font-size: 14px;
             font-weight: 600;
-            margin-top: 14px;
+            margin-bottom: 16px;
         }
     </style>
 </head>
@@ -74,27 +158,43 @@
 
         <main class="content-stack" style="margin-top: 16px;">
 
-            <!-- Setup Form (hidden once configured) -->
+            <!-- Setup Section (shown before activation) -->
             <section class="card" id="setupSection">
-                <h1>Bootstrap Configuration</h1>
-                <p class="subtle" style="margin-top: 8px;">Enter the private key to activate this Bootstrap Node.</p>
+                <h1>Bootstrap Node</h1>
+                <p class="subtle">Click the button below to activate this machine as a Bootstrap Node.
+                    A unique cryptographic keypair will be generated automatically.</p>
 
-                <div class="form-group" style="margin-top: 10px;">
-                    <label for="privateKey">Private Key (PEM / Base64)</label>
-                    <textarea id="privateKey" placeholder="-----BEGIN PRIVATE KEY-----"></textarea>
+                <div class="action-row" style="justify-content: center; margin-top: 0;">
+                    <button id="activateBtn" onclick="activateBootstrap()">⚡ Activate Bootstrap Node</button>
                 </div>
 
-                <div class="action-row" style="margin-top: 10px;">
-                    <button id="setupButton" onclick="setupBootstrap()">Save &amp; Activate</button>
-                </div>
-
-                <div id="setupResult"></div>
+                <div id="setupResult" style="margin-top: 12px;"></div>
             </section>
 
-            <!-- Configured Banner (shown after setup) -->
-            <div id="configuredBanner">
-                ✅ &nbsp;Configured as Bootstrap Node &mdash; registry is active.
-            </div>
+            <!-- Node Info Card (shown after activation) -->
+            <section class="card" id="nodeInfoCard">
+                <div class="status-banner">✅ &nbsp;Configured as Bootstrap Node — registry is active.</div>
+                <h2 style="margin: 0 0 4px;">Node Identity</h2>
+                <p class="subtle" style="margin: 0 0 4px;">Share your Public Key and Bootstrap IP with nodes that want
+                    to join the network.</p>
+
+                <div class="info-grid">
+                    <div class="info-item" style="grid-column: 1 / -1;">
+                        <div class="info-label">Public Key</div>
+                        <div class="info-value-row">
+                            <div class="info-value mono" id="displayPublicKey">—</div>
+                            <button class="copy-btn" onclick="copyValue('displayPublicKey', this)">Copy</button>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Bootstrap IP</div>
+                        <div class="info-value-row">
+                            <div class="info-value" id="displayBootstrapIp">—</div>
+                            <button class="copy-btn" onclick="copyValue('displayBootstrapIp', this)">Copy</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
             <!-- Nodes Section -->
             <section class="card">
@@ -124,22 +224,31 @@
             container.appendChild(box);
         }
 
-        function showConfiguredState() {
-            // Hide the setup form
+        function showNodeInfo(publicKey, bootstrapIp) {
             document.getElementById('setupSection').style.display = 'none';
-            // Show the configured banner
-            const banner = document.getElementById('configuredBanner');
-            banner.style.display = 'flex';
+            document.getElementById('displayPublicKey').textContent = publicKey || '—';
+            document.getElementById('displayBootstrapIp').textContent = bootstrapIp || '—';
+            document.getElementById('nodeInfoCard').style.display = 'block';
         }
 
-        async function setupBootstrap() {
-            const key = document.getElementById('privateKey').value.trim();
-            if (!key) {
-                showAlert('setupResult', 'Private key is required.', false);
-                return;
+        async function copyValue(elementId, btn) {
+            const text = document.getElementById(elementId).textContent;
+            try {
+                await navigator.clipboard.writeText(text);
+                btn.textContent = 'Copied!';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = 'Copy';
+                    btn.classList.remove('copied');
+                }, 2000);
+            } catch (e) {
+                btn.textContent = 'Failed';
+                setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
             }
+        }
 
-            const btn = document.getElementById('setupButton');
+        async function activateBootstrap() {
+            const btn = document.getElementById('activateBtn');
             btn.disabled = true;
             btn.textContent = 'Activating…';
 
@@ -147,22 +256,21 @@
                 const res = await fetch('/mode/bootstrap/setup', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ privateKey: key })
+                    body: '{}'
                 });
                 const json = await res.json();
                 if (!res.ok || json.error) {
-                    showAlert('setupResult', json.error || 'Bootstrap setup failed.', false);
+                    showAlert('setupResult', json.error || 'Bootstrap activation failed.', false);
                     btn.disabled = false;
-                    btn.textContent = 'Save & Activate';
+                    btn.textContent = '⚡ Activate Bootstrap Node';
                     return;
                 }
-                // Transition to configured state
-                showConfiguredState();
+                showNodeInfo(json.publicKey, json.localIp);
                 await loadNodes();
             } catch (e) {
-                showAlert('setupResult', 'Failed to configure bootstrap: ' + e, false);
+                showAlert('setupResult', 'Failed to activate: ' + e, false);
                 btn.disabled = false;
-                btn.textContent = 'Save & Activate';
+                btn.textContent = '⚡ Activate Bootstrap Node';
             }
         }
 
@@ -208,7 +316,7 @@
             }
         }
 
-        // On load: verify mode, show correct state
+        // On load: verify mode; if already configured, fetch and display node info
         (async function init() {
             try {
                 const res = await fetch('/mode/bootstrap/status');
@@ -218,7 +326,18 @@
                     return;
                 }
                 if (json.configured) {
-                    showConfiguredState();
+                    // Fetch stored public key + IP from the server
+                    try {
+                        const infoRes = await fetch('/mode/bootstrap/info');
+                        const info = await infoRes.json();
+                        if (infoRes.ok && !info.error) {
+                            showNodeInfo(info.publicKey, info.bootstrapIp);
+                        }
+                    } catch (_) {
+                        // If info fetch fails just hide setup section with a banner
+                        document.getElementById('setupSection').style.display = 'none';
+                        document.getElementById('nodeInfoCard').style.display = 'block';
+                    }
                 }
             } catch (_) {
                 window.location.replace('/');

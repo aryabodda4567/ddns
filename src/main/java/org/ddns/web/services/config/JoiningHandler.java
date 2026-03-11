@@ -16,13 +16,13 @@ import spark.Request;
 import spark.Response;
 
 import java.security.KeyPair;
-import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.Map;
 
 /**
- * Handles the join request by storing bootstrap info, keys and web credentials,
- * then triggering node fetch/sync bootstrap logic.
+ * Handles the join request by storing bootstrap info, auto-generating a
+ * keypair,
+ * saving web credentials, then triggering node fetch/sync bootstrap logic.
  */
 public class JoiningHandler {
 
@@ -36,37 +36,37 @@ public class JoiningHandler {
         }
 
         String bootstrapIp = joinRequest.bootstrapIp;
-        String privateKeyInput = joinRequest.privateKey;
         String username = joinRequest.username;
         String password = joinRequest.password;
         String bootstrapPublicKey = joinRequest.bootstrapPublicKey;
 
-
-        JoinRequestValidator.validate(bootstrapIp, privateKeyInput, username, password, bootstrapPublicKey);
+        JoinRequestValidator.validate(bootstrapIp, bootstrapPublicKey, username, password);
 
         bootstrapIp = bootstrapIp.trim();
-        privateKeyInput = privateKeyInput.trim();
         username = username.trim();
         password = password.trim();
         bootstrapPublicKey = bootstrapPublicKey.trim();
 
         DBUtil.getInstance().saveBootstrapIp(bootstrapIp);
-        DBUtil.getInstance().setBootstrapNode(new NodeConfig(bootstrapIp,Role.BOOTSTRAP ,
+        DBUtil.getInstance().setBootstrapNode(new NodeConfig(bootstrapIp, Role.BOOTSTRAP,
                 SignatureUtil.getPublicKeyFromString(bootstrapPublicKey)));
 
         AppModeStore.setMode(AppMode.NODE);
 
-        PrivateKey privateKey = SignatureUtil.getPrivateKeyFromString(privateKeyInput);
-        PublicKey publicKey = Wallet.getPublicKeyFromPrivateKey(privateKey);
+        // Auto-generate a fresh keypair for this node — no private key input required
+        KeyPair keyPair = Wallet.getKeyPair();
+        PublicKey publicKey = keyPair.getPublic();
 
-        LOG.info("Public key: {}", publicKey);
-        DBUtil.getInstance().saveKeys(publicKey, privateKey);
+        LOG.info("Generated new keypair for joining node. Public key: {}", publicKey);
+        DBUtil.getInstance().saveKeys(publicKey, keyPair.getPrivate());
 
         String localIp = NetworkUtility.getLocalIpAddress();
         DBUtil.getInstance().setSelfNode(new NodeConfig(localIp, Role.NONE, publicKey));
 
         User.saveUser(User.fromCredentials(username, password));
         long expiresAt = SessionManager.createSession(response);
+
+        String publicKeyStr = SignatureUtil.getStringFromKey(publicKey);
 
         response.type("application/json");
 
@@ -78,11 +78,10 @@ public class JoiningHandler {
 
         return Map.of(
                 "status", "ok",
-                "publicKey", publicKey.toString(),
+                "publicKey", publicKeyStr,
                 "localIp", localIp,
                 "username", username,
                 "expiresAt", expiresAt,
-                "sessionSeconds", SessionManager.SESSION_DURATION_SECONDS
-        );
+                "sessionSeconds", SessionManager.SESSION_DURATION_SECONDS);
     }
 }

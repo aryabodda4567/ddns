@@ -5,12 +5,13 @@ import org.ddns.bc.SignatureUtil;
 import java.net.IDN;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.Base64;
 
 /**
  * Validates join request input from web layer.
+ * The node's keypair is generated server-side, so only bootstrapIp,
+ * bootstrapPublicKey, username, and password are validated here.
  */
 public final class JoinRequestValidator {
 
@@ -25,24 +26,13 @@ public final class JoinRequestValidator {
     }
 
     public static void validate(String bootstrapHost,
-                                String bootstrapPublicKey,
-                                String privateKeyString,
-                                String username,
-                                String password) {
+            String bootstrapPublicKey,
+            String username,
+            String password) {
 
         validateHost(bootstrapHost);
         validatePublicKey(bootstrapPublicKey);
-        validatePrivateKey(privateKeyString);
         validateCredentials(username, password);
-    }
-
-    public static void validate(String bootstrapHost,
-                                String bootstrapPublicKey,
-                                String privateKeyString) {
-
-        validateHost(bootstrapHost);
-        validatePublicKey(bootstrapPublicKey);
-        validatePrivateKey(privateKeyString);
     }
 
     private static void validateHost(String host) {
@@ -65,31 +55,6 @@ public final class JoinRequestValidator {
             InetAddress.getByName(normalizedHost);
         } catch (UnknownHostException e) {
             throw new IllegalArgumentException("Bootstrap host is not resolvable");
-        }
-    }
-
-    private static void validatePrivateKey(String key) {
-        if (key == null || key.trim().isEmpty()) {
-            throw new IllegalArgumentException("Private key is required");
-        }
-
-        String trimmedKey = key.trim();
-        if (trimmedKey.length() > MAX_KEY_LENGTH) {
-            throw new IllegalArgumentException("Private key too large");
-        }
-
-        String normalized = stripPemIfPresent(trimmedKey);
-        if (!isBase64(normalized)) {
-            throw new IllegalArgumentException("Private key is not valid Base64 or PEM");
-        }
-
-        try {
-            PrivateKey parsedKey = SignatureUtil.getPrivateKeyFromString(trimmedKey);
-            if (parsedKey == null) {
-                throw new IllegalArgumentException("Private key could not be parsed");
-            }
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Private key is invalid or corrupted");
         }
     }
 
