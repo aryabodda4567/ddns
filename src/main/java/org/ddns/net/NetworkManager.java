@@ -222,9 +222,10 @@ public class NetworkManager {
         }
     }
 
-    private void dispatchDirect(String message) {
+    private void dispatchDirect(String message) throws Exception {
         for (MessageHandler handler : handlers) {
-            handler.onDirectMessage(message);
+
+            handler.onDirectMessage(CryptManager.decrypt(message));
         }
     }
 
@@ -281,7 +282,7 @@ public class NetworkManager {
                         if (message != null) {
                             dispatchDirect(message);
                         }
-                    } catch (IOException e) {
+                    } catch (Exception e) {
                         log.error("[NetworkManager] Error reading direct message: " + e.getMessage());
                     }
                 });

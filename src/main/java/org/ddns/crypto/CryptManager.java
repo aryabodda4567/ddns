@@ -49,7 +49,7 @@ public class CryptManager {
      * @param plaintext message to encrypt
      * @return MessageWrapper containing encrypted payload
      */
-    public static MessageWrapper encrypt(PublicKey receiverPublicKey, String plaintext) throws Exception {
+    public static String encrypt(PublicKey receiverPublicKey, String plaintext) throws Exception {
 
         if (receiverPublicKey == null) {
             throw new IllegalArgumentException("Receiver public key cannot be null");
@@ -80,11 +80,12 @@ public class CryptManager {
             // Create digital signature of plaintext
             byte[] signature = SignatureUtil.sign(senderPrivateKey, plaintext);
 
-            return new MessageWrapper(
+            MessageWrapper messageWrapper =new MessageWrapper(
                     senderPublicKey,
                     signature,
                     encryptedMessage
             );
+            return  ConversionUtil.toJson(messageWrapper);
 
         } catch (Exception e) {
 
@@ -102,10 +103,12 @@ public class CryptManager {
      * 2. Verify digital signature
      * 3. Validate sender node exists in network
      *
-     * @param messageWrapper encrypted message wrapper
+     * @param jsonString encrypted message
      * @return decrypted plaintext
      */
-    public static String decrypt(MessageWrapper messageWrapper) throws Exception {
+    public static String decrypt(String jsonString) throws Exception {
+
+        MessageWrapper messageWrapper = ConversionUtil.fromJson(jsonString, MessageWrapper.class);
 
         if (messageWrapper == null) {
             throw new IllegalArgumentException("MessageWrapper cannot be null");
