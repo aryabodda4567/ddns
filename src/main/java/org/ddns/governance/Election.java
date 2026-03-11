@@ -150,7 +150,7 @@ public class Election implements MessageHandler {
                     NetworkUtility.getLocalIpAddress(),
                     DBUtil.getInstance().getPublicKey(), // sender's public key
                     ConversionUtil.toJson(nomination));
-
+            msg.setExclude(true);
             // Broadcast to ALL nodes
             NetworkManager.broadcast(
                     ConversionUtil.toJson(msg),
