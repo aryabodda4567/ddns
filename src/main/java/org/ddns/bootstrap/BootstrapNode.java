@@ -1,5 +1,6 @@
 package org.ddns.bootstrap;
 
+import org.ddns.bc.SignatureUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,6 +83,8 @@ public class BootstrapNode implements MessageHandler {
 
     private void resolveGetRequest(Message requestMessage) throws Exception {
         String senderIp = requestMessage.senderIp;
+        NodeConfig senderNode =new NodeConfig(senderIp, Role.NONE,
+                SignatureUtil.getPublicKeyFromString(requestMessage.senderPublicKey));
 
         if (senderIp == null || senderIp.isEmpty()) {
             log.warn("[BootstrapNode] Cannot resolve FETCH_NODES: Sender IP is missing.");
@@ -105,7 +108,7 @@ public class BootstrapNode implements MessageHandler {
         log.info("[BootstrapNode] Sending node list (" + nodeConfigSet.size() +
                 " nodes) to " + senderIp);
 
-        NetworkManager.sendDirectMessage(senderIp, ConversionUtil.toJson(response));
+        NetworkManager.sendDirectMessage(senderNode, ConversionUtil.toJson(response));
     }
 
     private void resolveAddRequest(Message requestMessage) {

@@ -14,7 +14,9 @@ import org.ddns.net.NetworkManager;
 import org.ddns.node.NodesManager;
 import org.ddns.web.WebServer;
 
+import java.security.KeyPair;
 import java.security.Security;
+
 
 /**
  * Main application entrypoint for the dDNS node app.
@@ -83,9 +85,13 @@ public class Main {
 
         // Print short fingerprint for debug - avoid leaking private key
         try {
-            String fp = SignatureUtil.getStringFromKey(Wallet.getKeyPair().getPrivate());
-            System.out.printf(" %s\n", fp);
-            log.debug("Local key fingerprint (short): {}", (fp.length() > 40 ? fp.substring(0, 40) : fp));
+            KeyPair keyPair = Wallet.getKeyPair() ;
+
+            String privateKey =  SignatureUtil.getStringFromKey(keyPair.getPrivate());
+            String publicKey = SignatureUtil.getStringFromKey(keyPair.getPublic());
+            System.out.println("Private key: " + privateKey);
+            System.out.println("Public key: " + publicKey);
+
         } catch (Throwable ignored) {}
     }
 

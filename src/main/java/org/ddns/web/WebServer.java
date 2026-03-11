@@ -52,6 +52,7 @@ public final class WebServer {
             "/mode/select",
             "/mode/bootstrap/setup",
             "/mode/bootstrap/status",
+            "/mode/bootstrap/info",
             "/bootstrap/nodes",
             "/auth/session");
 
@@ -245,6 +246,7 @@ public final class WebServer {
         get("/mode", MODE_HANDLER::getMode, GSON::toJson);
         post("/mode/select", MODE_HANDLER::selectMode, GSON::toJson);
         get("/mode/bootstrap/status", MODE_HANDLER::bootstrapStatus, GSON::toJson);
+        get("/mode/bootstrap/info", MODE_HANDLER::bootstrapInfo, GSON::toJson);
         post("/mode/bootstrap/setup", MODE_HANDLER::setupBootstrap, GSON::toJson);
         get("/bootstrap/nodes", MODE_HANDLER::listBootstrapNodes, GSON::toJson);
 

@@ -58,8 +58,9 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="privateKey">Private Key (PEM / Base64)</label>
-                        <textarea id="privateKey" placeholder="-----BEGIN PRIVATE KEY-----"></textarea>
+                        <label for="bootstrapPubKey">Bootstrap Node Public Key</label>
+                        <textarea id="bootstrapPubKey"
+                            placeholder="Paste the bootstrap node's public key here"></textarea>
                     </div>
 
                     <div class="action-row" style="margin-top: 14px;">
@@ -70,9 +71,14 @@
                     <div id="result"></div>
 
                     <div id="successBox" class="muted-box" style="display:none; margin-top: 14px;">
-                        Node configured successfully.
-                        <div style="margin-top:8px;">Public Key:</div>
-                        <div id="pubKeyShort" style="margin-top:4px; font-family: Consolas, monospace;"></div>
+                        ✅ Node configured successfully. Your generated public key:
+                        <div style="margin-top:10px; display:flex; align-items:flex-start; gap:10px;">
+                            <div id="pubKeyDisplay"
+                                style="font-family: Consolas, monospace; font-size:12px; word-break:break-all; flex:1; line-height:1.5;">
+                            </div>
+                            <button id="copyPubKeyBtn" onclick="copyPublicKey()"
+                                style="flex-shrink:0; padding:4px 10px; font-size:12px; border-radius:6px; cursor:pointer; border:1px solid #ccc; background:#fff;">Copy</button>
+                        </div>
                     </div>
                 </section>
             </main>
@@ -132,7 +138,7 @@
             if (!data.username || data.username.length < 3) return "Username is required (min 3 characters)";
             if (!data.password || data.password.length < 6) return "Password is required (min 6 characters)";
             if (!data.bootstrapIp || !isValidHost(data.bootstrapIp)) return "Bootstrap IP / Host is required";
-            if (!data.privateKey || data.privateKey.length < 20) return "Private key is required (too short / invalid)";
+            if (!data.bootstrapPublicKey || data.bootstrapPublicKey.length < 20) return "Bootstrap Public Key is required";
             return null;
         }
 
@@ -141,7 +147,7 @@
                 username: document.getElementById("username").value.trim(),
                 password: document.getElementById("password").value.trim(),
                 bootstrapIp: document.getElementById("bootstrapIp").value.trim(),
-                privateKey: document.getElementById("privateKey").value.trim()
+                bootstrapPublicKey: document.getElementById("bootstrapPubKey").value.trim()
             };
 
             const resultBox = document.getElementById("result");
@@ -170,7 +176,7 @@
                     return;
                 }
 
-                document.getElementById("pubKeyShort").textContent = shortenKey(json.publicKey);
+                document.getElementById("pubKeyDisplay").textContent = json.publicKey || '';
                 successBox.style.display = "block";
                 document.getElementById("joinBtn").disabled = true;
                 showMessage(json, true);
@@ -183,10 +189,19 @@
             }
         }
 
-        function shortenKey(pk) {
-            if (!pk) return "";
-            if (pk.length < 30) return pk;
-            return pk.substring(0, 12) + "..." + pk.substring(pk.length - 12);
+        async function copyPublicKey() {
+            const text = document.getElementById('pubKeyDisplay').textContent;
+            const btn = document.getElementById('copyPubKeyBtn');
+            try {
+                await navigator.clipboard.writeText(text);
+                btn.textContent = 'Copied!';
+                btn.style.background = '#16a34a';
+                btn.style.color = '#fff';
+                setTimeout(() => { btn.textContent = 'Copy'; btn.style.background = ''; btn.style.color = ''; }, 2000);
+            } catch (e) {
+                btn.textContent = 'Failed';
+                setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+            }
         }
 
         /**

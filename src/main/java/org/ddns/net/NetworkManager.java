@@ -74,15 +74,15 @@ public class NetworkManager {
     /**
      * Sends a JSON message directly to a specific peer via TCP.
      */
-    public static boolean sendDirectMessage(String peerIp, String jsonMessage) {
+    public static boolean sendDirectMessage(NodeConfig nodeConfig, String jsonMessage) {
 
-        try (Socket socket = new Socket(peerIp, DIRECT_MESSAGE_PORT);
+        try (Socket socket = new Socket(nodeConfig.getIp(), DIRECT_MESSAGE_PORT);
              PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
             out.println(jsonMessage);
-            log.info("[NetworkManager] Sent direct message to " + peerIp);
+            log.info("[NetworkManager] Sent direct message to " + nodeConfig.getIp());
             return true;
         } catch (Exception e) {
-            log.error("[NetworkManager] Failed to send direct message to " + peerIp + ": " + e.getMessage());
+            log.error("[NetworkManager] Failed to send direct message to " + nodeConfig.getIp() + ": " + e.getMessage());
             return false;
         }
     }
@@ -121,7 +121,7 @@ public class NetworkManager {
 
         for (NodeConfig nodeConfig : nodeConfigSet) {
             if (nodeConfig == null || nodeConfig.getIp() == null) continue;
-            boolean success = sendDirectMessage(nodeConfig.getIp(), jsonMessage);
+            boolean success = sendDirectMessage(nodeConfig, jsonMessage);
             if (success) sentCount++;
         }
 

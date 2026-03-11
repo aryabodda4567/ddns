@@ -11,7 +11,7 @@ import org.ddns.util.NetworkUtility;
 import spark.Request;
 import spark.Response;
 
-import java.security.PrivateKey;
+import java.security.KeyPair;
 import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,7 +55,7 @@ public class ModeHandler {
     public Object bootstrapStatus(Request request, Response response) {
         boolean configured = AppModeStore.getMode() == AppMode.BOOTSTRAP;
         try {
-            configured = configured && DBUtil.getInstance().getPrivateKey() != null;
+            configured = configured && DBUtil.getInstance().getPublicKey() != null;
         } catch (Exception ignored) {
             configured = false;
         }
@@ -65,21 +65,48 @@ public class ModeHandler {
                 "configured", configured);
     }
 
-    public Object setupBootstrap(Request request, Response response) throws Exception {
-        BootstrapSetupRequest setupRequest = gson.fromJson(request.body(), BootstrapSetupRequest.class);
-        if (setupRequest == null || setupRequest.privateKey == null || setupRequest.privateKey.isBlank()) {
-            response.status(400);
-            return Map.of("error", "Private key is required");
+    /**
+     * Returns the stored public key and bootstrap IP for display on the bootstrap
+     * page.
+     * Only valid when the node is already configured as a bootstrap node.
+     */
+    public Object bootstrapInfo(Request request, Response response) {
+        response.type("application/json");
+        if (AppModeStore.getMode() != AppMode.BOOTSTRAP) {
+            response.status(403);
+            return Map.of("error", "Not in bootstrap mode");
         }
+        try {
+            PublicKey publicKey = DBUtil.getInstance().getPublicKey();
+            if (publicKey == null) {
+                response.status(404);
+                return Map.of("error", "Bootstrap not configured yet");
+            }
+            String publicKeyStr = SignatureUtil.getStringFromKey(publicKey);
+            String bootstrapIp = DBUtil.getInstance().getBootstrapIp();
+            return Map.of(
+                    "publicKey", publicKeyStr != null ? publicKeyStr : "",
+                    "bootstrapIp", bootstrapIp != null ? bootstrapIp : "");
+        } catch (Exception e) {
+            response.status(500);
+            return Map.of("error", "Failed to retrieve bootstrap info");
+        }
+    }
 
-        String privateKeyInput = setupRequest.privateKey.trim();
-        PrivateKey privateKey = SignatureUtil.getPrivateKeyFromString(privateKeyInput);
-        PublicKey publicKey = Wallet.getPublicKeyFromPrivateKey(privateKey);
+    /**
+     * Automatically generates a keypair and configures this node as a Bootstrap
+     * node.
+     * No private key input is required from the user.
+     */
+    public Object setupBootstrap(Request request, Response response) throws Exception {
+        // Auto-generate a fresh keypair — no user input needed
+        KeyPair keyPair = Wallet.getKeyPair();
+        PublicKey publicKey = keyPair.getPublic();
 
         String localIp = NetworkUtility.getLocalIpAddress();
         NodeConfig selfNode = new NodeConfig(localIp, Role.BOOTSTRAP, publicKey);
 
-        DBUtil.getInstance().saveKeys(publicKey, privateKey);
+        DBUtil.getInstance().saveKeys(publicKey, keyPair.getPrivate());
         DBUtil.getInstance().setSelfNode(selfNode);
         DBUtil.getInstance().saveBootstrapIp(localIp);
 
@@ -87,11 +114,14 @@ public class ModeHandler {
         // BootstrapDB only tracks real chain nodes that join the network.
         AppModeStore.setMode(AppMode.BOOTSTRAP);
 
+        String publicKeyStr = SignatureUtil.getStringFromKey(publicKey);
+
         response.type("application/json");
         return Map.of(
                 "status", "ok",
                 "mode", AppMode.BOOTSTRAP.name(),
                 "localIp", localIp,
+                "publicKey", publicKeyStr,
                 "role", Role.BOOTSTRAP.name());
     }
 
@@ -119,9 +149,5 @@ public class ModeHandler {
 
     private static class ModeRequest {
         String mode;
-    }
-
-    private static class BootstrapSetupRequest {
-        String privateKey;
     }
 }
