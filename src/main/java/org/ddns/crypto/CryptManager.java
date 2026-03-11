@@ -8,6 +8,7 @@ import org.ddns.db.DBUtil;
 import org.ddns.net.Message;
 import org.ddns.node.NodeConfig;
 import org.ddns.util.ConversionUtil;
+import org.w3c.dom.Node;
 
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -212,7 +213,8 @@ public class CryptManager {
 
         Set<NodeConfig> localNodes = DBUtil.getInstance().getAllNodes();
         Set<NodeConfig> bootstrapNodes = BootstrapDB.getInstance().getAllNodes();
-
+        NodeConfig selfNode = DBUtil.getInstance().getSelfNode();
+        NodeConfig bootstrapNode = DBUtil.getInstance().getBootstrapNode();
         Set<NodeConfig> union = new HashSet<>();
 
         if (localNodes != null) {
@@ -220,6 +222,9 @@ public class CryptManager {
         }
 
         union.addAll(bootstrapNodes);
+        union.add(selfNode);
+        union.add(bootstrapNode);
+
 
         return union.contains(nodeConfig);
     }
