@@ -196,7 +196,7 @@ public class Election implements MessageHandler {
                 nomination.getIpAddress(), // receiver IP (candidate)
                 nomination.getNodeConfig().getPublicKey(), // receiver pubkey
                 ConversionUtil.toJson(vote));
-
+        msg.setExclude(true);
         try {
             NetworkManager.sendDirectMessage(nomination.getNodeConfig(), ConversionUtil.toJson(msg));
             // Mark as handled locally by simply removing the nomination

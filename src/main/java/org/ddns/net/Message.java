@@ -19,6 +19,7 @@ public class Message {
     public byte[] signature;
     public static final int  TTL=1500;//TTL in milliseconds
     public final long initTime;
+    public boolean exclude;
 
     public Message(MessageType type, String senderIp, PublicKey senderPublicKey, String payload) {
         this.type = type;
@@ -32,6 +33,14 @@ public class Message {
 
     public String toHashString() {
         return type.toString() + senderIp + senderPublicKey + payload;
+    }
+
+    public boolean isExclude() {
+        return exclude;
+    }
+
+    public void setExclude(boolean exclude) {
+        this.exclude = exclude;
     }
 
     @Override

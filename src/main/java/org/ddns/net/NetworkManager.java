@@ -1,5 +1,7 @@
 package org.ddns.net;
 
+import org.ddns.crypto.CryptManager;
+import org.ddns.crypto.Crypto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,11 +76,11 @@ public class NetworkManager {
     /**
      * Sends a JSON message directly to a specific peer via TCP.
      */
-    public static boolean sendDirectMessage(NodeConfig nodeConfig, String jsonMessage) {
+    public static boolean sendDirectMessage(NodeConfig nodeConfig, String jsonMessage  ) {
 
         try (Socket socket = new Socket(nodeConfig.getIp(), DIRECT_MESSAGE_PORT);
              PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
-            out.println(jsonMessage);
+            out.println(CryptManager.encrypt(nodeConfig.getPublicKey(), jsonMessage));
             log.info("[NetworkManager] Sent direct message to " + nodeConfig.getIp());
             return true;
         } catch (Exception e) {

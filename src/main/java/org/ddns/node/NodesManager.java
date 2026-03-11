@@ -316,7 +316,7 @@ public class NodesManager implements MessageHandler {
                 selfIp,
                 selfKey,
                 ConversionUtil.toJson(Map.of("IP", NetworkUtility.getLocalIpAddress())));
-
+        message.setExclude(true);
         log.info("[NodesManager] Sending FETCH_NODES request to Bootstrap at " + bootstrap.getIp());
         NetworkManager.sendDirectMessage(bootstrap, ConversionUtil.toJson(message));
     }
@@ -351,7 +351,7 @@ public class NodesManager implements MessageHandler {
                 selfNode.getPublicKey(), // Use PublicKey from self-node config
                 ConversionUtil.toJson(selfNode) // Payload is our own NodeConfig
         );
-
+        message.setExclude(true);
         NetworkManager.sendDirectMessage(bootstrap, ConversionUtil.toJson(message));
     }
     // This method sends a request to any peer node to send sync data
@@ -375,6 +375,7 @@ public class NodesManager implements MessageHandler {
                     NetworkUtility.getLocalIpAddress(),
                     DBUtil.getInstance().getPublicKey(),
                     "");
+            message.setExclude(true);
             if (targetNode != null) {
                 NetworkManager.sendDirectMessage(targetNode, ConversionUtil.toJson(message));
             } else {

@@ -104,6 +104,7 @@ public class BootstrapNode implements MessageHandler {
                 NetworkUtility.getLocalIpAddress(),
                 myPublicKey,
                 ConversionUtil.toJson(nodeConfigSet));
+        response.setExclude(true);
 
         log.info("[BootstrapNode] Sending node list (" + nodeConfigSet.size() +
                 " nodes) to " + senderIp);
