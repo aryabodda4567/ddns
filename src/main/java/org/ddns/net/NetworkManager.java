@@ -118,10 +118,11 @@ public class NetworkManager {
             log.warn("[NetworkManager] No nodes found to send broadcast message.");
             return;
         }
-
+        String selfIp = NetworkUtility.getLocalIpAddress();
         int sentCount = 0;
 
         for (NodeConfig nodeConfig : nodeConfigSet) {
+            if(nodeConfig.getIp().equals(selfIp)) continue;
             if (nodeConfig == null || nodeConfig.getIp() == null) continue;
             boolean success = sendDirectMessage(nodeConfig, jsonMessage);
             if (success) sentCount++;
