@@ -1,7 +1,6 @@
 package org.ddns.web.services.dns;
 
 
-
 public class DnsCreateRequest {
     public String origin;
     public String name;

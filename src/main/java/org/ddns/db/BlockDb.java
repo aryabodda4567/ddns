@@ -89,9 +89,9 @@ public final class BlockDb {
             stmt.execute(createTable);
             stmt.execute(idxHash);
             stmt.execute(idxTs);
-            log.info("[BlockDb] initialized.");
+            log.info("Block database initialized");
         } catch (SQLException e) {
-            log.error("[BlockDb] init failed: " + e.getMessage());
+            log.error("Block database initialization failed: {}", e.getMessage());
         }
     }
 
@@ -111,9 +111,9 @@ public final class BlockDb {
     /**
      * Inserts a block into the database.
      */
-    public boolean insertBlock(Block block ) {
+    public boolean insertBlock(Block block) {
         if (block == null) {
-            log.error("[BlockDb] insertBlock failed: block is null.");
+            log.error("insertBlock rejected because block is null");
             return false;
         }
 
@@ -123,7 +123,7 @@ public final class BlockDb {
             List<Transaction> txs = block.getTransactions();
             txJson = (txs == null) ? null : ConversionUtil.toJson(txs);
         } catch (Exception e) {
-            log.error("[BlockDb] insertBlock: failed to serialize transactions: " + e.getMessage());
+            log.error("insertBlock failed to serialize transactions: {}", e.getMessage());
             return false;
         }
 
@@ -146,10 +146,10 @@ public final class BlockDb {
                     try {
                         int updated = ps.executeUpdate();
                         if (updated > 0) {
-                            log.info("[BlockDb] insertBlock succeeded: " + block.getHash());
+                            log.info("Block persisted with hash {}", block.getHash());
                             return true;
                         } else {
-                            log.error("[BlockDb] insertBlock ignored (duplicate?) hash=" + block.getHash());
+                            log.error("insertBlock ignored; duplicate hash {}", block.getHash());
                             return false;
                         }
                     } catch (SQLException e) {
@@ -160,13 +160,13 @@ public final class BlockDb {
                             Thread.sleep(sleepMs);
                             continue;
                         } else {
-                            log.error("[BlockDb] insertBlock failed (SQL): " + e.getMessage());
+                            log.error("insertBlock failed during SQL execution: {}", e.getMessage());
                             return false;
                         }
                     }
                 }
             } catch (SQLException e) {
-                log.error("[BlockDb] insertBlock failed (connect): " + e.getMessage());
+                log.error("insertBlock failed while obtaining connection: {}", e.getMessage());
                 return false;
             }
         };
@@ -175,8 +175,8 @@ public final class BlockDb {
         try {
             f.get();
         } catch (Exception e) {
-            log.error("[BlockDb] insertBlock writer failure: " + e.getMessage());
-            return  false;
+            log.error("insertBlock writer thread failed: {}", e.getMessage());
+            return false;
         }
         return true;
 
@@ -193,7 +193,7 @@ public final class BlockDb {
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) return null;
 
-                Block block = new Block(rs.getString("previous_hash"), ConversionUtil.jsonToList(rs.getString("transactions_json"), Transaction.class),rs.getLong("timestamp"));
+                Block block = new Block(rs.getString("previous_hash"), ConversionUtil.jsonToList(rs.getString("transactions_json"), Transaction.class), rs.getLong("timestamp"));
 
                 block.setHash(rs.getString("hash"));
 
@@ -204,7 +204,7 @@ public final class BlockDb {
                 return block;
             }
         } catch (SQLException e) {
-            log.error("[BlockDb] readBlockByHash failed: " + e.getMessage());
+            log.error("readBlockByHash failed: {}", e.getMessage());
             return null;
         }
     }
@@ -218,13 +218,13 @@ public final class BlockDb {
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     String latestHash = rs.getString("hash");
-                    log.info("[BlockDb] Latest block hash: " + latestHash);
+                    log.info("Latest block hash: {}", latestHash);
                     return latestHash;
                 }
                 return "0";
             }
         } catch (SQLException e) {
-            log.error("[BlockDb] getLatestBlockHash failed: " + e.getMessage());
+            log.error("getLatestBlockHash failed: {}", e.getMessage());
             return null;
         }
     }
@@ -237,9 +237,9 @@ public final class BlockDb {
             conn.setAutoCommit(false);
             int deleted = s.executeUpdate("DELETE FROM blocks;");
             conn.commit();
-            log.info("[BlockDb] Truncated blocks. Rows deleted: " + deleted);
+            log.info("Blocks truncated; rows deleted={}", deleted);
         } catch (SQLException e) {
-            log.error("[BlockDb] truncateDatabase failed: " + e.getMessage());
+            log.error("truncateDatabase failed: {}", e.getMessage());
             return false;
         }
 
@@ -247,7 +247,7 @@ public final class BlockDb {
             try (Connection c = connect(); Statement s = c.createStatement()) {
                 s.execute("VACUUM;");
             } catch (SQLException e) {
-                log.error("[BlockDb] VACUUM failed: " + e.getMessage());
+                log.error("VACUUM after truncate failed: {}", e.getMessage());
             }
         }
         return true;
@@ -261,7 +261,7 @@ public final class BlockDb {
         try {
             Files.createDirectories(snapshotDir);
         } catch (IOException e) {
-            log.error("[BlockDb] Snapshot dir creation failed: " + e.getMessage());
+            log.error("Snapshot directory creation failed: {}", e.getMessage());
             return null;
         }
 
@@ -271,20 +271,20 @@ public final class BlockDb {
         try (Connection conn = DriverManager.getConnection(dbUrl); Statement s = conn.createStatement()) {
             String abs = snapshotPath.toAbsolutePath().toString().replace("'", "''");
             s.execute("VACUUM INTO '" + abs + "';");
-            log.info("[BlockDb] Snapshot created: " + snapshotPath);
+            log.info("Snapshot created at {}", snapshotPath);
             return snapshotPath.toString();
         } catch (SQLException e) {
-            log.error("[BlockDb] Snapshot VACUUM INTO failed, fallback to copy: " + e.getMessage());
+            log.error("Snapshot VACUUM INTO failed; falling back to file copy: {}", e.getMessage());
         }
 
         Path original = Path.of(dbUrl.replace("jdbc:sqlite:", ""));
         try {
             Files.copy(original, snapshotPath, StandardCopyOption.REPLACE_EXISTING);
-            log.info("[BlockDb] Snapshot copied: " + snapshotPath);
-            log.error("[BlockDb] NOTE: file copy snapshot may not be crash-consistent if DB is being written to. Prefer VACUUM INTO where supported.");
+            log.info("Snapshot copied to {}", snapshotPath);
+            log.error("File copy snapshot may be inconsistent during writes; prefer VACUUM INTO when supported");
             return snapshotPath.toString();
         } catch (IOException e) {
-            log.error("[BlockDb] Fallback copy failed: " + e.getMessage());
+            log.error("Snapshot file copy failed: {}", e.getMessage());
             return null;
         }
     }
@@ -300,7 +300,7 @@ public final class BlockDb {
         try {
             writer.shutdownNow();
         } catch (Exception e) {
-            log.error("[BlockDb] shutdownWriter failed: " + e.getMessage());
+            log.error("shutdownWriter failed: {}", e.getMessage());
         }
     }
 
@@ -315,13 +315,13 @@ public final class BlockDb {
     public synchronized List<String> extractInsertStatementsFromDbFile(String sourceDbFilePath) {
         List<String> inserts = new ArrayList<>();
         if (sourceDbFilePath == null || sourceDbFilePath.trim().isEmpty()) {
-            log.error("[BlockDb] extractInsertStatementsFromDbFile failed: source path is null/empty.");
+            log.error("extractInsertStatementsFromDbFile failed because source path is blank");
             return inserts;
         }
 
         Path src = Path.of(sourceDbFilePath).toAbsolutePath();
         if (!Files.exists(src)) {
-            log.error("[BlockDb] extractInsertStatementsFromDbFile failed: source DB not found: " + src);
+            log.error("extractInsertStatementsFromDbFile failed because source DB was not found: {}", src);
             return inserts;
         }
 
@@ -349,10 +349,10 @@ public final class BlockDb {
                 inserts.add(sb);
             }
 
-            log.info("[BlockDb] extractInsertStatementsFromDbFile completed, rows=" + inserts.size());
+            log.info("Extracted {} INSERT statements from {}", inserts.size(), src);
             return inserts;
         } catch (SQLException e) {
-            log.error("[BlockDb] extractInsertStatementsFromDbFile failed: " + e.getMessage());
+            log.error("extractInsertStatementsFromDbFile failed: {}", e.getMessage());
             return inserts;
         }
     }
@@ -369,16 +369,16 @@ public final class BlockDb {
      */
     public synchronized void executeInsertSQL(String insertSQL) {
         if (insertSQL == null || insertSQL.trim().isEmpty()) {
-            log.error("[BlockDb] executeInsertSQL failed: SQL is null/empty.");
+            log.error("executeInsertSQL rejected because SQL is empty");
             return;
         }
         String trimmed = insertSQL.trim().toUpperCase();
         if (!trimmed.startsWith("INSERT")) {
-            log.error("[BlockDb] executeInsertSQL rejected: only INSERT statements are allowed.");
+            log.error("executeInsertSQL rejected because statement is not an INSERT");
             return;
         }
         if (!trimmed.contains("BLOCKS")) {
-            log.error("[BlockDb] executeInsertSQL rejected: statement must target 'blocks' table.");
+            log.error("executeInsertSQL rejected because statement must target 'blocks' table");
             return;
         }
 
@@ -387,10 +387,10 @@ public final class BlockDb {
                 conn.setAutoCommit(false);
                 int rows = stmt.executeUpdate(insertSQL);
                 conn.commit();
-                log.info("[BlockDb] executeInsertSQL succeeded, rowsInserted=" + rows);
+                log.info("executeInsertSQL succeeded; rowsInserted={}", rows);
                 return rows > 0;
             } catch (SQLException e) {
-                log.error("[BlockDb] executeInsertSQL failed: " + e.getMessage());
+                log.error("executeInsertSQL failed: {}", e.getMessage());
                 return false;
             }
         };
@@ -399,11 +399,79 @@ public final class BlockDb {
         try {
             f.get();
         } catch (Exception e) {
-            log.error("[BlockDb] executeInsertSQL writer failure: " + e.getMessage());
+            log.error("executeInsertSQL writer failure: {}", e.getMessage());
         }
     }
 
     // ---------------- Helpers ----------------
+
+    /**
+     * Reads all blocks from database ordered by timestamp ASC.
+     */
+    public synchronized List<Block> readAllBlocks() {
+        List<Block> blocks = new ArrayList<>();
+
+        String sql = """
+                    SELECT hash, previous_hash, merkle_root, timestamp, transactions_json
+                    FROM blocks
+                    ORDER BY timestamp ASC;
+                """;
+
+        try (Connection conn = connect();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+
+                String hash = rs.getString("hash");
+                String previousHash = rs.getString("previous_hash");
+                String merkleRoot = rs.getString("merkle_root");
+                long timestamp = rs.getLong("timestamp");
+                String txJson = rs.getString("transactions_json");
+
+                List<Transaction> txs;
+                if (txJson != null && !txJson.isBlank()) {
+                    txs = ConversionUtil.jsonToList(txJson, Transaction.class);
+                } else {
+                    txs = new ArrayList<>();
+                }
+
+                Block block = new Block(previousHash, txs, timestamp);
+                block.setHash(hash);
+                block.setMerkleRoot(merkleRoot);
+                block.setTimestamp(timestamp);
+
+                blocks.add(block);
+            }
+
+            log.info("Loaded {} blocks from storage", blocks.size());
+
+        } catch (Exception e) {
+            log.error("readAllBlocks failed: {}", e.getMessage());
+            e.printStackTrace();
+        }
+
+        return blocks;
+    }
+
+    public List<Block> readAllBlocksOrdered() {
+        String sql = "SELECT hash FROM blocks ORDER BY timestamp ASC;";
+        List<Block> out = new ArrayList<>();
+
+        try (Connection conn = connect();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                String hash = rs.getString("hash");
+                Block b = readBlockByHash(hash);
+                if (b != null) out.add(b);
+            }
+        } catch (Exception e) {
+            log.error("readAllBlocksOrdered failed: {}", e.getMessage());
+        }
+        return out;
+    }
 
     public static class BlockRow {
         public String hash;
@@ -427,74 +495,6 @@ public final class BlockDb {
                             }""",
                     hash, previousHash, merkleRoot, timestamp, shortTx);
         }
-    }
-
-    /**
-     * Reads all blocks from database ordered by timestamp ASC.
-     */
-    public synchronized List<Block> readAllBlocks() {
-        List<Block> blocks = new ArrayList<>();
-
-        String sql = """
-        SELECT hash, previous_hash, merkle_root, timestamp, transactions_json
-        FROM blocks
-        ORDER BY timestamp ASC;
-    """;
-
-        try (Connection conn = connect();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-
-            while (rs.next()) {
-
-                String hash = rs.getString("hash");
-                String previousHash = rs.getString("previous_hash");
-                String merkleRoot = rs.getString("merkle_root");
-                long timestamp = rs.getLong("timestamp");
-                String txJson = rs.getString("transactions_json");
-
-                List<Transaction> txs;
-                if (txJson != null && !txJson.isBlank()) {
-                    txs = ConversionUtil.jsonToList(txJson, Transaction.class);
-                } else {
-                    txs = new ArrayList<>();
-                }
-
-                Block block = new Block(previousHash, txs,timestamp);
-                block.setHash(hash);
-                block.setMerkleRoot(merkleRoot);
-                block.setTimestamp(timestamp);
-
-                blocks.add(block);
-            }
-
-            log.info("[BlockDb] readAllBlocks loaded " + blocks.size() + " blocks.");
-
-        } catch (Exception e) {
-            log.error("[BlockDb] readAllBlocks failed: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return blocks;
-    }
-
-    public List<Block> readAllBlocksOrdered() {
-        String sql = "SELECT hash FROM blocks ORDER BY timestamp ASC;";
-        List<Block> out = new ArrayList<>();
-
-        try (Connection conn = connect();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-
-            while (rs.next()) {
-                String hash = rs.getString("hash");
-                Block b = readBlockByHash(hash);
-                if (b != null) out.add(b);
-            }
-        } catch (Exception e) {
-            log.error("[BlockDb] readAllBlocksOrdered failed: " + e.getMessage());
-        }
-        return out;
     }
 
 

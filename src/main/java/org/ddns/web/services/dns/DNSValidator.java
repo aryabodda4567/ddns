@@ -1,6 +1,7 @@
 package org.ddns.web.services.dns;
 
 import org.ddns.dns.DNSModel;
+
 import java.net.InetAddress;
 
 public final class DNSValidator {
@@ -104,6 +105,7 @@ public final class DNSValidator {
             throw new IllegalArgumentException("Invalid domain name: " + name);
         }
     }
+
     public static void validateForUpdate(DNSModel model) {
 
         if (model == null) {
@@ -245,11 +247,6 @@ public final class DNSValidator {
 
         return false;
     }
-
-
-
-
-
 
 
 }

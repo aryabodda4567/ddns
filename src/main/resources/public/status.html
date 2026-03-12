@@ -3,127 +3,127 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>Transaction Status | DDNS Console</title>
-    <link rel="stylesheet" href="/css/common.css">
+    <link href="/css/common.css" rel="stylesheet">
     <script src="/js/auth-guard.js"></script>
     <script src="/js/exit-node.js"></script>
 </head>
 
 <body>
-    <div class="page-shell">
-        <div class="topbar">
-            <div class="brand">
-                <div class="brand-badge">DD</div>
-                <div>
-                    <div class="brand-title">DDNS Network Console</div>
-                    <div class="brand-sub">Transaction Tracking</div>
-                </div>
+<div class="page-shell">
+    <div class="topbar">
+        <div class="brand">
+            <div class="brand-badge">DD</div>
+            <div>
+                <div class="brand-title">DDNS Network Console</div>
+                <div class="brand-sub">Transaction Tracking</div>
             </div>
-            <span class="status-pill"><span class="status-dot"></span> DNS Read</span>
         </div>
-
-        <div class="main-grid">
-            <aside class="sidebar">
-                <div class="menu-title">DNS Operations</div>
-                <nav class="menu">
-                    <a href="/control.html">Control Panel</a>
-                    <a href="/create.html">Create</a>
-                    <a href="/update.html">Update</a>
-                    <a href="/delete.html">Delete</a>
-                    <a href="/lookup.html">Lookup</a>
-                    <a class="active" href="/status.html">Status</a>
-                </nav>
-            </aside>
-
-            <main class="content-stack">
-                <section class="card">
-                    <h2>Transaction Status</h2>
-                    <p class="subtle">Query a transaction by hash to inspect consensus processing details.</p>
-
-                    <div class="form-group">
-                        <label for="txHash">Transaction Hash</label>
-                        <input id="txHash" placeholder="Enter tx hash">
-                    </div>
-
-                    <div class="action-row" style="margin-top: 12px;">
-                        <button onclick="checkStatus()">Check Status</button>
-                        <button class="secondary" onclick="location.href='/control.html'">Back To Panel</button>
-                    </div>
-
-                    <div id="result"></div>
-                </section>
-            </main>
-        </div>
+        <span class="status-pill"><span class="status-dot"></span> DNS Read</span>
     </div>
 
-    <script>
-        function renderJSON(obj, container) {
-            for (let key in obj) {
-                const value = obj[key];
-                const row = document.createElement("div");
-                row.className = "kv";
+    <div class="main-grid">
+        <aside class="sidebar">
+            <div class="menu-title">DNS Operations</div>
+            <nav class="menu">
+                <a href="/control.html">Control Panel</a>
+                <a href="/create.html">Create</a>
+                <a href="/update.html">Update</a>
+                <a href="/delete.html">Delete</a>
+                <a href="/lookup.html">Lookup</a>
+                <a class="active" href="/status.html">Status</a>
+            </nav>
+        </aside>
 
-                const k = document.createElement("div");
-                k.className = "key";
-                k.textContent = key;
+        <main class="content-stack">
+            <section class="card">
+                <h2>Transaction Status</h2>
+                <p class="subtle">Query a transaction by hash to inspect consensus processing details.</p>
 
-                const v = document.createElement("div");
-                if (typeof value === "object" && value !== null) {
-                    const nested = document.createElement("div");
-                    nested.className = "nested";
-                    renderJSON(value, nested);
-                    v.appendChild(nested);
-                } else {
-                    v.textContent = value;
-                }
+                <div class="form-group">
+                    <label for="txHash">Transaction Hash</label>
+                    <input id="txHash" placeholder="Enter tx hash">
+                </div>
 
-                row.appendChild(k);
-                row.appendChild(v);
-                container.appendChild(row);
-            }
-        }
+                <div class="action-row" style="margin-top: 12px;">
+                    <button onclick="checkStatus()">Check Status</button>
+                    <button class="secondary" onclick="location.href='/control.html'">Back To Panel</button>
+                </div>
 
-        function showMessage(obj, ok) {
-            const result = document.getElementById("result");
-            result.innerHTML = "";
+                <div id="result"></div>
+            </section>
+        </main>
+    </div>
+</div>
 
-            const box = document.createElement("div");
-            box.className = "alert " + (ok ? "success" : "error");
-            box.style.display = "block";
+<script>
+    function renderJSON(obj, container) {
+        for (let key in obj) {
+            const value = obj[key];
+            const row = document.createElement("div");
+            row.className = "kv";
 
-            if (typeof obj === "object") {
-                renderJSON(obj, box);
+            const k = document.createElement("div");
+            k.className = "key";
+            k.textContent = key;
+
+            const v = document.createElement("div");
+            if (typeof value === "object" && value !== null) {
+                const nested = document.createElement("div");
+                nested.className = "nested";
+                renderJSON(value, nested);
+                v.appendChild(nested);
             } else {
-                box.textContent = obj;
+                v.textContent = value;
             }
 
-            result.appendChild(box);
+            row.appendChild(k);
+            row.appendChild(v);
+            container.appendChild(row);
+        }
+    }
+
+    function showMessage(obj, ok) {
+        const result = document.getElementById("result");
+        result.innerHTML = "";
+
+        const box = document.createElement("div");
+        box.className = "alert " + (ok ? "success" : "error");
+        box.style.display = "block";
+
+        if (typeof obj === "object") {
+            renderJSON(obj, box);
+        } else {
+            box.textContent = obj;
         }
 
-        async function checkStatus() {
-            const txHash = document.getElementById("txHash").value.trim();
+        result.appendChild(box);
+    }
 
-            if (!txHash) {
-                showMessage({ error: "Transaction hash is required" }, false);
+    async function checkStatus() {
+        const txHash = document.getElementById("txHash").value.trim();
+
+        if (!txHash) {
+            showMessage({error: "Transaction hash is required"}, false);
+            return;
+        }
+
+        try {
+            const res = await fetch("/dns/status?txHash=" + encodeURIComponent(txHash));
+            const json = await res.json();
+
+            if (!res.ok || json.error) {
+                showMessage(json, false);
                 return;
             }
 
-            try {
-                const res = await fetch("/dns/status?txHash=" + encodeURIComponent(txHash));
-                const json = await res.json();
-
-                if (!res.ok || json.error) {
-                    showMessage(json, false);
-                    return;
-                }
-
-                showMessage(json, true);
-            } catch (err) {
-                showMessage({ error: "Server not reachable", details: err.toString() }, false);
-            }
+            showMessage(json, true);
+        } catch (err) {
+            showMessage({error: "Server not reachable", details: err.toString()}, false);
         }
-    </script>
+    }
+</script>
 </body>
 
 </html>

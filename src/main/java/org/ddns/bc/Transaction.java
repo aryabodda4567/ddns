@@ -51,6 +51,25 @@ public class Transaction {
         this.hash = calculateHash();
     }
 
+    public static void publish(Transaction transaction) {
+        Message message;
+        try {
+            message = new Message(
+                    MessageType.TRANSACTION_PUBLISH,
+                    NetworkUtility.getLocalIpAddress(),
+                    DBUtil.getInstance().getPublicKey(),
+                    ConversionUtil.toJson(transaction));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        log.info("Publishing transaction to network");
+        NetworkManager.broadcast(ConversionUtil.toJson(message),
+                DBUtil.getInstance().getAllNodes(),
+                Set.of(Role.ANY));
+
+    }
+
     /**
      * Calculates the unique hash of the transaction's content.
      * The hash includes sender key, type, payload (as JSON), and timestamp.
@@ -117,25 +136,6 @@ public class Transaction {
 
     public byte[] getSignature() {
         return signature;
-    }
-
-    public static void publish(Transaction transaction) {
-        Message message;
-        try {
-            message = new Message(
-                    MessageType.TRANSACTION_PUBLISH,
-                    NetworkUtility.getLocalIpAddress(),
-                    DBUtil.getInstance().getPublicKey(),
-                    ConversionUtil.toJson(transaction));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
-        log.info("[Transaction] Sending transaction ");
-        NetworkManager.broadcast(ConversionUtil.toJson(message),
-                DBUtil.getInstance().getAllNodes(),
-                Set.of(Role.ANY));
-
     }
 
     @Override

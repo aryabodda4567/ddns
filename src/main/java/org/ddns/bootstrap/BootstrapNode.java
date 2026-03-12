@@ -27,7 +27,7 @@ public class BootstrapNode implements MessageHandler {
     // Bind to NetworkManager on construction
     public BootstrapNode(NetworkManager networkManager) {
         networkManager.registerHandler(this);
-        log.info("[BootstrapNode] Registered with NetworkManager. Ready to serve.");
+        log.info("Bootstrap node registered with NetworkManager; listeners ready");
     }
 
     @Override
@@ -39,23 +39,22 @@ public class BootstrapNode implements MessageHandler {
     public void onDirectMessage(String message) {
         Message requestMessage;
         if (message == null || message.isEmpty()) {
-            log.warn("[BootstrapNode] Received null or empty direct message.");
+            log.warn("Received empty direct message; ignoring");
             return;
         }
         try {
             requestMessage = ConversionUtil.fromJson(message, Message.class);
         } catch (Exception e) {
-            log.error("[BootstrapNode] Failed to parse incoming message: " + e.getMessage());
+            log.error("Failed to parse incoming message: " + e.getMessage());
             return; // Can't proceed
         }
 
         if (requestMessage == null || requestMessage.type == null || requestMessage.payload == null) {
-            log.warn("[BootstrapNode] Received malformed message (null type or payload).");
+            log.warn("Received malformed message with missing type or payload");
             return;
         }
 
-        log.info("[BootstrapNode] Received request: " + requestMessage.type +
-                " from " + requestMessage.senderIp);
+        log.info("Received request {} from {}", requestMessage.type, requestMessage.senderIp);
 
         try {
             switch (requestMessage.type) {
@@ -64,12 +63,11 @@ public class BootstrapNode implements MessageHandler {
                 case DELETE_NODE -> resolveRemoveRequest(requestMessage);
                 case PROMOTE_NODE -> resolvePromoteRequest(requestMessage);
                 default -> {
-                    log.warn("[BootstrapNode] Received unhandled message type: " + requestMessage.type);
+                    log.warn("Unhandled message type {}", requestMessage.type);
                 }
             }
         } catch (Exception e) {
-            log.error("[BootstrapNode] Unhandled exception processing message type "
-                    + requestMessage.type + ": " + e.getMessage());
+            log.error("Unhandled exception processing {}: {}", requestMessage.type, e.getMessage());
             e.printStackTrace(); // Print stack trace for debugging
         }
     }
@@ -83,11 +81,11 @@ public class BootstrapNode implements MessageHandler {
 
     private void resolveGetRequest(Message requestMessage) throws Exception {
         String senderIp = requestMessage.senderIp;
-        NodeConfig senderNode =new NodeConfig(senderIp, Role.NONE,
+        NodeConfig senderNode = new NodeConfig(senderIp, Role.NONE,
                 SignatureUtil.getPublicKeyFromString(requestMessage.senderPublicKey));
 
         if (senderIp == null || senderIp.isEmpty()) {
-            log.warn("[BootstrapNode] Cannot resolve FETCH_NODES: Sender IP is missing.");
+            log.warn("Cannot resolve FETCH_NODES because sender IP is missing");
             return; // Cannot reply
         }
 
@@ -96,7 +94,7 @@ public class BootstrapNode implements MessageHandler {
         try {
             myPublicKey = DBUtil.getInstance().getPublicKey();
         } catch (Exception e) {
-            log.warn("[BootstrapNode] Failed to get local public key for response: " + e.getMessage());
+            log.warn("Failed to load local public key for FETCH_NODES response: {}", e.getMessage());
         }
 
         Message response = new Message(
@@ -104,9 +102,9 @@ public class BootstrapNode implements MessageHandler {
                 NetworkUtility.getLocalIpAddress(),
                 myPublicKey,
                 ConversionUtil.toJson(nodeConfigSet));
+        response.setExclude(true);
 
-        log.info("[BootstrapNode] Sending node list (" + nodeConfigSet.size() +
-                " nodes) to " + senderIp);
+        log.info("Sending node list ({} nodes) to {}", nodeConfigSet.size(), senderIp);
 
         NetworkManager.sendDirectMessage(senderNode, ConversionUtil.toJson(response));
     }
@@ -116,14 +114,14 @@ public class BootstrapNode implements MessageHandler {
             NodeConfig nodeConfig = ConversionUtil.fromJson(requestMessage.payload, NodeConfig.class);
 
             if (nodeConfig == null || nodeConfig.getPublicKey() == null || nodeConfig.getIp() == null) {
-                log.warn("[BootstrapNode] Invalid ADD_NODE request payload: " + requestMessage.payload);
+                log.warn("ADD_NODE request rejected because payload is invalid: {}", requestMessage.payload);
                 return;
             }
             // Force egalitarian role
             nodeConfig.setRole(Role.NONE);
 
             BootstrapDB.getInstance().saveNode(nodeConfig);
-            log.info("[BootstrapNode] Added/Updated node: " + nodeConfig.getIp());
+            log.info("Node added or updated: {}", nodeConfig.getIp());
 
             // Update the queue
             int next = BootstrapDB.getInstance().getNextQueueSequence();
@@ -143,7 +141,7 @@ public class BootstrapNode implements MessageHandler {
             Message message = new Message(
                     MessageType.QUEUE_UPDATE,
                     NetworkUtility.getLocalIpAddress(),
-                    null,
+                    DBUtil.getInstance().getPublicKey(),
                     ConversionUtil.toJson(queueNodeSet));
 
             NetworkManager.broadcast(ConversionUtil.toJson(message),
@@ -151,7 +149,7 @@ public class BootstrapNode implements MessageHandler {
                     Set.of(Role.ANY));
 
         } catch (Exception e) {
-            log.error("[BootstrapNode] Error processing ADD_NODE request: " + e.getMessage());
+            log.error("Error processing ADD_NODE request: {}", e.getMessage());
         }
     }
 
@@ -161,7 +159,7 @@ public class BootstrapNode implements MessageHandler {
             NodeConfig nodeConfig = ConversionUtil.fromJson(requestMessage.payload, NodeConfig.class);
 
             if (nodeConfig == null || nodeConfig.getPublicKey() == null) {
-                log.warn("[BootstrapNode] Invalid DELETE_NODE request payload: " + requestMessage.payload);
+                log.warn("DELETE_NODE request rejected because payload is invalid: {}", requestMessage.payload);
                 return;
             }
 
@@ -171,14 +169,14 @@ public class BootstrapNode implements MessageHandler {
 
             // 2. Now, delete the node from the database.
             BootstrapDB.getInstance().deleteNode(nodeConfig.getPublicKey());
-            log.info("[BootstrapNode] Deleted node: " + nodeConfig.getIp());
+            log.info("Node deleted: {}", nodeConfig.getIp());
 
             // 3. Broadcast the update using the list from step 1.
             broadcastNodeUpdate(MessageType.DELETE, nodeConfig, nodesToInform);
             // --- END FIX ---
 
         } catch (Exception e) {
-            log.error("[BootstrapNode] Error processing DELETE_NODE request: " + e.getMessage());
+            log.error("Error processing DELETE_NODE request: {}", e.getMessage());
         }
     }
 
@@ -188,12 +186,12 @@ public class BootstrapNode implements MessageHandler {
 
             if (nodeConfig == null || nodeConfig.getPublicKey() == null) {
                 log.warn(
-                        "[BootstrapNode] Invalid PROMOTE_NODE request payload: " + requestMessage.payload);
+                        "PROMOTE_NODE request rejected because payload is invalid: {}", requestMessage.payload);
                 return;
             }
 
             // No role promotion needed - all nodes are equal
-            log.info("[BootstrapNode] Node update: " + nodeConfig.getIp());
+            log.info("Node update received for {}", nodeConfig.getIp());
 
             // --- CHANGE ---
             // Pass the *current* full node list to the broadcast helper
@@ -203,7 +201,7 @@ public class BootstrapNode implements MessageHandler {
                     BootstrapDB.getInstance().getAllNodes());
 
         } catch (Exception e) {
-            log.error("[BootstrapNode] Error processing PROMOTE_NODE request: " + e.getMessage());
+            log.error("Error processing PROMOTE_NODE request: {}", e.getMessage());
         }
     }
 
@@ -219,12 +217,12 @@ public class BootstrapNode implements MessageHandler {
      * @param nodesToBroadcastTo The set of nodes to send the broadcast to.
      */
     private void broadcastNodeUpdate(MessageType type, NodeConfig nodeConfig, Set<NodeConfig> nodesToBroadcastTo) {
-        log.info("[BootstrapNode] Broadcasting " + type + " for node " + nodeConfig.getIp());
+        log.info("Broadcasting {} for node {}", type, nodeConfig.getIp());
         try {
             Message message = new Message(
                     type,
                     NetworkUtility.getLocalIpAddress(),
-                    null, // Signed by the Bootstrap node
+                    DBUtil.getInstance().getPublicKey(), // Signed by the Bootstrap node
                     ConversionUtil.toJson(nodeConfig));
 
             // Update the queue
@@ -245,7 +243,7 @@ public class BootstrapNode implements MessageHandler {
             Message message1 = new Message(
                     MessageType.QUEUE_UPDATE,
                     NetworkUtility.getLocalIpAddress(),
-                    null,
+                    DBUtil.getInstance().getPublicKey(),
                     ConversionUtil.toJson(queueNodeSet));
 
             NetworkManager.broadcast(ConversionUtil.toJson(message1),
@@ -253,7 +251,7 @@ public class BootstrapNode implements MessageHandler {
                     Set.of(Role.ANY));
 
         } catch (Exception e) {
-            log.error("[BootstrapNode] Failed to broadcast node update (" + type + "): " + e.getMessage());
+            log.error("Failed to broadcast {} for {}: {}", type, nodeConfig.getIp(), e.getMessage());
         }
     }
 }

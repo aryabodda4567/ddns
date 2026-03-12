@@ -62,13 +62,13 @@ public final class BootstrapDB {
                     );
                 """;
         String queueTable = """
-    CREATE TABLE IF NOT EXISTS consensus_queue (
-        sno INTEGER PRIMARY KEY,
-        ip TEXT NOT NULL,
-        role TEXT NOT NULL,
-        public_key TEXT NOT NULL
-    );
-""";
+                    CREATE TABLE IF NOT EXISTS consensus_queue (
+                        sno INTEGER PRIMARY KEY,
+                        ip TEXT NOT NULL,
+                        role TEXT NOT NULL,
+                        public_key TEXT NOT NULL
+                    );
+                """;
 
 
         try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
@@ -76,9 +76,9 @@ public final class BootstrapDB {
             stmt.execute(configTable);
             stmt.execute(queueTable);
 
-            log.info("[BootstrapDB] bootstrap.db initialized.");
+            log.info("Bootstrap database initialized");
         } catch (SQLException e) {
-            log.error("[BootstrapDB] Init failed: " + e.getMessage());
+            log.error("Bootstrap database initialization failed: {}", e.getMessage());
         }
     }
 
@@ -101,7 +101,7 @@ public final class BootstrapDB {
             pstmt.setString(3, SignatureUtil.getStringFromKey(node.getPublicKey()));
             pstmt.executeUpdate();
         } catch (Exception e) {
-            log.error("[BootstrapDB] Save node failed: " + e.getMessage());
+            log.error("Failed to save bootstrap node: {}", e.getMessage());
         }
     }
 
@@ -120,7 +120,7 @@ public final class BootstrapDB {
                 }
             }
         } catch (SQLException e) {
-            log.error("[BootstrapDB] Fetch nodes failed: " + e.getMessage());
+            log.error("Failed to fetch bootstrap nodes: {}", e.getMessage());
         }
         return nodes;
     }
@@ -129,7 +129,7 @@ public final class BootstrapDB {
         try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
             stmt.execute("DELETE FROM bootstrap_nodes");
         } catch (SQLException e) {
-            log.error("[BootstrapDB] Clear nodes failed: " + e.getMessage());
+            log.error("Clearing bootstrap nodes failed: {}", e.getMessage());
         }
     }
 
@@ -141,16 +141,16 @@ public final class BootstrapDB {
         try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, SignatureUtil.getStringFromKey(publicKey));
             pstmt.executeUpdate();
-            log.info("[BootstrapDB] Node removed via public key");
+            log.info("Node removed via public key");
         } catch (Exception e) {
-            log.error("[BootstrapDB] Delete node by key failed: " + e.getMessage());
+            log.error("Deleting node by public key failed: {}", e.getMessage());
         }
     }
 
     // Updates a node identified by IP. Sets new role and public_key.
     public synchronized void updateNode(String ip, Role role, PublicKey publicKey) {
         if (ip == null || ip.isBlank() || role == null || publicKey == null) {
-            log.warn("[BootstrapDB] updateNode(ip, ...) skipped due to null/blank args");
+            log.warn("updateNode by IP skipped because arguments are incomplete");
             return;
         }
 
@@ -163,19 +163,19 @@ public final class BootstrapDB {
 
             int rows = ps.executeUpdate();
             if (rows > 0) {
-                log.info("[BootstrapDB] Node updated by IP: " + ip);
+                log.info("Node updated by IP {}", ip);
             } else {
-                log.warn("[BootstrapDB] No node found with IP: " + ip);
+                log.warn("No node found with IP {}", ip);
             }
         } catch (Exception e) {
-            log.error("[BootstrapDB] updateNode by IP failed: " + e.getMessage());
+            log.error("updateNode by IP failed: {}", e.getMessage());
         }
     }
 
     // Updates a node identified by PublicKey. Sets new role and ip.
     public synchronized void updateNode(PublicKey publicKey, Role role, String ip) {
         if (publicKey == null || role == null || ip == null || ip.isBlank()) {
-            log.warn("[BootstrapDB] updateNode(publicKey, ...) skipped due to null/blank args");
+            log.warn("updateNode by public key skipped because arguments are incomplete");
             return;
         }
 
@@ -188,12 +188,12 @@ public final class BootstrapDB {
 
             int rows = ps.executeUpdate();
             if (rows > 0) {
-                log.info("[BootstrapDB] Node updated by PublicKey");
+                log.info("Node updated by public key");
             } else {
-                log.warn("[BootstrapDB] No node found with provided PublicKey");
+                log.warn("No node found with the provided public key");
             }
         } catch (Exception e) {
-            log.error("[BootstrapDB] updateNode by PublicKey failed: " + e.getMessage());
+            log.error("updateNode by public key failed: {}", e.getMessage());
         }
     }
 
@@ -211,12 +211,12 @@ public final class BootstrapDB {
             int rows = pstmt.executeUpdate();
 
             if (rows > 0) {
-                log.info("[BootstrapDB] Node removed: " + ip);
+                log.info("Node removed: {}", ip);
             } else {
-                log.warn("[BootstrapDB] No node found with IP: " + ip);
+                log.warn("No node found with IP {}", ip);
             }
         } catch (SQLException e) {
-            log.error("[BootstrapDB] Delete node failed: " + e.getMessage());
+            log.error("Deleting node failed: {}", e.getMessage());
         }
     }
 
@@ -237,7 +237,7 @@ public final class BootstrapDB {
             pstmt.setString(2, value);
             pstmt.executeUpdate();
         } catch (SQLException e) {
-            log.error("[BootstrapDB] putConfig failed: " + e.getMessage());
+            log.error("putConfig failed: {}", e.getMessage());
         }
     }
 
@@ -249,7 +249,7 @@ public final class BootstrapDB {
             ResultSet rs = pstmt.executeQuery();
             if (rs.next()) return rs.getString("value");
         } catch (SQLException e) {
-            log.error("[BootstrapDB] getConfig failed: " + e.getMessage());
+            log.error("getConfig failed: {}", e.getMessage());
         }
         return null;
     }
@@ -261,7 +261,7 @@ public final class BootstrapDB {
             pstmt.setString(1, key);
             pstmt.executeUpdate();
         } catch (SQLException e) {
-            log.error("[BootstrapDB] deleteConfig failed: " + e.getMessage());
+            log.error("deleteConfig failed: {}", e.getMessage());
         }
     }
 
@@ -269,7 +269,7 @@ public final class BootstrapDB {
         try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
             stmt.execute("DELETE FROM bootstrap_config");
         } catch (SQLException e) {
-            log.error("[BootstrapDB] clearConfig failed: " + e.getMessage());
+            log.error("clearConfig failed: {}", e.getMessage());
         }
     }
 
@@ -281,12 +281,12 @@ public final class BootstrapDB {
         try {
             java.io.File f = new java.io.File(dbUrl.replace("jdbc:sqlite:", ""));
             if (f.exists() && f.delete()) {
-                log.info("[BootstrapDB] bootstrap.db deleted.");
+                log.info("bootstrap.db deleted");
             } else {
-                log.error("[BootstrapDB] Failed to delete bootstrap.db.");
+                log.error("Failed to delete bootstrap.db");
             }
         } catch (Exception e) {
-            log.error("[BootstrapDB] Drop DB error: " + e.getMessage());
+            log.error("dropDatabase failed: {}", e.getMessage());
         }
     }
 
@@ -294,9 +294,9 @@ public final class BootstrapDB {
         if (node == null || node.getNodeConfig() == null) return;
 
         String sql = """
-        INSERT OR REPLACE INTO consensus_queue (sno, ip, role, public_key)
-        VALUES (?, ?, ?, ?);
-    """;
+                    INSERT OR REPLACE INTO consensus_queue (sno, ip, role, public_key)
+                    VALUES (?, ?, ?, ?);
+                """;
 
         try (Connection conn = connect(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, node.getSno());
@@ -305,7 +305,7 @@ public final class BootstrapDB {
             ps.setString(4, SignatureUtil.getStringFromKey(node.getNodeConfig().getPublicKey()));
             ps.executeUpdate();
         } catch (Exception e) {
-            log.error("[BootstrapDB] insertQueueNode failed: " + e.getMessage());
+            log.error("insertQueueNode failed: {}", e.getMessage());
         }
     }
 
@@ -325,11 +325,12 @@ public final class BootstrapDB {
                 set.add(new QueueNode(nc, sno));
             }
         } catch (Exception e) {
-            log.error("[BootstrapDB] getAllQueueNodes failed: " + e.getMessage());
+            log.error("getAllQueueNodes failed: {}", e.getMessage());
         }
 
         return set;
     }
+
     public synchronized QueueNode getQueueNodeBySno(int sno) {
         String sql = "SELECT sno, ip, role, public_key FROM consensus_queue WHERE sno = ?";
 
@@ -346,7 +347,7 @@ public final class BootstrapDB {
                 return new QueueNode(nc, sno);
             }
         } catch (Exception e) {
-            log.error("[BootstrapDB] getQueueNodeBySno failed: " + e.getMessage());
+            log.error("getQueueNodeBySno failed: {}", e.getMessage());
         }
 
         return null;
@@ -359,7 +360,7 @@ public final class BootstrapDB {
             ps.setInt(1, sno);
             ps.executeUpdate();
         } catch (Exception e) {
-            log.error("[BootstrapDB] deleteQueueNode failed: " + e.getMessage());
+            log.error("deleteQueueNode failed: {}", e.getMessage());
         }
     }
 
@@ -367,17 +368,18 @@ public final class BootstrapDB {
         try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
             stmt.execute("DELETE FROM consensus_queue");
         } catch (Exception e) {
-            log.error("[BootstrapDB] clearQueue failed: " + e.getMessage());
+            log.error("clearQueue failed: {}", e.getMessage());
         }
     }
+
     public synchronized void updateQueueNode(QueueNode node) {
         if (node == null || node.getNodeConfig() == null) return;
 
         String sql = """
-        UPDATE consensus_queue
-        SET ip = ?, role = ?, public_key = ?
-        WHERE sno = ?;
-    """;
+                    UPDATE consensus_queue
+                    SET ip = ?, role = ?, public_key = ?
+                    WHERE sno = ?;
+                """;
 
         try (Connection conn = connect(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, node.getNodeConfig().getIp());
@@ -386,9 +388,10 @@ public final class BootstrapDB {
             ps.setInt(4, node.getSno());
             ps.executeUpdate();
         } catch (Exception e) {
-            log.error("[BootstrapDB] updateQueueNode failed: " + e.getMessage());
+            log.error("updateQueueNode failed: {}", e.getMessage());
         }
     }
+
     public synchronized int getNextQueueSequence() {
         String sql = "SELECT MAX(sno) AS max_sno FROM consensus_queue";
 
@@ -401,14 +404,11 @@ public final class BootstrapDB {
                 return max + 1;
             }
         } catch (Exception e) {
-            log.error("[BootstrapDB] getNextQueueSequence failed: " + e.getMessage());
+            log.error("getNextQueueSequence failed: {}", e.getMessage());
         }
 
         return 0;
     }
-
-
-
 
 
 }

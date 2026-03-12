@@ -1,4 +1,5 @@
 package org.ddns.web.services.election;
+
 import com.google.gson.Gson;
 import spark.Request;
 

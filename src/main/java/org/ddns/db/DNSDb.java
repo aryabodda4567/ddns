@@ -109,7 +109,7 @@ public final class DNSDb implements DNSPersistence {
         String idxName = "CREATE INDEX IF NOT EXISTS idx_dns_name_norm ON dns_records(name_norm);";
         String idxType = "CREATE INDEX IF NOT EXISTS idx_dns_type ON dns_records(type);";
         String idxRdata = "CREATE INDEX IF NOT EXISTS idx_dns_rdata ON dns_records(rdata);";
-        String index ="CREATE INDEX IF NOT EXISTS idx_dns_name_type ON dns_records(name_norm, type);";
+        String index = "CREATE INDEX IF NOT EXISTS idx_dns_name_type ON dns_records(name_norm, type);";
 
 
         try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
@@ -135,15 +135,15 @@ public final class DNSDb implements DNSPersistence {
             if (!hasTimestamp) {
                 try {
                     stmt.execute("ALTER TABLE dns_records ADD COLUMN timestamp INTEGER;");
-                    log.info("[SqliteDNSPersistence] Added missing 'timestamp' column.");
+                    log.info("Added missing 'timestamp' column.");
                 } catch (SQLException e) {
-                    log.error("[SqliteDNSPersistence] Failed to add timestamp column: " + e.getMessage());
+                    log.error("Failed to add timestamp column: " + e.getMessage());
                 }
             }
 
-            log.info("[SqliteDNSPersistence] DNS_FILE initialized.");
+            log.info("DNS persistence store initialized.");
         } catch (SQLException e) {
-            log.error("[SqliteDNSPersistence] Init failed: " + e.getMessage());
+            log.error("DNS persistence initialization failed: " + e.getMessage());
         }
     }
 
@@ -170,7 +170,7 @@ public final class DNSDb implements DNSPersistence {
             int updated = ps.executeUpdate();
             return updated > 0;
         } catch (SQLException e) {
-            log.error("[SqliteDNSPersistence] addRecord failed: " + e.getMessage());
+            log.error("addRecord failed: " + e.getMessage());
             return false;
         }
     }
@@ -184,10 +184,10 @@ public final class DNSDb implements DNSPersistence {
         long ts = TimeUtil.getCurrentUnixTime();
 
         String updateSql = """
-        UPDATE dns_records
-        SET name = ?, ttl = ?, rdata = ?, owner = ?, transaction_hash = ?, timestamp = ?
-        WHERE name_norm = ? AND type = ?;
-    """;
+                    UPDATE dns_records
+                    SET name = ?, ttl = ?, rdata = ?, owner = ?, transaction_hash = ?, timestamp = ?
+                    WHERE name_norm = ? AND type = ?;
+                """;
 
         try (Connection conn = connect(); PreparedStatement ps = conn.prepareStatement(updateSql)) {
             ps.setString(1, record.getName());
@@ -204,7 +204,7 @@ public final class DNSDb implements DNSPersistence {
             return rows > 0;
 
         } catch (SQLException e) {
-            log.error("[SqliteDNSPersistence] updateRecord failed: " + e.getMessage());
+            log.error("updateRecord failed: " + e.getMessage());
             return false;
         }
     }
@@ -223,7 +223,7 @@ public final class DNSDb implements DNSPersistence {
             int rows = ps.executeUpdate();
             return rows > 0;
         } catch (SQLException e) {
-            log.error("[SqliteDNSPersistence] deleteRecord failed: " + e.getMessage());
+            log.error("deleteRecord failed: " + e.getMessage());
             return false;
         }
     }
@@ -260,13 +260,13 @@ public final class DNSDb implements DNSPersistence {
                         } catch (Exception ignore) {
                         }
                     }
-                    DNSModel model = new DNSModel(n, t, ttl, rdata, pub, txHash,ts);
+                    DNSModel model = new DNSModel(n, t, ttl, rdata, pub, txHash, ts);
 
                     out.add(model);
                 }
             }
         } catch (SQLException e) {
-            log.error("[SqliteDNSPersistence] lookup failed: " + e.getMessage());
+            log.error("lookup failed: " + e.getMessage());
         }
         return out;
     }
@@ -296,13 +296,13 @@ public final class DNSDb implements DNSPersistence {
                         } catch (Exception ignore) {
                         }
                     }
-                    DNSModel model = new DNSModel(n, t, ttl, rdata, pub, txHash,ts);
+                    DNSModel model = new DNSModel(n, t, ttl, rdata, pub, txHash, ts);
 
                     out.add(model);
                 }
             }
         } catch (SQLException e) {
-            log.error("[SqliteDNSPersistence] reverseLookup failed: " + e.getMessage());
+            log.error("reverseLookup failed: " + e.getMessage());
         }
         return out;
     }
@@ -327,12 +327,12 @@ public final class DNSDb implements DNSPersistence {
                     } catch (Exception ignore) {
                     }
                 }
-                DNSModel model = new DNSModel(n, t, ttl, rdata, pub, txHash,ts);
+                DNSModel model = new DNSModel(n, t, ttl, rdata, pub, txHash, ts);
 
                 out.add(model);
             }
         } catch (SQLException e) {
-            log.error("[SqliteDNSPersistence] listAll failed: " + e.getMessage());
+            log.error("listAll failed: " + e.getMessage());
         }
         return out;
     }
@@ -354,11 +354,11 @@ public final class DNSDb implements DNSPersistence {
             if (Files.exists(p)) {
                 return p.toString();
             } else {
-                log.error("[SqliteDNSPersistence] DB file not found at: " + p);
+                log.error("DB file not found at: " + p);
                 return null;
             }
         } catch (Exception e) {
-            log.error("[SqliteDNSPersistence] getDatabaseFilePath failed: " + e.getMessage());
+            log.error("getDatabaseFilePath failed: " + e.getMessage());
             return null;
         }
     }
@@ -378,7 +378,7 @@ public final class DNSDb implements DNSPersistence {
         try {
             Files.createDirectories(snapshotDir);
         } catch (IOException e) {
-            log.error("[SqliteDNSPersistence] Failed to create snapshot directory: " + e.getMessage());
+            log.error("Failed to create snapshot directory: " + e.getMessage());
             return null;
         }
 
@@ -392,27 +392,27 @@ public final class DNSDb implements DNSPersistence {
             String abs = snapshotPath.toAbsolutePath().toString().replace("'", "''");
             String vacuumSql = "VACUUM INTO '" + abs + "';";
             s.execute(vacuumSql);
-            log.info("[SqliteDNSPersistence] Snapshot exported (VACUUM INTO): " + snapshotPath);
+            log.info("Snapshot exported (VACUUM INTO): " + snapshotPath);
             return snapshotPath.toString();
         } catch (SQLException vacuumEx) {
             // VACUUM INTO might not be supported on older SQLite. Fall back to file copy.
-            log.error("[SqliteDNSPersistence] VACUUM INTO failed (fallback to copy): " + vacuumEx.getMessage());
+            log.error("VACUUM INTO failed (fallback to copy): " + vacuumEx.getMessage());
         }
 
         // Fallback: file copy (best-effort). Copy while DB is open is risky — warn the operator.
         Path original = Path.of(originalPath).toAbsolutePath();
         if (!Files.exists(original)) {
-            log.error("[SqliteDNSPersistence] Original DB file not found: " + original);
+            log.error("Original DB file not found: " + original);
             return null;
         }
         // Copy file
         try {
             Files.copy(original, snapshotPath, StandardCopyOption.REPLACE_EXISTING);
-            log.info("[SqliteDNSPersistence] Snapshot exported (file copy): " + snapshotPath);
-            log.error("[SqliteDNSPersistence] NOTE: file copy snapshot may not be crash-consistent if DB is being written to. Prefer VACUUM INTO where possible.");
+            log.info("Snapshot exported (file copy): " + snapshotPath);
+            log.error("File copy snapshot may not be crash-consistent if DB is being written to. Prefer VACUUM INTO where possible.");
             return snapshotPath.toString();
         } catch (IOException ioEx) {
-            log.error("[SqliteDNSPersistence] Snapshot file copy failed: " + ioEx.getMessage());
+            log.error("Snapshot file copy failed: " + ioEx.getMessage());
             return null;
         }
     }
@@ -433,7 +433,7 @@ public final class DNSDb implements DNSPersistence {
             byte[] bytes = Files.readAllBytes(p);
             return Base64.getEncoder().encodeToString(bytes);
         } catch (IOException e) {
-            log.error("[SqliteDNSPersistence] exportSnapshotAsBase64 failed: " + e.getMessage());
+            log.error("exportSnapshotAsBase64 failed: " + e.getMessage());
             return null;
         }
     }
@@ -453,20 +453,20 @@ public final class DNSDb implements DNSPersistence {
             conn.setAutoCommit(false);
             int deleted = s.executeUpdate(deleteSql);
             conn.commit();
-            log.info("[SqliteDNSPersistence] Truncated dns_records. rowsDeletedApprox=" + deleted);
+            log.info("Truncated dns_records. rowsDeletedApprox=" + deleted);
 
             if (runVacuum) {
                 try {
                     s.execute("VACUUM;");
-                    log.info("[SqliteDNSPersistence] VACUUM completed after truncate.");
+                    log.info("VACUUM completed after truncate.");
                 } catch (SQLException vacEx) {
-                    log.error("[SqliteDNSPersistence] VACUUM after truncate failed: " + vacEx.getMessage());
+                    log.error("VACUUM after truncate failed: " + vacEx.getMessage());
                     // Not fatal for truncate success
                 }
             }
             return true;
         } catch (SQLException e) {
-            log.error("[SqliteDNSPersistence] truncateDatabase failed: " + e.getMessage());
+            log.error("truncateDatabase failed: " + e.getMessage());
             return false;
         }
     }
@@ -478,12 +478,12 @@ public final class DNSDb implements DNSPersistence {
         try {
             java.io.File f = new java.io.File(dbUrl.replace("jdbc:sqlite:", ""));
             if (f.exists() && f.delete()) {
-                log.info("[SqliteDNSPersistence] DNS_FILE deleted.");
+                log.info("DNS_FILE deleted.");
             } else {
-                log.error("[SqliteDNSPersistence] Failed to delete DNS_FILE.");
+                log.error("Failed to delete DNS_FILE.");
             }
         } catch (Exception e) {
-            log.error("[SqliteDNSPersistence] Drop DB error: " + e.getMessage());
+            log.error("Drop DB error: " + e.getMessage());
         }
     }
 
@@ -513,18 +513,18 @@ public final class DNSDb implements DNSPersistence {
      */
     public synchronized boolean executeInsertSQL(String insertSQL) {
         if (insertSQL == null || insertSQL.trim().isEmpty()) {
-            log.error("[SqliteDNSPersistence] executeInsertSQL failed: SQL string is null or empty.");
+            log.error("executeInsertSQL failed: SQL string is null or empty.");
             return false;
         }
 
         // Basic validation: ensure it's an INSERT statement and targets dns_records
         String trimmed = insertSQL.trim().toUpperCase();
         if (!trimmed.startsWith("INSERT")) {
-            log.error("[SqliteDNSPersistence] executeInsertSQL rejected: only INSERT statements are allowed.");
+            log.error("executeInsertSQL rejected: only INSERT statements are allowed.");
             return false;
         }
         if (!trimmed.contains("DNS_RECORDS")) {
-            log.error("[SqliteDNSPersistence] executeInsertSQL rejected: statement must target 'dns_records' table.");
+            log.error("executeInsertSQL rejected: statement must target 'dns_records' table.");
             return false;
         }
 
@@ -532,10 +532,10 @@ public final class DNSDb implements DNSPersistence {
             conn.setAutoCommit(false);
             int rows = stmt.executeUpdate(insertSQL);
             conn.commit();
-            log.info("[SqliteDNSPersistence] executeInsertSQL succeeded, rowsInserted=" + rows);
+            log.info("executeInsertSQL succeeded, rowsInserted=" + rows);
             return true;
         } catch (SQLException e) {
-            log.error("[SqliteDNSPersistence] executeInsertSQL failed: " + e.getMessage());
+            log.error("executeInsertSQL failed: " + e.getMessage());
             return false;
         }
     }
@@ -561,13 +561,13 @@ public final class DNSDb implements DNSPersistence {
     public synchronized List<String> extractInsertStatementsFromDbFile(String sourceDbFilePath) {
         List<String> inserts = new ArrayList<>();
         if (sourceDbFilePath == null || sourceDbFilePath.trim().isEmpty()) {
-            log.error("[SqliteDNSPersistence] extractInsertStatementsFromDbFile failed: source path is null/empty.");
+            log.error("extractInsertStatementsFromDbFile failed: source path is null/empty.");
             return inserts;
         }
 
         java.nio.file.Path src = Path.of(sourceDbFilePath).toAbsolutePath();
         if (!Files.exists(src)) {
-            log.error("[SqliteDNSPersistence] extractInsertStatementsFromDbFile failed: source DB not found: " + src);
+            log.error("extractInsertStatementsFromDbFile failed: source DB not found: " + src);
             return inserts;
         }
 
@@ -613,13 +613,14 @@ public final class DNSDb implements DNSPersistence {
                 inserts.add(sb);
             }
 
-            log.info("[SqliteDNSPersistence] extractInsertStatementsFromDbFile completed, rows=" + inserts.size());
+            log.info("extractInsertStatementsFromDbFile completed, rows=" + inserts.size());
             return inserts;
         } catch (SQLException e) {
-            log.error("[SqliteDNSPersistence] extractInsertStatementsFromDbFile failed: " + e.getMessage());
+            log.error("extractInsertStatementsFromDbFile failed: " + e.getMessage());
             return inserts;
         }
     }
+
     /**
      * Checks whether a DNS record already exists for given (name, type).
      * Enforces uniqueness per (domain, record type).
@@ -645,11 +646,10 @@ public final class DNSDb implements DNSPersistence {
             }
 
         } catch (SQLException e) {
-            log.error("[SqliteDNSPersistence] exists(name,type) failed: " + e.getMessage());
+            log.error("exists(name,type) failed: " + e.getMessage());
             return false;
         }
     }
-
 
 
 }

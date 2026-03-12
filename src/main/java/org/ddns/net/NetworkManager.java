@@ -1,5 +1,7 @@
 package org.ddns.net;
 
+import org.ddns.crypto.CryptManager;
+import org.ddns.crypto.Crypto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,12 +36,11 @@ import java.util.concurrent.Executors;
  */
 public class NetworkManager {
 
-    private static final Logger log = LoggerFactory.getLogger(NetworkManager.class);
-
     // --- Network Configuration ---
     public static final int BROADCAST_PORT = 6969;
     public static final int DIRECT_MESSAGE_PORT = 6970;
     public static final int FILE_TRANSFER_PORT = 6971;
+    private static final Logger log = LoggerFactory.getLogger(NetworkManager.class);
     private static final String MULTICAST_GROUP_IP = "230.0.0.1";
 
     // Thread pool
@@ -65,9 +66,9 @@ public class NetworkManager {
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length, broadcastAddress, BROADCAST_PORT);
             socket.send(packet);
 
-            log.info("[NetworkManager] Broadcast message sent to all nodes.");
+            log.info("Broadcast message sent to all nodes.");
         } catch (Exception e) {
-            log.error("[NetworkManager] Failed to send broadcast: " + e.getMessage());
+            log.error("Failed to send broadcast: " + e.getMessage());
         }
     }
 
@@ -78,11 +79,11 @@ public class NetworkManager {
 
         try (Socket socket = new Socket(nodeConfig.getIp(), DIRECT_MESSAGE_PORT);
              PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
-            out.println(jsonMessage);
-            log.info("[NetworkManager] Sent direct message to " + nodeConfig.getIp());
+            out.println(CryptManager.encrypt(nodeConfig.getPublicKey(), jsonMessage));
+            log.info("Sent direct message to " + nodeConfig.getIp());
             return true;
         } catch (Exception e) {
-            log.error("[NetworkManager] Failed to send direct message to " + nodeConfig.getIp() + ": " + e.getMessage());
+            log.error("Failed to send direct message to " + nodeConfig.getIp() + ": " + e.getMessage());
             return false;
         }
     }
@@ -101,9 +102,9 @@ public class NetworkManager {
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, BROADCAST_PORT);
             socket.send(packet);
 
-            log.info("[NetworkManager] Multicast message sent to leader group.");
+            log.info("Multicast message sent to leader group.");
         } catch (Exception e) {
-            log.error("[NetworkManager] Failed to send multicast: " + e.getMessage());
+            log.error("Failed to send multicast: " + e.getMessage());
         }
     }
 
@@ -113,22 +114,23 @@ public class NetworkManager {
      */
     public static void broadcast(String jsonMessage, Set<NodeConfig> nodeConfigSet, Set<Role> roles) {
         if (nodeConfigSet == null || nodeConfigSet.isEmpty()) {
-            log.warn("[NetworkManager] No nodes found to send broadcast message.");
+            log.warn("No nodes found to send broadcast message.");
             return;
         }
-
+        String selfIp = NetworkUtility.getLocalIpAddress();
         int sentCount = 0;
 
         for (NodeConfig nodeConfig : nodeConfigSet) {
+            if (nodeConfig.getIp().equals(selfIp)) continue;
             if (nodeConfig == null || nodeConfig.getIp() == null) continue;
             boolean success = sendDirectMessage(nodeConfig, jsonMessage);
             if (success) sentCount++;
         }
 
         if (sentCount > 0) {
-            log.info("[NetworkManager] Broadcasted message to " + sentCount + " nodes.");
+            log.info("Broadcasted message to " + sentCount + " nodes.");
         } else {
-            log.warn("[NetworkManager] Broadcast skipped, no valid nodes.");
+            log.warn("Broadcast skipped, no valid nodes.");
         }
     }
 
@@ -141,7 +143,7 @@ public class NetworkManager {
     public static void sendFile(String peerIp, String filePath) {
         File file = new File(filePath);
         if (!file.exists() || !file.isFile()) {
-            log.error("[NetworkManager] File not found: " + filePath);
+            log.error("File not found: " + filePath);
             return;
         }
 
@@ -164,9 +166,9 @@ public class NetworkManager {
             }
             dos.flush();
 
-            log.info("[NetworkManager] File sent successfully (" + totalSent + " bytes) to " + peerIp);
+            log.info("File sent successfully (" + totalSent + " bytes) to " + peerIp);
         } catch (Exception e) {
-            log.error("[NetworkManager] Failed to send file to " + peerIp + ": " + e.getMessage());
+            log.error("Failed to send file to " + peerIp + ": " + e.getMessage());
         }
     }
 
@@ -175,7 +177,7 @@ public class NetworkManager {
      */
     public void registerHandler(MessageHandler handler) {
         handlers.add(handler);
-        log.info("[NetworkManager] Registered handler: " + handler.getClass().getSimpleName());
+        log.info("Registered handler: " + handler.getClass().getSimpleName());
     }
 
 
@@ -188,14 +190,14 @@ public class NetworkManager {
      */
     public void unregisterHandler(MessageHandler handler) {
         handlers.remove(handler);
-        log.warn("[NetworkManager] Unregistered handler: " + handler.getClass().getSimpleName());
+        log.warn("Unregistered handler: " + handler.getClass().getSimpleName());
     }
 
     /**
      * Starts background listener threads for UDP broadcasts, multicasts, and TCP messages.
      */
     public void startListeners() {
-        log.info("[NetworkManager] Starting network listeners...");
+        log.info("Starting network listeners...");
         executor.submit(this::listenForUdpBroadcastsAndMulticasts);
         executor.submit(this::listenForTcpDirectMessages);
         executor.submit(this::listenForFileTransfers);
@@ -211,7 +213,7 @@ public class NetworkManager {
     public void stop() {
         this.running = false;
         executor.shutdownNow();
-        log.warn("[NetworkManager] Network listeners stopped.");
+        log.warn("Network listeners stopped.");
     }
 
     private void dispatchBroadcast(String message) {
@@ -220,9 +222,10 @@ public class NetworkManager {
         }
     }
 
-    private void dispatchDirect(String message) {
+    private void dispatchDirect(String message) throws Exception {
         for (MessageHandler handler : handlers) {
-            handler.onDirectMessage(message);
+
+            handler.onDirectMessage(CryptManager.decrypt(message));
         }
     }
 
@@ -279,7 +282,7 @@ public class NetworkManager {
                         if (message != null) {
                             dispatchDirect(message);
                         }
-                    } catch (IOException e) {
+                    } catch (Exception e) {
                         log.error("[NetworkManager] Error reading direct message: " + e.getMessage());
                     }
                 });
@@ -314,7 +317,7 @@ public class NetworkManager {
      */
     private void handleIncomingFile(Socket clientSocket) {
         try (DataInputStream dis = new DataInputStream(new BufferedInputStream(clientSocket.getInputStream()))) {
-            log.info("[NetworkManager] Receiving file from "+ clientSocket.getInetAddress().toString());
+            log.info("[NetworkManager] Receiving file from " + clientSocket.getInetAddress().toString());
             String originalFileName = dis.readUTF();
             long fileSize = dis.readLong();
 

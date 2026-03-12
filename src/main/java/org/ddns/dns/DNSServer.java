@@ -29,7 +29,7 @@ public final class DNSServer {
             synchronized (DNSServer.class) {
                 if (instance == null) {
                     instance = new DNSServer(DNSDb.getInstance());
-                    log.info("[DNSServer] Started.");
+                    log.info("DNS server started");
                 }
             }
         }
@@ -43,7 +43,7 @@ public final class DNSServer {
         return instance;
     }
 
-    public static void stop(){
+    public static void stop() {
         if (instance == null) {
             throw new IllegalStateException("DNSServer not started. Call DNSServer.start()");
         }

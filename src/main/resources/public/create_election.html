@@ -3,166 +3,167 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>Create Election | DDNS Console</title>
-    <link rel="stylesheet" href="/css/common.css">
+    <link href="/css/common.css" rel="stylesheet">
     <script src="/js/auth-guard.js"></script>
     <script src="/js/exit-node.js"></script>
 </head>
 
 <body>
-    <div class="page-shell">
-        <div class="topbar">
-            <div class="brand">
-                <div class="brand-badge">DD</div>
-                <div>
-                    <div class="brand-title">DDNS Network Console</div>
-                    <div class="brand-sub">Governance Workflow</div>
-                </div>
+<div class="page-shell">
+    <div class="topbar">
+        <div class="brand">
+            <div class="brand-badge">DD</div>
+            <div>
+                <div class="brand-title">DDNS Network Console</div>
+                <div class="brand-sub">Governance Workflow</div>
             </div>
-            <span class="status-pill"><span class="status-dot"></span> Election Setup</span>
         </div>
-
-        <div class="main-grid">
-            <aside class="sidebar">
-                <div class="menu-title">Governance</div>
-                <nav class="menu">
-                    <a href="/join.html">Join Network</a>
-                    <a class="active" href="/create_election.html">Create Election</a>
-                    <a data-requires-accepted="true" href="/vote.html">Vote</a>
-                    <a href="/join_result.html">Join Result</a>
-                    <a data-requires-accepted="true" href="/control.html">DNS Control</a>
-                </nav>
-            </aside>
-
-            <main class="content-stack">
-                <section class="card">
-                    <h2>Create / Join Election</h2>
-                    <p class="subtle">Submit election metadata for join or promote governance decisions.</p>
-
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label for="password">Password</label>
-                            <input id="password" type="password">
-                        </div>
-                        <div class="form-group">
-                            <label for="nodeName">Node Name</label>
-                            <input id="nodeName" placeholder="node-1">
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="time">Time Limit (minutes)</label>
-                        <input id="time" type="number" placeholder="10">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="description">Description</label>
-                        <textarea id="description" placeholder="Reason for election..."></textarea>
-                    </div>
-
-                    <div class="action-row" style="margin-top: 14px;">
-                        <button onclick="createElection()">Create Election</button>
-                        <button class="secondary" data-requires-accepted="true" onclick="location.href='/vote.html'">Go
-                            To Vote</button>
-                        <button class="secondary" onclick="location.href='/join_result.html'">Check Result</button>
-                    </div>
-
-                    <div id="result"></div>
-                </section>
-            </main>
-        </div>
+        <span class="status-pill"><span class="status-dot"></span> Election Setup</span>
     </div>
 
-    <script>
-        function renderJSON(obj, container) {
-            for (let key in obj) {
-                const value = obj[key];
+    <div class="main-grid">
+        <aside class="sidebar">
+            <div class="menu-title">Governance</div>
+            <nav class="menu">
+                <a href="/join.html">Join Network</a>
+                <a class="active" href="/create_election.html">Create Election</a>
+                <a data-requires-accepted="true" href="/vote.html">Vote</a>
+                <a href="/join_result.html">Join Result</a>
+                <a data-requires-accepted="true" href="/control.html">DNS Control</a>
+            </nav>
+        </aside>
 
-                const row = document.createElement("div");
-                row.className = "kv";
+        <main class="content-stack">
+            <section class="card">
+                <h2>Create / Join Election</h2>
+                <p class="subtle">Submit election metadata for join or promote governance decisions.</p>
 
-                const k = document.createElement("div");
-                k.className = "key";
-                k.textContent = key;
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input id="password" type="password">
+                    </div>
+                    <div class="form-group">
+                        <label for="nodeName">Node Name</label>
+                        <input id="nodeName" placeholder="node-1">
+                    </div>
+                </div>
 
-                const v = document.createElement("div");
+                <div class="form-group">
+                    <label for="time">Time Limit (minutes)</label>
+                    <input id="time" placeholder="10" type="number">
+                </div>
 
-                if (typeof value === "object" && value !== null) {
-                    const nested = document.createElement("div");
-                    nested.className = "nested";
-                    renderJSON(value, nested);
-                    v.appendChild(nested);
-                } else {
-                    v.textContent = value;
-                }
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" placeholder="Reason for election..."></textarea>
+                </div>
 
-                row.appendChild(k);
-                row.appendChild(v);
-                container.appendChild(row);
-            }
-        }
+                <div class="action-row" style="margin-top: 14px;">
+                    <button onclick="createElection()">Create Election</button>
+                    <button class="secondary" data-requires-accepted="true" onclick="location.href='/vote.html'">Go
+                        To Vote
+                    </button>
+                    <button class="secondary" onclick="location.href='/join_result.html'">Check Result</button>
+                </div>
 
-        function showMessage(obj, ok) {
-            const result = document.getElementById("result");
-            result.innerHTML = "";
+                <div id="result"></div>
+            </section>
+        </main>
+    </div>
+</div>
 
-            const box = document.createElement("div");
-            box.className = "alert " + (ok ? "success" : "error");
-            box.style.display = "block";
+<script>
+    function renderJSON(obj, container) {
+        for (let key in obj) {
+            const value = obj[key];
 
-            if (typeof obj === "object") {
-                renderJSON(obj, box);
+            const row = document.createElement("div");
+            row.className = "kv";
+
+            const k = document.createElement("div");
+            k.className = "key";
+            k.textContent = key;
+
+            const v = document.createElement("div");
+
+            if (typeof value === "object" && value !== null) {
+                const nested = document.createElement("div");
+                nested.className = "nested";
+                renderJSON(value, nested);
+                v.appendChild(nested);
             } else {
-                box.textContent = obj;
+                v.textContent = value;
             }
 
-            result.appendChild(box);
+            row.appendChild(k);
+            row.appendChild(v);
+            container.appendChild(row);
+        }
+    }
+
+    function showMessage(obj, ok) {
+        const result = document.getElementById("result");
+        result.innerHTML = "";
+
+        const box = document.createElement("div");
+        box.className = "alert " + (ok ? "success" : "error");
+        box.style.display = "block";
+
+        if (typeof obj === "object") {
+            renderJSON(obj, box);
+        } else {
+            box.textContent = obj;
         }
 
-        function validateElection(data) {
-            if (!data.password || data.password.length < 3) return "Password is required (min 3 characters)";
-            if (!data.nodeName || data.nodeName.trim().length < 2) return "Node name must be at least 2 characters";
-            if (!Number.isInteger(data.timeMinutes) || data.timeMinutes <= 0) return "Time limit must be a positive number";
-            if (!data.description || data.description.trim().length < 5) return "Description must be at least 5 characters";
-            return null;
+        result.appendChild(box);
+    }
+
+    function validateElection(data) {
+        if (!data.password || data.password.length < 3) return "Password is required (min 3 characters)";
+        if (!data.nodeName || data.nodeName.trim().length < 2) return "Node name must be at least 2 characters";
+        if (!Number.isInteger(data.timeMinutes) || data.timeMinutes <= 0) return "Time limit must be a positive number";
+        if (!data.description || data.description.trim().length < 5) return "Description must be at least 5 characters";
+        return null;
+    }
+
+    async function createElection() {
+        const data = {
+            password: document.getElementById("password").value.trim(),
+            nodeName: document.getElementById("nodeName").value.trim(),
+            timeMinutes: parseInt(document.getElementById("time").value),
+            description: document.getElementById("description").value.trim()
+        };
+
+        const error = validateElection(data);
+        if (error) {
+            showMessage({error: error}, false);
+            return;
         }
 
-        async function createElection() {
-            const data = {
-                password: document.getElementById("password").value.trim(),
-                nodeName: document.getElementById("nodeName").value.trim(),
-                timeMinutes: parseInt(document.getElementById("time").value),
-                description: document.getElementById("description").value.trim()
-            };
+        try {
+            const res = await fetch("/election/create-join", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(data)
+            });
 
-            const error = validateElection(data);
-            if (error) {
-                showMessage({ error: error }, false);
+            const json = await res.json();
+
+            if (!res.ok || json.error) {
+                showMessage(json, false);
                 return;
             }
 
-            try {
-                const res = await fetch("/election/create-join", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(data)
-                });
+            showMessage(json, true);
 
-                const json = await res.json();
-
-                if (!res.ok || json.error) {
-                    showMessage(json, false);
-                    return;
-                }
-
-                showMessage(json, true);
-
-            } catch (err) {
-                showMessage({ error: "Server not reachable", details: err.toString() }, false);
-            }
+        } catch (err) {
+            showMessage({error: "Server not reachable", details: err.toString()}, false);
         }
-    </script>
+    }
+</script>
 </body>
 
 </html>

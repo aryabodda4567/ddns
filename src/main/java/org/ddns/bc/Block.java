@@ -39,6 +39,24 @@ public class Block {
         this.hash = calculateHash(); // Calculate the block's final hash
     }
 
+    public static void publish(Block block) {
+        Message message;
+        try {
+            message = new Message(
+                    MessageType.BLOCK_PUBLISH,
+                    NetworkUtility.getLocalIpAddress(),
+                    DBUtil.getInstance().getPublicKey(),
+                    ConversionUtil.toJson(block));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        NetworkManager.broadcast(ConversionUtil.toJson(message),
+                DBUtil.getInstance().getAllNodes(),
+                Set.of(Role.ANY));
+
+    }
+
     /**
      * Calculates the block's hash based on its header information.
      * Crucially, this does NOT depend on the full transaction list, only the Merkle
@@ -92,24 +110,6 @@ public class Block {
 
     public void setTimestamp(long timestamp) {
         this.timestamp = timestamp;
-    }
-
-    public static void publish(Block block) {
-        Message message;
-        try {
-            message = new Message(
-                    MessageType.BLOCK_PUBLISH,
-                    NetworkUtility.getLocalIpAddress(),
-                    DBUtil.getInstance().getPublicKey(),
-                    ConversionUtil.toJson(block));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
-        NetworkManager.broadcast(ConversionUtil.toJson(message),
-                DBUtil.getInstance().getAllNodes(),
-                Set.of(Role.ANY));
-
     }
 
     @Override

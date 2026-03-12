@@ -8,6 +8,14 @@ import java.util.concurrent.locks.ReentrantLock;
 public final class CircularQueue {
 
     private static volatile CircularQueue INSTANCE;
+    private final List<QueueNode> queue;
+    private final ReentrantLock lock;
+    private int head;
+    private CircularQueue() {
+        this.queue = new ArrayList<>();
+        this.lock = new ReentrantLock(true);
+        this.head = 0;
+    }
 
     public static CircularQueue getInstance() {
         if (INSTANCE == null) {
@@ -18,16 +26,6 @@ public final class CircularQueue {
             }
         }
         return INSTANCE;
-    }
-
-    private final List<QueueNode> queue;
-    private final ReentrantLock lock;
-    private int head;
-
-    private CircularQueue() {
-        this.queue = new ArrayList<>();
-        this.lock = new ReentrantLock(true);
-        this.head = 0;
     }
 
     public void addNode(QueueNode node) {
@@ -92,6 +90,7 @@ public final class CircularQueue {
             lock.unlock();
         }
     }
+
     public void resetWith(List<QueueNode> nodes) {
         lock.lock();
         try {

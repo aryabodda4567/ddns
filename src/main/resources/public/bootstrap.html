@@ -3,9 +3,9 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>Bootstrap Console | DDNS</title>
-    <link rel="stylesheet" href="/css/common.css">
+    <link href="/css/common.css" rel="stylesheet">
     <style>
         .table {
             width: 100%;
@@ -144,208 +144,210 @@
 </head>
 
 <body>
-    <div class="page-shell" style="max-width: 900px;">
-        <div class="topbar">
-            <div class="brand">
-                <div class="brand-badge">DD</div>
-                <div>
-                    <div class="brand-title">DDNS Network Console</div>
-                    <div class="brand-sub">Bootstrap Mode</div>
-                </div>
+<div class="page-shell" style="max-width: 900px;">
+    <div class="topbar">
+        <div class="brand">
+            <div class="brand-badge">DD</div>
+            <div>
+                <div class="brand-title">DDNS Network Console</div>
+                <div class="brand-sub">Bootstrap Mode</div>
             </div>
-            <span class="status-pill"><span class="status-dot"></span> Bootstrap Active</span>
         </div>
-
-        <main class="content-stack" style="margin-top: 16px;">
-
-            <!-- Setup Section (shown before activation) -->
-            <section class="card" id="setupSection">
-                <h1>Bootstrap Node</h1>
-                <p class="subtle">Click the button below to activate this machine as a Bootstrap Node.
-                    A unique cryptographic keypair will be generated automatically.</p>
-
-                <div class="action-row" style="justify-content: center; margin-top: 0;">
-                    <button id="activateBtn" onclick="activateBootstrap()">⚡ Activate Bootstrap Node</button>
-                </div>
-
-                <div id="setupResult" style="margin-top: 12px;"></div>
-            </section>
-
-            <!-- Node Info Card (shown after activation) -->
-            <section class="card" id="nodeInfoCard">
-                <div class="status-banner">✅ &nbsp;Configured as Bootstrap Node — registry is active.</div>
-                <h2 style="margin: 0 0 4px;">Node Identity</h2>
-                <p class="subtle" style="margin: 0 0 4px;">Share your Public Key and Bootstrap IP with nodes that want
-                    to join the network.</p>
-
-                <div class="info-grid">
-                    <div class="info-item" style="grid-column: 1 / -1;">
-                        <div class="info-label">Public Key</div>
-                        <div class="info-value-row">
-                            <div class="info-value mono" id="displayPublicKey">—</div>
-                            <button class="copy-btn" onclick="copyValue('displayPublicKey', this)">Copy</button>
-                        </div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Bootstrap IP</div>
-                        <div class="info-value-row">
-                            <div class="info-value" id="displayBootstrapIp">—</div>
-                            <button class="copy-btn" onclick="copyValue('displayBootstrapIp', this)">Copy</button>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Nodes Section -->
-            <section class="card">
-                <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
-                    <div>
-                        <h2 style="margin:0;">Available Nodes</h2>
-                        <p class="subtle" style="margin:6px 0 0;">Nodes registered with this bootstrap instance.</p>
-                    </div>
-                    <button class="secondary" onclick="loadNodes()" style="margin-top:0;">Refresh</button>
-                </div>
-                <div class="muted-box" id="summaryBox" style="margin-top:12px;">Waiting for data...</div>
-                <div id="nodesTable" class="table" aria-live="polite" style="margin-top:12px;"></div>
-                <div id="emptyState" class="muted-box" style="display:none; margin-top:12px;">No nodes registered yet.
-                </div>
-            </section>
-        </main>
+        <span class="status-pill"><span class="status-dot"></span> Bootstrap Active</span>
     </div>
 
-    <script>
-        function showAlert(targetId, message, ok) {
-            const container = document.getElementById(targetId);
-            container.innerHTML = '';
-            const box = document.createElement('div');
-            box.className = 'alert ' + (ok ? 'success' : 'error');
-            box.style.display = 'block';
-            box.textContent = message;
-            container.appendChild(box);
+    <main class="content-stack" style="margin-top: 16px;">
+
+        <!-- Setup Section (shown before activation) -->
+        <section class="card" id="setupSection">
+            <h1>Bootstrap Node</h1>
+            <p class="subtle">Click the button below to activate this machine as a Bootstrap Node.
+                A unique cryptographic keypair will be generated automatically.</p>
+
+            <div class="action-row" style="justify-content: center; margin-top: 0;">
+                <button id="activateBtn" onclick="activateBootstrap()">⚡ Activate Bootstrap Node</button>
+            </div>
+
+            <div id="setupResult" style="margin-top: 12px;"></div>
+        </section>
+
+        <!-- Node Info Card (shown after activation) -->
+        <section class="card" id="nodeInfoCard">
+            <div class="status-banner">✅ &nbsp;Configured as Bootstrap Node — registry is active.</div>
+            <h2 style="margin: 0 0 4px;">Node Identity</h2>
+            <p class="subtle" style="margin: 0 0 4px;">Share your Public Key and Bootstrap IP with nodes that want
+                to join the network.</p>
+
+            <div class="info-grid">
+                <div class="info-item" style="grid-column: 1 / -1;">
+                    <div class="info-label">Public Key</div>
+                    <div class="info-value-row">
+                        <div class="info-value mono" id="displayPublicKey">—</div>
+                        <button class="copy-btn" onclick="copyValue('displayPublicKey', this)">Copy</button>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Bootstrap IP</div>
+                    <div class="info-value-row">
+                        <div class="info-value" id="displayBootstrapIp">—</div>
+                        <button class="copy-btn" onclick="copyValue('displayBootstrapIp', this)">Copy</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Nodes Section -->
+        <section class="card">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                <div>
+                    <h2 style="margin:0;">Available Nodes</h2>
+                    <p class="subtle" style="margin:6px 0 0;">Nodes registered with this bootstrap instance.</p>
+                </div>
+                <button class="secondary" onclick="loadNodes()" style="margin-top:0;">Refresh</button>
+            </div>
+            <div class="muted-box" id="summaryBox" style="margin-top:12px;">Waiting for data...</div>
+            <div aria-live="polite" class="table" id="nodesTable" style="margin-top:12px;"></div>
+            <div class="muted-box" id="emptyState" style="display:none; margin-top:12px;">No nodes registered yet.
+            </div>
+        </section>
+    </main>
+</div>
+
+<script>
+    function showAlert(targetId, message, ok) {
+        const container = document.getElementById(targetId);
+        container.innerHTML = '';
+        const box = document.createElement('div');
+        box.className = 'alert ' + (ok ? 'success' : 'error');
+        box.style.display = 'block';
+        box.textContent = message;
+        container.appendChild(box);
+    }
+
+    function showNodeInfo(publicKey, bootstrapIp) {
+        document.getElementById('setupSection').style.display = 'none';
+        document.getElementById('displayPublicKey').textContent = publicKey || '—';
+        document.getElementById('displayBootstrapIp').textContent = bootstrapIp || '—';
+        document.getElementById('nodeInfoCard').style.display = 'block';
+    }
+
+    async function copyValue(elementId, btn) {
+        const text = document.getElementById(elementId).textContent;
+        try {
+            await navigator.clipboard.writeText(text);
+            btn.textContent = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.textContent = 'Copy';
+                btn.classList.remove('copied');
+            }, 2000);
+        } catch (e) {
+            btn.textContent = 'Failed';
+            setTimeout(() => {
+                btn.textContent = 'Copy';
+            }, 2000);
         }
+    }
 
-        function showNodeInfo(publicKey, bootstrapIp) {
-            document.getElementById('setupSection').style.display = 'none';
-            document.getElementById('displayPublicKey').textContent = publicKey || '—';
-            document.getElementById('displayBootstrapIp').textContent = bootstrapIp || '—';
-            document.getElementById('nodeInfoCard').style.display = 'block';
-        }
+    async function activateBootstrap() {
+        const btn = document.getElementById('activateBtn');
+        btn.disabled = true;
+        btn.textContent = 'Activating…';
 
-        async function copyValue(elementId, btn) {
-            const text = document.getElementById(elementId).textContent;
-            try {
-                await navigator.clipboard.writeText(text);
-                btn.textContent = 'Copied!';
-                btn.classList.add('copied');
-                setTimeout(() => {
-                    btn.textContent = 'Copy';
-                    btn.classList.remove('copied');
-                }, 2000);
-            } catch (e) {
-                btn.textContent = 'Failed';
-                setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
-            }
-        }
-
-        async function activateBootstrap() {
-            const btn = document.getElementById('activateBtn');
-            btn.disabled = true;
-            btn.textContent = 'Activating…';
-
-            try {
-                const res = await fetch('/mode/bootstrap/setup', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: '{}'
-                });
-                const json = await res.json();
-                if (!res.ok || json.error) {
-                    showAlert('setupResult', json.error || 'Bootstrap activation failed.', false);
-                    btn.disabled = false;
-                    btn.textContent = '⚡ Activate Bootstrap Node';
-                    return;
-                }
-                showNodeInfo(json.publicKey, json.localIp);
-                await loadNodes();
-            } catch (e) {
-                showAlert('setupResult', 'Failed to activate: ' + e, false);
+        try {
+            const res = await fetch('/mode/bootstrap/setup', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: '{}'
+            });
+            const json = await res.json();
+            if (!res.ok || json.error) {
+                showAlert('setupResult', json.error || 'Bootstrap activation failed.', false);
                 btn.disabled = false;
                 btn.textContent = '⚡ Activate Bootstrap Node';
+                return;
             }
+            showNodeInfo(json.publicKey, json.localIp);
+            await loadNodes();
+        } catch (e) {
+            showAlert('setupResult', 'Failed to activate: ' + e, false);
+            btn.disabled = false;
+            btn.textContent = '⚡ Activate Bootstrap Node';
         }
+    }
 
-        async function loadNodes() {
-            const table = document.getElementById('nodesTable');
-            const empty = document.getElementById('emptyState');
-            const summary = document.getElementById('summaryBox');
+    async function loadNodes() {
+        const table = document.getElementById('nodesTable');
+        const empty = document.getElementById('emptyState');
+        const summary = document.getElementById('summaryBox');
 
-            table.innerHTML = '';
-            empty.style.display = 'none';
-            summary.textContent = 'Loading nodes…';
+        table.innerHTML = '';
+        empty.style.display = 'none';
+        summary.textContent = 'Loading nodes…';
 
-            try {
-                const res = await fetch('/bootstrap/nodes');
-                const data = await res.json();
-                const nodes = data.nodes || [];
-                summary.textContent = `Total nodes: ${data.count ?? nodes.length}`;
+        try {
+            const res = await fetch('/bootstrap/nodes');
+            const data = await res.json();
+            const nodes = data.nodes || [];
+            summary.textContent = `Total nodes: ${data.count ?? nodes.length}`;
 
-                if (!nodes.length) {
-                    empty.style.display = 'block';
-                    return;
-                }
+            if (!nodes.length) {
+                empty.style.display = 'block';
+                return;
+            }
 
-                const header = document.createElement('div');
-                header.className = 'table-header';
-                header.innerHTML = '<div>IP</div><div>Role</div><div>Public Key</div>';
-                table.appendChild(header);
+            const header = document.createElement('div');
+            header.className = 'table-header';
+            header.innerHTML = '<div>IP</div><div>Role</div><div>Public Key</div>';
+            table.appendChild(header);
 
-                nodes.forEach(node => {
-                    const row = document.createElement('div');
-                    row.className = 'table-row';
-                    row.innerHTML = `
+            nodes.forEach(node => {
+                const row = document.createElement('div');
+                row.className = 'table-row';
+                row.innerHTML = `
                     <div>${node.ip || ''}</div>
                     <div>${node.role || ''}</div>
                     <div class="mono">${node.publicKey || ''}</div>
                 `;
-                    table.appendChild(row);
-                });
-            } catch (err) {
-                summary.textContent = 'Failed to load nodes.';
-                empty.style.display = 'block';
-                empty.textContent = 'Unable to fetch nodes.';
-            }
+                table.appendChild(row);
+            });
+        } catch (err) {
+            summary.textContent = 'Failed to load nodes.';
+            empty.style.display = 'block';
+            empty.textContent = 'Unable to fetch nodes.';
         }
+    }
 
-        // On load: verify mode; if already configured, fetch and display node info
-        (async function init() {
-            try {
-                const res = await fetch('/mode/bootstrap/status');
-                const json = await res.json();
-                if (json.mode !== 'BOOTSTRAP') {
-                    window.location.replace('/');
-                    return;
-                }
-                if (json.configured) {
-                    // Fetch stored public key + IP from the server
-                    try {
-                        const infoRes = await fetch('/mode/bootstrap/info');
-                        const info = await infoRes.json();
-                        if (infoRes.ok && !info.error) {
-                            showNodeInfo(info.publicKey, info.bootstrapIp);
-                        }
-                    } catch (_) {
-                        // If info fetch fails just hide setup section with a banner
-                        document.getElementById('setupSection').style.display = 'none';
-                        document.getElementById('nodeInfoCard').style.display = 'block';
-                    }
-                }
-            } catch (_) {
+    // On load: verify mode; if already configured, fetch and display node info
+    (async function init() {
+        try {
+            const res = await fetch('/mode/bootstrap/status');
+            const json = await res.json();
+            if (json.mode !== 'BOOTSTRAP') {
                 window.location.replace('/');
                 return;
             }
-            await loadNodes();
-        })();
-    </script>
+            if (json.configured) {
+                // Fetch stored public key + IP from the server
+                try {
+                    const infoRes = await fetch('/mode/bootstrap/info');
+                    const info = await infoRes.json();
+                    if (infoRes.ok && !info.error) {
+                        showNodeInfo(info.publicKey, info.bootstrapIp);
+                    }
+                } catch (_) {
+                    // If info fetch fails just hide setup section with a banner
+                    document.getElementById('setupSection').style.display = 'none';
+                    document.getElementById('nodeInfoCard').style.display = 'block';
+                }
+            }
+        } catch (_) {
+            window.location.replace('/');
+            return;
+        }
+        await loadNodes();
+    })();
+</script>
 </body>
 
 </html>

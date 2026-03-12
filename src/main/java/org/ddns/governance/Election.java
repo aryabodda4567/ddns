@@ -21,7 +21,9 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+
 import org.ddns.db.*;
+
 import java.util.*;
 
 import static org.ddns.Main.ELECTION_PASSWORD;
@@ -46,8 +48,8 @@ import static org.ddns.Main.ELECTION_PASSWORD;
  */
 public class Election implements MessageHandler {
 
-    private static final Logger log = LoggerFactory.getLogger(Election.class);
     public static final int ELECTION_CREATED = 8;
+    private static final Logger log = LoggerFactory.getLogger(Election.class);
     public static int ACCEPTED = 1;
     public static int REJECTED = 2;
     public static int WRONG_PASSWORD = 3;
@@ -109,22 +111,22 @@ public class Election implements MessageHandler {
      *                      received it can still vote.
      */
     public static void createElection(ElectionType electionType,
-            int timeInMinutes,
-            String nodeName,
-            String description) {
+                                      int timeInMinutes,
+                                      String nodeName,
+                                      String description) {
 
         if (electionType == null) {
-            log.error("[Election] electionType must not be null");
+            log.error("Election creation failed: electionType must not be null");
             return;
         }
         if (timeInMinutes <= 0) {
-            log.error("[Election] timeInMinutes must be > 0");
+            log.error("Election creation failed: timeInMinutes must be > 0");
             return;
         }
 
         final NodeConfig selfNode = DBUtil.getInstance().getSelfNode();
         if (selfNode == null || selfNode.getPublicKey() == null) {
-            log.error("[Election] Self node or its public key not configured.");
+            log.error("Election creation failed: self node or its public key is not configured");
             return;
         }
 
@@ -150,17 +152,16 @@ public class Election implements MessageHandler {
                     NetworkUtility.getLocalIpAddress(),
                     DBUtil.getInstance().getPublicKey(), // sender's public key
                     ConversionUtil.toJson(nomination));
-
+            msg.setExclude(true);
             // Broadcast to ALL nodes
             NetworkManager.broadcast(
                     ConversionUtil.toJson(msg),
                     DBUtil.getInstance().getAllNodes(),
                     Set.of(Role.ANY));
 
-            log.info(
-                    "[Election] Broadcasted CREATE_ELECTION (" + electionType + "), expires at " + endTime);
+            log.info("Broadcasted CREATE_ELECTION ({}) expires at {}", electionType, endTime);
         } catch (Exception e) {
-            log.error("[Election] Failed to broadcast CREATE_ELECTION: " + e.getMessage());
+            log.error("Failed to broadcast CREATE_ELECTION: " + e.getMessage());
         }
     }
 
@@ -172,20 +173,20 @@ public class Election implements MessageHandler {
      */
     public static void casteVote(Nomination nomination) {
         if (nomination == null) {
-            log.warn("[Election] casteVote called with null nomination");
+            log.warn("casteVote called with null nomination");
             return;
         }
 
         long now = TimeUtil.getCurrentUnixTime();
         if (TimeUtil.isExpired(now, nomination.getExpireTime())) {
-            log.error("[Election] Voting window expired; cannot vote. Removing local nomination.");
+            log.error("Voting window expired; cannot vote. Removing local nomination.");
             removeNomination(nomination);
             return;
         }
 
         NodeConfig selfNode = DBUtil.getInstance().getSelfNode();
         if (selfNode == null || selfNode.getPublicKey() == null) {
-            log.error("[Election] Self node/public key missing; cannot vote.");
+            log.error("Self node/public key missing; cannot vote.");
             return;
         }
 
@@ -196,14 +197,14 @@ public class Election implements MessageHandler {
                 nomination.getIpAddress(), // receiver IP (candidate)
                 nomination.getNodeConfig().getPublicKey(), // receiver pubkey
                 ConversionUtil.toJson(vote));
-
+        msg.setExclude(true);
         try {
             NetworkManager.sendDirectMessage(nomination.getNodeConfig(), ConversionUtil.toJson(msg));
             // Mark as handled locally by simply removing the nomination
             removeNomination(nomination);
-            log.info("[Election] Vote sent to " + nomination.getIpAddress());
+            log.info("Vote sent to " + nomination.getIpAddress());
         } catch (Exception e) {
-            log.error("[Election] Failed to send vote: " + e.getMessage());
+            log.error("Failed to send vote: " + e.getMessage());
         }
     }
 
@@ -240,46 +241,6 @@ public class Election implements MessageHandler {
     // ---- MessageHandler ----
 
     /**
-     * Append a vote to the vote-box if:
-     * - vote payload is well-formed
-     * - voter node has a public key
-     * - voter hasn't already voted (dedup by voter public key)
-     */
-    public void addVote(String payload) {
-        if (payload == null || payload.isBlank()) {
-            log.warn("[Election] addVote: empty payload");
-            return;
-        }
-
-        Vote vote = null;
-        try {
-            vote = ConversionUtil.fromJson(payload, Vote.class);
-        } catch (Exception e) {
-            log.warn("[Election] addVote: malformed Vote JSON ignored: " + e.getMessage());
-            return;
-        }
-
-        if (vote == null || vote.getNodeConfig() == null || vote.getNodeConfig().getPublicKey() == null) {
-            log.warn("[Election] addVote: missing voter public key, ignoring.");
-            return;
-        }
-
-        Set<Vote> votes = safeSet(loadVotes());
-
-        // Deduplicate by voter public key string (safer than full object equality)
-        Vote finalVote = vote;
-        boolean alreadyVoted = votes.stream().anyMatch(v -> sameVoter(v, finalVote));
-        if (alreadyVoted) {
-            log.info("[Election] Duplicate vote from same voter ignored.");
-            return;
-        }
-
-        votes.add(vote);
-        saveVotes(votes);
-        log.info("[Election] Vote recorded. Total votes: " + votes.size());
-    }
-
-    /**
      * Compute the result using the current vote-box, then clear it.
      * Quorum rule: votes >= requiredVotes (all known nodes).
      *
@@ -289,100 +250,9 @@ public class Election implements MessageHandler {
         int requiredVotes = getRequiredVotes();
         int votesReceived = safeSet(loadVotes()).size();
         deleteVoteBox(); // make result read-once
-        log.info("[Election] Result check: received=" + votesReceived + ", required=" + requiredVotes);
+        log.info("Result check: received=" + votesReceived + ", required=" + requiredVotes);
         return votesReceived >= requiredVotes;
     }
-
-    @Override
-    public void onBroadcastMessage(String message) {
-        // not used currently
-    }
-
-    // ---- Helpers: nominations ----
-
-    @Override
-    public void onDirectMessage(String message) {
-        if (message == null || message.isBlank())
-            return;
-
-        Message envelope;
-        try {
-            envelope = ConversionUtil.fromJson(message, Message.class);
-        } catch (Exception e) {
-            log.warn("[Election] Dropped malformed direct message: " + e.getMessage());
-            return;
-        }
-
-        if (envelope == null || envelope.type == null) {
-            log.warn("[Election] Dropped message with null type.");
-            return;
-        }
-
-        try {
-            switch (envelope.type) {
-                case CREATE_ELECTION -> addNomination(envelope.payload);
-                case CASTE_VOTE -> addVote(envelope.payload);
-                default -> {
-                    /* ignore others */ }
-            }
-        } catch (Exception e) {
-            log.error("[Election] Error processing " + envelope.type + ": " + e.getMessage());
-        }
-    }
-
-    @Override
-    public void onMulticastMessage(String message) {
-        // not used currently
-    }
-
-    /**
-     * Accepts a nomination payload and persists it if valid & within time.
-     * Idempotent on Set semantics + equals/hashCode of Nomination.
-     */
-    public void addNomination(String payload) {
-        if (payload == null || payload.isBlank()) {
-            log.warn("[Election] addNomination: empty payload");
-            return;
-        }
-
-        Nomination nomination;
-        try {
-            nomination = ConversionUtil.fromJson(payload, Nomination.class);
-        } catch (Exception e) {
-            log.warn("[Election] addNomination: malformed Nomination JSON ignored: " + e.getMessage());
-            return;
-        }
-
-        if (!isNominationValid(nomination)) {
-            log.warn("[Election] addNomination: invalid nomination ignored.");
-            return;
-        }
-
-        long now = TimeUtil.getCurrentUnixTime();
-        if (TimeUtil.isExpired(now, nomination.getExpireTime())) {
-            log.info("[Election] addNomination: already expired; ignoring.");
-            return;
-        }
-
-        Set<Nomination> nominations = safeSet(loadNominations());
-        nominations.add(nomination);
-        saveNomination(nominations);
-        log.info("[Election] Nomination stored from " + nomination.getIpAddress());
-
-    }
-
-    private boolean isNominationValid(Nomination n) {
-        return n != null &&
-                n.getNodeConfig() != null &&
-                n.getNodeConfig().getPublicKey() != null &&
-                n.getIpAddress() != null &&
-                n.getElectionType() != null &&
-                n.getExpireTime() > 0 &&
-                n.getStartTime() > 0 &&
-                n.getExpireTime() > n.getStartTime();
-    }
-
-    // ---- Helpers: votes ----
 
     private static void saveNomination(Set<Nomination> nominationSet) {
         DBUtil.getInstance().putString(ConfigKey.NOMINATIONS.key(), ConversionUtil.toJson(safeSet(nominationSet)));
@@ -394,6 +264,8 @@ public class Election implements MessageHandler {
         return set != null ? set : new HashSet<>();
     }
 
+    // ---- Helpers: nominations ----
+
     private static Set<Vote> loadVotes() {
         String json = DBUtil.getInstance().getString(ConfigKey.VOTE_BOX.key());
         Set<Vote> set = ConversionUtil.jsonToSet(json, Vote.class);
@@ -404,28 +276,8 @@ public class Election implements MessageHandler {
         DBUtil.getInstance().putString(ConfigKey.VOTE_BOX.key(), ConversionUtil.toJson(safeSet(votes)));
     }
 
-    // ---- Quorum ----
-
     public static void deleteVoteBox() {
         DBUtil.getInstance().delete(ConfigKey.VOTE_BOX.key());
-    }
-
-    // ---- Utils ----
-
-    private boolean sameVoter(Vote a, Vote b) {
-        if (a == null || b == null)
-            return false;
-        if (a.getNodeConfig() == null || b.getNodeConfig() == null)
-            return false;
-        if (a.getNodeConfig().getPublicKey() == null || b.getNodeConfig().getPublicKey() == null)
-            return false;
-        try {
-            String ak = org.ddns.bc.SignatureUtil.getStringFromKey(a.getNodeConfig().getPublicKey());
-            String bk = org.ddns.bc.SignatureUtil.getStringFromKey(b.getNodeConfig().getPublicKey());
-            return Objects.equals(ak, bk);
-        } catch (Exception e) {
-            return false;
-        }
     }
 
     /**
@@ -436,6 +288,8 @@ public class Election implements MessageHandler {
         // Unanimous voting - all nodes must approve
         return DBUtil.getInstance().getAllNodes().size();
     }
+
+    // ---- Helpers: votes ----
 
     public static int getResult(String password) {
 
@@ -451,7 +305,7 @@ public class Election implements MessageHandler {
             return WRONG_PASSWORD;
 
         boolean result = getResult();
-        if (result){
+        if (result) {
             DBUtil.getInstance().putInt(ConfigKey.IS_ACCEPTED.toString(), 1);
             return ACCEPTED;
         }
@@ -461,7 +315,7 @@ public class Election implements MessageHandler {
     }
 
     public static int createElection(String password, String name,
-            int time, String description, ElectionType electionType) {
+                                     int time, String description, ElectionType electionType) {
 
         if (password == null || password.isEmpty()) {
             return INVALID_INPUT;
@@ -513,5 +367,153 @@ public class Election implements MessageHandler {
         for (byte b : bytes)
             sb.append(String.format("%02x", b & 0xff));
         return sb.toString();
+    }
+
+    // ---- Quorum ----
+
+    /**
+     * Append a vote to the vote-box if:
+     * - vote payload is well-formed
+     * - voter node has a public key
+     * - voter hasn't already voted (dedup by voter public key)
+     */
+    public void addVote(String payload) {
+        if (payload == null || payload.isBlank()) {
+            log.warn("addVote: empty payload");
+            return;
+        }
+
+        Vote vote = null;
+        try {
+            vote = ConversionUtil.fromJson(payload, Vote.class);
+        } catch (Exception e) {
+            log.warn("addVote: malformed Vote JSON ignored: " + e.getMessage());
+            return;
+        }
+
+        if (vote == null || vote.getNodeConfig() == null || vote.getNodeConfig().getPublicKey() == null) {
+            log.warn("addVote: missing voter public key, ignoring.");
+            return;
+        }
+
+        Set<Vote> votes = safeSet(loadVotes());
+
+        // Deduplicate by voter public key string (safer than full object equality)
+        Vote finalVote = vote;
+        boolean alreadyVoted = votes.stream().anyMatch(v -> sameVoter(v, finalVote));
+        if (alreadyVoted) {
+            log.info("Duplicate vote from same voter ignored.");
+            return;
+        }
+
+        votes.add(vote);
+        saveVotes(votes);
+        log.info("Vote recorded. Total votes: " + votes.size());
+    }
+
+    // ---- Utils ----
+
+    @Override
+    public void onBroadcastMessage(String message) {
+        // not used currently
+    }
+
+    @Override
+    public void onDirectMessage(String message) {
+        if (message == null || message.isBlank())
+            return;
+
+        Message envelope;
+        try {
+            envelope = ConversionUtil.fromJson(message, Message.class);
+        } catch (Exception e) {
+            log.warn("Dropped malformed direct message: " + e.getMessage());
+            return;
+        }
+
+        if (envelope == null || envelope.type == null) {
+            log.warn("Dropped message with null type.");
+            return;
+        }
+
+        try {
+            switch (envelope.type) {
+                case CREATE_ELECTION -> addNomination(envelope.payload);
+                case CASTE_VOTE -> addVote(envelope.payload);
+                default -> {
+                    /* ignore others */
+                }
+            }
+        } catch (Exception e) {
+            log.error("Error processing " + envelope.type + ": " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void onMulticastMessage(String message) {
+        // not used currently
+    }
+
+    /**
+     * Accepts a nomination payload and persists it if valid & within time.
+     * Idempotent on Set semantics + equals/hashCode of Nomination.
+     */
+    public void addNomination(String payload) {
+        if (payload == null || payload.isBlank()) {
+            log.warn("addNomination: empty payload");
+            return;
+        }
+
+        Nomination nomination;
+        try {
+            nomination = ConversionUtil.fromJson(payload, Nomination.class);
+        } catch (Exception e) {
+            log.warn("addNomination: malformed Nomination JSON ignored: " + e.getMessage());
+            return;
+        }
+
+        if (!isNominationValid(nomination)) {
+            log.warn("addNomination: invalid nomination ignored.");
+            return;
+        }
+
+        long now = TimeUtil.getCurrentUnixTime();
+        if (TimeUtil.isExpired(now, nomination.getExpireTime())) {
+            log.info("addNomination: already expired; ignoring.");
+            return;
+        }
+
+        Set<Nomination> nominations = safeSet(loadNominations());
+        nominations.add(nomination);
+        saveNomination(nominations);
+        log.info("Nomination stored from " + nomination.getIpAddress());
+
+    }
+
+    private boolean isNominationValid(Nomination n) {
+        return n != null &&
+                n.getNodeConfig() != null &&
+                n.getNodeConfig().getPublicKey() != null &&
+                n.getIpAddress() != null &&
+                n.getElectionType() != null &&
+                n.getExpireTime() > 0 &&
+                n.getStartTime() > 0 &&
+                n.getExpireTime() > n.getStartTime();
+    }
+
+    private boolean sameVoter(Vote a, Vote b) {
+        if (a == null || b == null)
+            return false;
+        if (a.getNodeConfig() == null || b.getNodeConfig() == null)
+            return false;
+        if (a.getNodeConfig().getPublicKey() == null || b.getNodeConfig().getPublicKey() == null)
+            return false;
+        try {
+            String ak = org.ddns.bc.SignatureUtil.getStringFromKey(a.getNodeConfig().getPublicKey());
+            String bk = org.ddns.bc.SignatureUtil.getStringFromKey(b.getNodeConfig().getPublicKey());
+            return Objects.equals(ak, bk);
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

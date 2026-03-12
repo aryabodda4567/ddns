@@ -2,8 +2,8 @@ package org.ddns.consensus;
 
 public class LivenessController {
 
-    private long lastBlockTimestamp;
     private final long timeoutMs;
+    private long lastBlockTimestamp;
 
     public LivenessController(long timeoutMs) {
         this.timeoutMs = timeoutMs;

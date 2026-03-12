@@ -19,6 +19,7 @@ public final class ConsolePrinter {
     private static final String RED = "\u001B[31m";
     private static final String YELLOW = "\u001B[33m";
     private static final String BLUE = "\u001B[34m";
+
     // Prevent instantiation
     private ConsolePrinter() {
     }

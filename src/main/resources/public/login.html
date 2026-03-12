@@ -3,169 +3,169 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>Login | DDNS Console</title>
-    <link rel="stylesheet" href="/css/common.css">
+    <link href="/css/common.css" rel="stylesheet">
     <script src="/js/exit-node.js"></script>
 </head>
 
 <body>
-    <div class="page-shell" style="max-width: 680px;">
-        <div class="topbar">
-            <div class="brand">
-                <div class="brand-badge">DD</div>
-                <div>
-                    <div class="brand-title">DDNS Network Console</div>
-                    <div class="brand-sub">Session Re-Authentication</div>
-                </div>
+<div class="page-shell" style="max-width: 680px;">
+    <div class="topbar">
+        <div class="brand">
+            <div class="brand-badge">DD</div>
+            <div>
+                <div class="brand-title">DDNS Network Console</div>
+                <div class="brand-sub">Session Re-Authentication</div>
             </div>
-            <span class="status-pill"><span class="status-dot"></span> Secure Login</span>
         </div>
-
-        <main class="content-stack" style="margin-top: 16px;">
-            <section class="card">
-                <h2>Login Required</h2>
-                <p class="subtle">Your secure session lasts 15 minutes. Please login with the username and password
-                    configured during node join.</p>
-
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input id="username" placeholder="network-admin">
-                </div>
-
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input id="password" type="password" placeholder="Your password">
-                </div>
-
-                <div class="action-row" style="margin-top: 14px;">
-                    <button onclick="login()">Login</button>
-                    <button class="secondary" onclick="location.href='/join.html'">Back To Join</button>
-                </div>
-
-                <div id="result"></div>
-            </section>
-        </main>
+        <span class="status-pill"><span class="status-dot"></span> Secure Login</span>
     </div>
 
-    <script>
-        function renderJSON(obj, container) {
-            for (let key in obj) {
-                const value = obj[key];
-                const row = document.createElement("div");
-                row.className = "kv";
+    <main class="content-stack" style="margin-top: 16px;">
+        <section class="card">
+            <h2>Login Required</h2>
+            <p class="subtle">Your secure session lasts 15 minutes. Please login with the username and password
+                configured during node join.</p>
 
-                const k = document.createElement("div");
-                k.className = "key";
-                k.textContent = key;
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input id="username" placeholder="network-admin">
+            </div>
 
-                const v = document.createElement("div");
-                if (typeof value === "object" && value !== null) {
-                    const nested = document.createElement("div");
-                    nested.className = "nested";
-                    renderJSON(value, nested);
-                    v.appendChild(nested);
-                } else {
-                    v.textContent = value;
-                }
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input id="password" placeholder="Your password" type="password">
+            </div>
 
-                row.appendChild(k);
-                row.appendChild(v);
-                container.appendChild(row);
-            }
-        }
+            <div class="action-row" style="margin-top: 14px;">
+                <button onclick="login()">Login</button>
+                <button class="secondary" onclick="location.href='/join.html'">Back To Join</button>
+            </div>
 
-        function showMessage(obj, ok) {
-            const result = document.getElementById("result");
-            result.innerHTML = "";
+            <div id="result"></div>
+        </section>
+    </main>
+</div>
 
-            const box = document.createElement("div");
-            box.className = "alert " + (ok ? "success" : "error");
-            box.style.display = "block";
+<script>
+    function renderJSON(obj, container) {
+        for (let key in obj) {
+            const value = obj[key];
+            const row = document.createElement("div");
+            row.className = "kv";
 
-            if (typeof obj === "object") {
-                renderJSON(obj, box);
+            const k = document.createElement("div");
+            k.className = "key";
+            k.textContent = key;
+
+            const v = document.createElement("div");
+            if (typeof value === "object" && value !== null) {
+                const nested = document.createElement("div");
+                nested.className = "nested";
+                renderJSON(value, nested);
+                v.appendChild(nested);
             } else {
-                box.textContent = obj;
+                v.textContent = value;
             }
 
-            result.appendChild(box);
+            row.appendChild(k);
+            row.appendChild(v);
+            container.appendChild(row);
+        }
+    }
+
+    function showMessage(obj, ok) {
+        const result = document.getElementById("result");
+        result.innerHTML = "";
+
+        const box = document.createElement("div");
+        box.className = "alert " + (ok ? "success" : "error");
+        box.style.display = "block";
+
+        if (typeof obj === "object") {
+            renderJSON(obj, box);
+        } else {
+            box.textContent = obj;
         }
 
-        function getNextPath() {
-            const params = new URLSearchParams(window.location.search);
-            const next = params.get("next");
-            if (!next || !next.startsWith("/")) {
-                return null;
-            }
-            if (next === "/login.html") {
-                return null;
-            }
-            return next;
+        result.appendChild(box);
+    }
+
+    function getNextPath() {
+        const params = new URLSearchParams(window.location.search);
+        const next = params.get("next");
+        if (!next || !next.startsWith("/")) {
+            return null;
         }
-
-        async function checkIfAlreadyLoggedIn() {
-            try {
-                const res = await fetch("/auth/session");
-                const json = await res.json();
-
-                if (!json.userConfigured) {
-                    showMessage({ status: "No user configured. Please complete Join setup first." }, false);
-                    return;
-                }
-
-                if (json.requireLogin && json.authenticated) {
-                    const next = getNextPath();
-                    const redirected = sessionStorage.getItem("login_redirect_done") === "1";
-                    if (next && !redirected && next !== window.location.pathname) {
-                        sessionStorage.setItem("login_redirect_done", "1");
-                        window.location.replace(next);
-                        return;
-                    }
-
-                    showMessage({ status: "Already logged in. Continue to Home." }, true);
-                }
-            } catch (e) {
-                // Ignore and stay on login page.
-            }
+        if (next === "/login.html") {
+            return null;
         }
+        return next;
+    }
 
-        async function login() {
-            const username = document.getElementById("username").value.trim();
-            const password = document.getElementById("password").value.trim();
+    async function checkIfAlreadyLoggedIn() {
+        try {
+            const res = await fetch("/auth/session");
+            const json = await res.json();
 
-            if (!username || !password) {
-                showMessage({ error: "Username and password are required" }, false);
+            if (!json.userConfigured) {
+                showMessage({status: "No user configured. Please complete Join setup first."}, false);
                 return;
             }
 
-            try {
-                const res = await fetch("/auth/login", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ username, password })
-                });
-
-                const json = await res.json();
-
-                if (!res.ok || json.error) {
-                    showMessage(json, false);
+            if (json.requireLogin && json.authenticated) {
+                const next = getNextPath();
+                const redirected = sessionStorage.getItem("login_redirect_done") === "1";
+                if (next && !redirected && next !== window.location.pathname) {
+                    sessionStorage.setItem("login_redirect_done", "1");
+                    window.location.replace(next);
                     return;
                 }
 
-                showMessage({ status: "Login successful", details: json }, true);
-                setTimeout(() => {
-                    const next = getNextPath() || "/home.html";
-                    sessionStorage.setItem("login_redirect_done", "1");
-                    window.location.replace(next);
-                }, 700);
-            } catch (err) {
-                showMessage({ error: "Server not reachable", details: err.toString() }, false);
+                showMessage({status: "Already logged in. Continue to Home."}, true);
             }
+        } catch (e) {
+            // Ignore and stay on login page.
+        }
+    }
+
+    async function login() {
+        const username = document.getElementById("username").value.trim();
+        const password = document.getElementById("password").value.trim();
+
+        if (!username || !password) {
+            showMessage({error: "Username and password are required"}, false);
+            return;
         }
 
-        checkIfAlreadyLoggedIn();
-    </script>
+        try {
+            const res = await fetch("/auth/login", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({username, password})
+            });
+
+            const json = await res.json();
+
+            if (!res.ok || json.error) {
+                showMessage(json, false);
+                return;
+            }
+
+            showMessage({status: "Login successful", details: json}, true);
+            setTimeout(() => {
+                const next = getNextPath() || "/home.html";
+                sessionStorage.setItem("login_redirect_done", "1");
+                window.location.replace(next);
+            }, 700);
+        } catch (err) {
+            showMessage({error: "Server not reachable", details: err.toString()}, false);
+        }
+    }
+
+    checkIfAlreadyLoggedIn();
+</script>
 </body>
 
 </html>
