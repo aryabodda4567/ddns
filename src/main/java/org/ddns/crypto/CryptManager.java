@@ -204,6 +204,8 @@ public class CryptManager {
      * Combines:
      * - Local node registry
      * - Bootstrap node registry
+     * 
+     * Special case: Bootstrap node is always trusted
      */
     private static boolean isNodeExist(NodeConfig nodeConfig) {
 
@@ -211,22 +213,34 @@ public class CryptManager {
             return false;
         }
 
+        // Check if this is the bootstrap node - always trust it
+        NodeConfig bootstrapNode = DBUtil.getInstance().getBootstrapNode();
+        if (bootstrapNode != null && 
+            bootstrapNode.getIp().equals(nodeConfig.getIp()) && 
+            bootstrapNode.getPublicKey().equals(nodeConfig.getPublicKey())) {
+            return true;
+        }
+
         Set<NodeConfig> localNodes = DBUtil.getInstance().getAllNodes();
         Set<NodeConfig> bootstrapNodes = BootstrapDB.getInstance().getAllNodes();
         NodeConfig selfNode = DBUtil.getInstance().getSelfNode();
-        NodeConfig bootstrapNode = DBUtil.getInstance().getBootstrapNode();
         Set<NodeConfig> union = new HashSet<>();
 
         if (localNodes != null) {
             union.addAll(localNodes);
         }
+        if (bootstrapNodes != null) {
+            union.addAll(bootstrapNodes);
+        }
+        if (selfNode != null) union.add(selfNode);
 
-        union.addAll(bootstrapNodes);
-        union.add(selfNode);
-        union.add(bootstrapNode);
+        for (NodeConfig n : union) {
+            if (n != null && n.getIp().equals(nodeConfig.getIp()) && n.getPublicKey().equals(nodeConfig.getPublicKey())) {
+                return true;
+            }
+        }
 
-
-        return union.contains(nodeConfig);
+        return false;
     }
 
 }
