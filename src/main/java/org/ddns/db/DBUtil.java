@@ -91,7 +91,7 @@ public class DBUtil {
     }
 
     private RuntimeException wrap(Exception e) {
-        log.error("[DBUtil] " + e.getMessage());
+        log.error("Database error: {}", e.getMessage());
         return (e instanceof RuntimeException) ? (RuntimeException) e : new RuntimeException(e);
     }
 
@@ -145,9 +145,9 @@ public class DBUtil {
             stmt.execute(nodesSql);
             stmt.execute(nodePubKeyIndex);
             stmt.execute(nominationsSql);
-            log.info("[DBUtil] Database and tables initialized successfully.");
+            log.info("Database and tables initialized successfully");
         } catch (SQLException e) {
-            log.error("[DBUtil] Error initializing database: " + e.getMessage());
+            log.error("Error initializing database: {}", e.getMessage());
         }
     }
 
@@ -192,7 +192,7 @@ public class DBUtil {
             try {
                 return Integer.parseInt(valueStr);
             } catch (NumberFormatException e) {
-                log.warn("[DBUtil] Invalid integer format for key '" + key + "'. Returning default.");
+                log.warn("Invalid integer format for key '{}'; using default", key);
             }
         }
         return defaultValue;
@@ -212,7 +212,7 @@ public class DBUtil {
             try {
                 return Long.parseLong(valueStr);
             } catch (NumberFormatException e) {
-                log.warn("[DBUtil] Invalid long format for key '" + key + "'. Returning default.");
+                log.warn("Invalid long format for key '{}'; using default", key);
             }
         }
         return defaultValue;
@@ -327,7 +327,7 @@ public class DBUtil {
                         count++;
                     }
                     if (count > 0) pstmt.executeBatch();
-                    log.info("[DBUtil] Added/Updated " + count + " nodes to the database.");
+                    log.info("Added/updated {} nodes in database", count);
                 }
                 conn.commit();
             }
@@ -342,7 +342,7 @@ public class DBUtil {
         if (node == null) return;
 //        Update RR Queue
         CircularQueue.getInstance().addNode(new QueueNode(node,
-                CircularQueue.getInstance().size()+1));
+                CircularQueue.getInstance().size() + 1));
 
         withWrite(() -> {
             try (Connection conn = connect()) {
@@ -359,7 +359,7 @@ public class DBUtil {
                     count++;
 
                     pstmt.executeBatch();
-                    log.info("[DBUtil] Added/Updated " + count + " nodes to the database.");
+                    log.info("Added/updated {} node(s) in database", count);
                 }
                 conn.commit();
             }
@@ -392,7 +392,7 @@ public class DBUtil {
         try {
             return deleteNode(SignatureUtil.getStringFromKey(publicKey));
         } catch (Exception e) {
-            log.error("[DBUtil] deleteNode(publicKey) error: " + e.getMessage());
+            log.error("deleteNode by public key failed: {}", e.getMessage());
             return false;
         }
     }
@@ -464,7 +464,7 @@ public class DBUtil {
 
                 conn.commit();
             } catch (SQLException e) {
-                log.error("[DBUtil] updateNode error: " + e.getMessage());
+                log.error("updateNode failed: {}", e.getMessage());
                 // write lock scope will release; update returns false on error
             }
         });
@@ -478,7 +478,7 @@ public class DBUtil {
         try {
             return updateNode(SignatureUtil.getStringFromKey(publicKey), newRole, newIp);
         } catch (Exception e) {
-            log.error("[DBUtil] updateNode(publicKey) error: " + e.getMessage());
+            log.error("updateNode by public key failed: {}", e.getMessage());
             return false;
         }
     }
@@ -511,11 +511,11 @@ public class DBUtil {
                         PublicKey pubKey = SignatureUtil.getPublicKeyFromString(rs.getString("public_key"));
                         nodes.add(new NodeConfig(ip, role, pubKey));
                     } catch (Exception e) {
-                        log.warn("[DBUtil] Failed to load node record: " + e.getMessage());
+                        log.warn("Failed to load node record: {}", e.getMessage());
                     }
                 }
             } catch (SQLException e) {
-                log.error("[DBUtil] Error getting all nodes: " + e.getMessage());
+                log.error("Error reading nodes: {}", e.getMessage());
             }
             return nodes;
         });
@@ -529,12 +529,14 @@ public class DBUtil {
     public void setSelfNode(NodeConfig nodeConfig) {
         this.putString(ConfigKey.SELF_NODE.key(), ConversionUtil.toJson(nodeConfig));
     }
-    public void setBootstrapNode(NodeConfig nodeConfig) {
-        this.putString(ConfigKey.BOOTSTRAP_NODE.key(), ConversionUtil.toJson(nodeConfig));
-    }
+
     public NodeConfig getBootstrapNode() {
         String jsonString = this.getString(ConfigKey.BOOTSTRAP_NODE.key());
         return ConversionUtil.fromJson(jsonString, NodeConfig.class);
+    }
+
+    public void setBootstrapNode(NodeConfig nodeConfig) {
+        this.putString(ConfigKey.BOOTSTRAP_NODE.key(), ConversionUtil.toJson(nodeConfig));
     }
 
     public void clearNominations() {
@@ -544,7 +546,7 @@ public class DBUtil {
                 stmt.execute("DELETE FROM nominations");
                 conn.commit();
             } catch (SQLException e) {
-                log.error("[DBUtil] Error clearing nominations: " + e.getMessage());
+                log.error("Error clearing nominations: {}", e.getMessage());
             }
             // Also clear related config store entries atomically
             try (Connection conn = connect()) {
@@ -559,7 +561,7 @@ public class DBUtil {
                 }
                 conn.commit();
             } catch (SQLException e) {
-                log.error("[DBUtil] Error clearing related config keys: " + e.getMessage());
+                log.error("Error clearing related config keys: {}", e.getMessage());
             }
         });
     }
@@ -578,9 +580,9 @@ public class DBUtil {
                 // Reset AUTOINCREMENT counters if any
                 stmt.executeUpdate("DELETE FROM sqlite_sequence WHERE name IN ('config_store','nodes','nominations');");
                 conn.commit();
-                log.info("[DBUtil] All stored data cleared successfully.");
+                log.info("All stored data cleared successfully");
             } catch (SQLException e) {
-                log.error("[DBUtil] Error clearing all storage: " + e.getMessage());
+                log.error("Error clearing all storage: {}", e.getMessage());
             }
         });
     }
@@ -653,9 +655,9 @@ public class DBUtil {
         withWrite(() -> {
             java.io.File dbFile = new java.io.File(dbUrl.replace("jdbc:sqlite:", ""));
             if (dbFile.exists() && dbFile.delete()) {
-                log.info("[DBUtil] Database file deleted successfully.");
+                log.info("Database file deleted successfully");
             } else {
-                log.error("[DBUtil] Failed to delete database file or file not found.");
+                log.error("Failed to delete database file or file not found");
             }
         });
     }

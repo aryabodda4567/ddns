@@ -19,14 +19,14 @@ import java.util.logging.Logger;
 
 /**
  * CryptManager handles secure message exchange between nodes.
- *
+ * <p>
  * Security model:
  * 1. Message is encrypted using ECDH derived AES key.
  * 2. Message is signed using sender private key.
  * 3. Receiver decrypts using ECDH shared secret.
  * 4. Signature verification ensures authenticity.
  * 5. Node existence verification prevents unauthorized nodes.
- *
+ * <p>
  * This ensures:
  * Confidentiality  -> AES encryption
  * Authenticity     -> Digital signature
@@ -39,7 +39,7 @@ public class CryptManager {
 
     /**
      * Encrypts a plaintext message for a receiver.
-     *
+     * <p>
      * Steps:
      * 1. Derive shared AES key using ECDH
      * 2. Encrypt plaintext
@@ -47,7 +47,7 @@ public class CryptManager {
      * 4. Package encrypted payload + signature + sender public key
      *
      * @param receiverPublicKey receiver's EC public key
-     * @param plaintext message to encrypt
+     * @param plaintext         message to encrypt
      * @return MessageWrapper containing encrypted payload
      */
     public static String encrypt(PublicKey receiverPublicKey, String plaintext) throws Exception {
@@ -81,12 +81,12 @@ public class CryptManager {
             // Create digital signature of plaintext
             byte[] signature = SignatureUtil.sign(senderPrivateKey, plaintext);
 
-            MessageWrapper messageWrapper =new MessageWrapper(
+            MessageWrapper messageWrapper = new MessageWrapper(
                     senderPublicKey,
                     signature,
                     encryptedMessage
             );
-            return  ConversionUtil.toJson(messageWrapper);
+            return ConversionUtil.toJson(messageWrapper);
 
         } catch (Exception e) {
 
@@ -98,7 +98,7 @@ public class CryptManager {
 
     /**
      * Decrypt incoming message and verify authenticity.
-     *
+     * <p>
      * Validation sequence:
      * 1. Decrypt ciphertext
      * 2. Verify digital signature
@@ -146,7 +146,7 @@ public class CryptManager {
             Message message = ConversionUtil.fromJson(plainText, Message.class);
 
 //            Exclude this from checking
-            if(message.isExclude() ) return  plainText;
+            if (message.isExclude()) return plainText;
 
             // Step 3 — Verify sender node exists in network
             NodeConfig nodeConfig = constructNodeConfig(message);
@@ -177,7 +177,7 @@ public class CryptManager {
         }
 
         // Exclude this message from checking
-        if(message.isExclude()) return null;
+        if (message.isExclude()) return null;
 
         PublicKey senderPublicKey = SignatureUtil.getPublicKeyFromString(message.senderPublicKey);
 
@@ -200,11 +200,11 @@ public class CryptManager {
 
     /**
      * Validates if node exists in the distributed network.
-     *
+     * <p>
      * Combines:
      * - Local node registry
      * - Bootstrap node registry
-     * 
+     * <p>
      * Special case: Bootstrap node is always trusted
      */
     private static boolean isNodeExist(NodeConfig nodeConfig) {
@@ -215,9 +215,9 @@ public class CryptManager {
 
         // Check if this is the bootstrap node - always trust it
         NodeConfig bootstrapNode = DBUtil.getInstance().getBootstrapNode();
-        if (bootstrapNode != null && 
-            bootstrapNode.getIp().equals(nodeConfig.getIp()) && 
-            bootstrapNode.getPublicKey().equals(nodeConfig.getPublicKey())) {
+        if (bootstrapNode != null &&
+                bootstrapNode.getIp().equals(nodeConfig.getIp()) &&
+                bootstrapNode.getPublicKey().equals(nodeConfig.getPublicKey())) {
             return true;
         }
 

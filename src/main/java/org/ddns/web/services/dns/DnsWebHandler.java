@@ -168,7 +168,6 @@ public class DnsWebHandler {
     }
 
 
-
     public Object delete(Request request, Response response) {
         try {
             DNSModel input = gson.fromJson(request.body(), DNSModel.class);
@@ -345,9 +344,6 @@ public class DnsWebHandler {
             );
         }
     }
-
-
-
 
 
 }

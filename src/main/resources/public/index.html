@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>Setup | DDNS Console</title>
-    <link rel="stylesheet" href="/css/common.css">
+    <link href="/css/common.css" rel="stylesheet">
     <style>
         .chooser-grid {
             display: grid;
@@ -70,7 +70,9 @@
         }
 
         @media (max-width: 600px) {
-            .chooser-grid { grid-template-columns: 1fr; }
+            .chooser-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -105,7 +107,8 @@
                 <div class="chooser-card node" onclick="selectMode('NODE')">
                     <div class="icon">⛓️</div>
                     <h2>Chain Node</h2>
-                    <p>Join a DDNS network as a participant. Register with a bootstrap node and perform DNS operations.</p>
+                    <p>Join a DDNS network as a participant. Register with a bootstrap node and perform DNS
+                        operations.</p>
                     <button id="btn-node">Select Chain Node</button>
                 </div>
             </div>
@@ -136,8 +139,8 @@
         try {
             const res = await fetch('/mode/select', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mode })
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({mode})
             });
             const json = await res.json();
 
@@ -168,7 +171,8 @@
             } else if (json.mode === 'NODE') {
                 window.location.replace('/join.html');
             }
-        } catch (_) { /* stay on this page */ }
+        } catch (_) { /* stay on this page */
+        }
     })();
 </script>
 </body>

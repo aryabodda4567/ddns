@@ -132,9 +132,9 @@ public final class TransactionDb {
             stmt.execute(createTable);
             stmt.execute(idxHash);
             stmt.execute(idxSender);
-            log.info("[TransactionDb] initialized.");
+            log.info("Transaction database initialized.");
         } catch (SQLException e) {
-            log.error("[TransactionDb] init failed: " + e.getMessage());
+            log.error("Transaction database initialization failed: " + e.getMessage());
         }
     }
 
@@ -174,7 +174,7 @@ public final class TransactionDb {
                                      List<DNSModel> payload,
                                      byte[] signature) {
         if (txHash == null || type == null || payload == null) {
-            log.error("[TransactionDb] insertTransaction failed: txHash/type/payload required.");
+            log.error("insertTransaction failed: txHash/type/payload required.");
             return false;
         }
 
@@ -185,7 +185,7 @@ public final class TransactionDb {
             try {
                 senderStr = SignatureUtil.getStringFromKey(senderPublicKey);
             } catch (Exception e) {
-                log.error("[TransactionDb] insertTransaction: failed to serialize sender key: " + e.getMessage());
+                log.error("insertTransaction: failed to serialize sender key: " + e.getMessage());
             }
         }
 
@@ -193,11 +193,11 @@ public final class TransactionDb {
         try {
             payloadJson = ConversionUtil.toJson(payload);
             if (payloadJson == null) {
-                log.error("[TransactionDb] insertTransaction failed: ConversionUtil.toJson returned null.");
+                log.error("insertTransaction failed: ConversionUtil.toJson returned null.");
                 return false;
             }
         } catch (Exception e) {
-            log.error("[TransactionDb] insertTransaction: payload serialization failed: " + e.getMessage());
+            log.error("insertTransaction: payload serialization failed: " + e.getMessage());
             return false;
         }
 
@@ -225,39 +225,39 @@ public final class TransactionDb {
                     try {
                         int updated = ps.executeUpdate();
                         if (updated > 0) {
-                            log.info("[TransactionDb] insertTransaction succeeded txHash=" + txHash + " payloadBytes=" + payloadJson.length());
+                            log.info("Transaction persisted txHash=" + txHash + " payloadBytes=" + payloadJson.length());
                             return true;
                         } else {
                             // Insert ignored (likely duplicate unique tx_hash)
-                            log.error("[TransactionDb] insertTransaction ignored (duplicate?) txHash=" + txHash);
+                            log.error("insertTransaction ignored (duplicate?) txHash=" + txHash);
                             return false;
                         }
                     } catch (SQLException e) {
                         String msg = e.getMessage() == null ? "" : e.getMessage().toLowerCase();
                         // Detailed logging for diagnosis
-                        log.error("[TransactionDb][DEBUG] insert attempt=" + attempt + " txHash=" + txHash + " SQLException: " + e.getMessage());
+                        log.error("Insert attempt=" + attempt + " txHash=" + txHash + " SQLException: " + e.getMessage());
                         e.printStackTrace();
 
                         if ((msg.contains("database is locked") || msg.contains("busy")) && attempt < SQLITE_BUSY_RETRY) {
                             attempt++;
                             try {
                                 long sleepMs = SQLITE_BUSY_BASE_DELAY_MS * attempt;
-                                log.error("[TransactionDb][DEBUG] busy retry sleeping " + sleepMs + "ms (attempt " + attempt + ")");
+                                log.error("Busy retry sleeping " + sleepMs + "ms (attempt " + attempt + ")");
                                 Thread.sleep(sleepMs);
                             } catch (InterruptedException ie) {
                                 Thread.currentThread().interrupt();
-                                log.error("[TransactionDb] insertTransaction interrupted during backoff.");
+                                log.error("insertTransaction interrupted during backoff.");
                                 return false;
                             }
                             continue;
                         } else {
-                            log.error("[TransactionDb] insertTransaction failed (SQL): " + e.getMessage());
+                            log.error("insertTransaction failed (SQL): " + e.getMessage());
                             return false;
                         }
                     }
                 }
             } catch (SQLException e) {
-                log.error("[TransactionDb] insertTransaction failed (connect): " + e.getMessage());
+                log.error("insertTransaction failed (connect): " + e.getMessage());
                 e.printStackTrace();
                 return false;
             }
@@ -268,7 +268,7 @@ public final class TransactionDb {
         try {
             return f.get(); // block until write finishes
         } catch (Exception ex) {
-            log.error("[TransactionDb] insertTransaction writer execution failed: " + ex.getMessage());
+            log.error("insertTransaction writer execution failed: " + ex.getMessage());
             ex.printStackTrace();
             return false;
         }
@@ -301,7 +301,7 @@ public final class TransactionDb {
                 return r;
             }
         } catch (SQLException e) {
-            log.error("[TransactionDb] readTransactionByHash failed: " + e.getMessage());
+            log.error("readTransactionByHash failed: " + e.getMessage());
             return null;
         }
     }
@@ -321,7 +321,7 @@ public final class TransactionDb {
         try {
             Files.createDirectories(snapshotDir);
         } catch (IOException e) {
-            log.error("[TransactionDb] Failed to create snapshot directory: " + e.getMessage());
+            log.error("Failed to create snapshot directory: " + e.getMessage());
             return null;
         }
 
@@ -336,16 +336,16 @@ public final class TransactionDb {
             String abs = snapshotPath.toAbsolutePath().toString().replace("'", "''");
             String vacuumSql = "VACUUM INTO '" + abs + "';";
             s.execute(vacuumSql);
-            log.info("[TransactionDb] Snapshot exported (VACUUM INTO): " + snapshotPath);
+            log.info("Snapshot exported (VACUUM INTO): " + snapshotPath);
             return snapshotPath.toString();
         } catch (SQLException vacuumEx) {
-            log.error("[TransactionDb] VACUUM INTO failed (fallback to safe copy): " + vacuumEx.getMessage());
+            log.error("VACUUM INTO failed (fallback to safe copy): " + vacuumEx.getMessage());
         }
 
         // Fallback: file copy with temp file and atomic move
         Path original = Path.of(originalPath).toAbsolutePath();
         if (!Files.exists(original)) {
-            log.error("[TransactionDb] Original DB file not found: " + original);
+            log.error("Original transaction DB file not found: " + original);
             return null;
         }
         Path tmp = snapshotDir.resolve(snapshotName + ".tmp");
@@ -357,11 +357,11 @@ public final class TransactionDb {
                 // Some filesystems/platforms (Windows/OneDrive) may not support ATOMIC_MOVE — fallback
                 Files.move(tmp, snapshotPath, StandardCopyOption.REPLACE_EXISTING);
             }
-            log.info("[TransactionDb] Snapshot exported (file copy): " + snapshotPath);
-            log.error("[TransactionDb] NOTE: file copy snapshot may not be crash-consistent if DB is being written to. Prefer VACUUM INTO where supported.");
+            log.info("Snapshot exported (file copy): " + snapshotPath);
+            log.error("File copy snapshot may not be crash-consistent if DB is being written to. Prefer VACUUM INTO where supported.");
             return snapshotPath.toString();
         } catch (IOException ioEx) {
-            log.error("[TransactionDb] Snapshot file copy failed: " + ioEx.getMessage());
+            log.error("Snapshot file copy failed: " + ioEx.getMessage());
             try {
                 Files.deleteIfExists(tmp);
             } catch (Exception ignore) {
@@ -383,7 +383,7 @@ public final class TransactionDb {
             byte[] bytes = Files.readAllBytes(p);
             return Base64.getEncoder().encodeToString(bytes);
         } catch (IOException e) {
-            log.error("[TransactionDb] exportSnapshotAsBase64 failed: " + e.getMessage());
+            log.error("exportSnapshotAsBase64 failed: " + e.getMessage());
             return null;
         }
     }
@@ -401,9 +401,9 @@ public final class TransactionDb {
             conn.setAutoCommit(false);
             int deleted = s.executeUpdate(deleteSql);
             conn.commit();
-            log.info("[TransactionDb] Truncated transactions. rowsDeletedApprox=" + deleted);
+            log.info("Truncated transactions. rowsDeletedApprox=" + deleted);
         } catch (SQLException e) {
-            log.error("[TransactionDb] truncateDatabase failed: " + e.getMessage());
+            log.error("truncateDatabase failed: " + e.getMessage());
             return false;
         }
 
@@ -411,9 +411,9 @@ public final class TransactionDb {
             // Run VACUUM on a fresh connection (autocommit)
             try (Connection vacConn = DriverManager.getConnection(dbUrl); Statement vs = vacConn.createStatement()) {
                 vs.execute("VACUUM;");
-                log.info("[TransactionDb] VACUUM completed after truncate.");
+                log.info("VACUUM completed after truncate.");
             } catch (SQLException vacEx) {
-                log.error("[TransactionDb] VACUUM after truncate failed: " + vacEx.getMessage());
+                log.error("VACUUM after truncate failed: " + vacEx.getMessage());
             }
         }
         return true;
@@ -426,12 +426,12 @@ public final class TransactionDb {
         try {
             File f = new File(dbUrl.replace("jdbc:sqlite:", ""));
             if (f.exists() && f.delete()) {
-                log.info("[TransactionDb] TRANSACTION_DB deleted.");
+                log.info("TRANSACTION_DB deleted.");
             } else {
-                log.error("[TransactionDb] Failed to delete TRANSACTION_DB.");
+                log.error("Failed to delete TRANSACTION_DB.");
             }
         } catch (Exception e) {
-            log.error("[TransactionDb] Drop DB error: " + e.getMessage());
+            log.error("Drop DB error: " + e.getMessage());
         }
     }
 
@@ -448,16 +448,16 @@ public final class TransactionDb {
      */
     public synchronized boolean executeInsertSQL(String insertSQL) {
         if (insertSQL == null || insertSQL.trim().isEmpty()) {
-            log.error("[TransactionDb] executeInsertSQL failed: SQL is null/empty.");
+            log.error("executeInsertSQL failed: SQL is null/empty.");
             return false;
         }
         String trimmed = insertSQL.trim().toUpperCase();
         if (!trimmed.startsWith("INSERT")) {
-            log.error("[TransactionDb] executeInsertSQL rejected: only INSERT statements are allowed.");
+            log.error("executeInsertSQL rejected: only INSERT statements are allowed.");
             return false;
         }
         if (!trimmed.contains("TRANSACTIONS")) {
-            log.error("[TransactionDb] executeInsertSQL rejected: statement must target 'transactions' table.");
+            log.error("executeInsertSQL rejected: statement must target 'transactions' table.");
             return false;
         }
 
@@ -465,10 +465,10 @@ public final class TransactionDb {
             conn.setAutoCommit(false);
             int rows = stmt.executeUpdate(insertSQL);
             conn.commit();
-            log.info("[TransactionDb] executeInsertSQL succeeded, rowsInserted=" + rows);
+            log.info("executeInsertSQL succeeded, rowsInserted=" + rows);
             return true;
         } catch (SQLException e) {
-            log.error("[TransactionDb] executeInsertSQL failed: " + e.getMessage());
+            log.error("executeInsertSQL failed: " + e.getMessage());
             return false;
         }
     }
@@ -484,13 +484,13 @@ public final class TransactionDb {
     public synchronized List<String> extractInsertStatementsFromDbFile(String sourceDbFilePath) {
         List<String> inserts = new ArrayList<>();
         if (sourceDbFilePath == null || sourceDbFilePath.trim().isEmpty()) {
-            log.error("[TransactionDb] extractInsertStatementsFromDbFile failed: source path is null/empty.");
+            log.error("extractInsertStatementsFromDbFile failed: source path is null/empty.");
             return inserts;
         }
 
         Path src = Path.of(sourceDbFilePath).toAbsolutePath();
         if (!Files.exists(src)) {
-            log.error("[TransactionDb] extractInsertStatementsFromDbFile failed: source DB not found: " + src);
+            log.error("extractInsertStatementsFromDbFile failed: source DB not found: " + src);
             return inserts;
         }
 
@@ -525,10 +525,10 @@ public final class TransactionDb {
                 inserts.add(sb.toString());
             }
 
-            log.info("[TransactionDb] extractInsertStatementsFromDbFile completed, rows=" + inserts.size());
+            log.info("extractInsertStatementsFromDbFile completed, rows=" + inserts.size());
             return inserts;
         } catch (SQLException e) {
-            log.error("[TransactionDb] extractInsertStatementsFromDbFile failed: " + e.getMessage());
+            log.error("extractInsertStatementsFromDbFile failed: " + e.getMessage());
             return inserts;
         }
     }
@@ -539,9 +539,9 @@ public final class TransactionDb {
     public synchronized void shutdownWriter() {
         try {
             writer.shutdownNow();
-            log.info("[TransactionDb] writer shutdown requested.");
+            log.info("Writer shutdown requested.");
         } catch (Exception e) {
-            log.error("[TransactionDb] shutdownWriter failed: " + e.getMessage());
+            log.error("shutdownWriter failed: " + e.getMessage());
         }
     }
 

@@ -9,6 +9,7 @@ import org.xbill.DNS.*;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+
 public class UDPPacketServer implements Runnable {
 
     private static final Logger log = LoggerFactory.getLogger(UDPPacketServer.class);
@@ -49,7 +50,8 @@ public class UDPPacketServer implements Runnable {
 
             DatagramPacket reply = new DatagramPacket(out, out.length, packet.getSocketAddress());
             socket.send(reply);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
     }
 
     public void stop() {

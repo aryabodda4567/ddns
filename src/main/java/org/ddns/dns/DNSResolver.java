@@ -30,14 +30,35 @@ public class DNSResolver implements Resolver {
 
     // ---- Delegate config ----
 
-    @Override public void setPort(int port) { forwarder.setPort(port); }
-    @Override public void setTCP(boolean tcp) { forwarder.setTCP(tcp); }
-    @Override public void setIgnoreTruncation(boolean ignore) { forwarder.setIgnoreTruncation(ignore); }
-    @Override public void setEDNS(int level, int payloadSize, int flags, List<EDNSOption> options) {
+    @Override
+    public void setPort(int port) {
+        forwarder.setPort(port);
+    }
+
+    @Override
+    public void setTCP(boolean tcp) {
+        forwarder.setTCP(tcp);
+    }
+
+    @Override
+    public void setIgnoreTruncation(boolean ignore) {
+        forwarder.setIgnoreTruncation(ignore);
+    }
+
+    @Override
+    public void setEDNS(int level, int payloadSize, int flags, List<EDNSOption> options) {
         forwarder.setEDNS(level, payloadSize, flags, options);
     }
-    @Override public void setTSIGKey(TSIG tsig) { forwarder.setTSIGKey(tsig); }
-    @Override public void setTimeout(Duration timeout) { forwarder.setTimeout(timeout); }
+
+    @Override
+    public void setTSIGKey(TSIG tsig) {
+        forwarder.setTSIGKey(tsig);
+    }
+
+    @Override
+    public void setTimeout(Duration timeout) {
+        forwarder.setTimeout(timeout);
+    }
 
     // ---- Main logic ----
 
@@ -76,7 +97,7 @@ public class DNSResolver implements Resolver {
             return forwarder.send(query);
 
         } catch (Exception e) {
-            log.error("[DNS] Resolver error: " + e.getMessage());
+            log.error("DNS resolver error: " + e.getMessage());
             response.getHeader().setRcode(Rcode.SERVFAIL);
             return response;
         }

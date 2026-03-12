@@ -1,6 +1,7 @@
 package org.ddns.consensus;
 
 import org.ddns.node.NodeConfig;
+
 import java.util.Objects;
 
 public class QueueNode {

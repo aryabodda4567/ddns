@@ -28,6 +28,38 @@ public final class ConsensusEngine implements MessageHandler {
 
     private final LivenessController livenessController;
 
+    public ConsensusEngine() {
+        this.livenessController = new LivenessController(BLOCK_BUFFER_TIME);
+    }
+
+    public static ConsensusEngine getInstance() {
+        return Holder.INSTANCE;
+    }
+
+    public static void runRound() {
+        ConsensusEngine engine = getInstance();
+
+        engine.livenessController.checkLiveness(ConsensusSystem.getScheduler());
+
+        QueueNode leader = CircularQueue.getInstance().peek();
+        if (leader == null) return;
+
+        boolean isSelfLeader =
+                leader.nodeConfig.equals(DBUtil.getInstance().getSelfNode());
+
+        if (!isSelfLeader) return;
+        if (transactions.isEmpty()) return;
+
+        log.info("I am leader. Producing block...");
+        engine.publishBlock();
+    }
+
+    public static boolean hasNoPendingTransactions() {
+        return transactions.isEmpty();
+    }
+
+    // ================= Scheduler =================
+
     public void publishTransaction(Transaction transaction) {
 
         if (transaction == null) {
@@ -49,39 +81,6 @@ public final class ConsensusEngine implements MessageHandler {
         log.info("Transaction published: " + transaction.getHash());
     }
 
-
-    private static class Holder {
-        private static final ConsensusEngine INSTANCE = new ConsensusEngine();
-    }
-
-    public static ConsensusEngine getInstance() {
-        return Holder.INSTANCE;
-    }
-
-    public ConsensusEngine() {
-        this.livenessController = new LivenessController(BLOCK_BUFFER_TIME);
-    }
-
-    // ================= Scheduler =================
-
-    public static void runRound() {
-        ConsensusEngine engine = getInstance();
-
-        engine.livenessController.checkLiveness(ConsensusSystem.getScheduler());
-
-        QueueNode leader = CircularQueue.getInstance().peek();
-        if (leader == null) return;
-
-        boolean isSelfLeader =
-                leader.nodeConfig.equals(DBUtil.getInstance().getSelfNode());
-
-        if (!isSelfLeader) return;
-        if (transactions.isEmpty()) return;
-
-        log.info("I am leader. Producing block...");
-        engine.publishBlock();
-    }
-
     // ================= Network =================
 
     @Override
@@ -94,23 +93,26 @@ public final class ConsensusEngine implements MessageHandler {
         }
     }
 
-    @Override public void onBroadcastMessage(String message) {}
-    @Override public void onMulticastMessage(String message) {}
+    @Override
+    public void onBroadcastMessage(String message) {
+    }
+
+    @Override
+    public void onMulticastMessage(String message) {
+    }
 
     // ================= Logic =================
 
     private void appendTransaction(Message message) {
-        log.info("[ConsensusEngine] Transaction received");
+        log.info("Transaction received from network");
         Transaction tx = ConversionUtil.fromJson(message.payload, Transaction.class);
         if (!tx.verifySignature(tx.getSenderPublicKey())) return;
         transactions.add(tx);
     }
 
     private void onBlockReceived(Message message) {
-        log.info("[ConsensusEngine] Block received");
+        log.info("Block received from network");
         Block block = ConversionUtil.fromJson(message.payload, Block.class);
-
-//        if (BlockDb.getInstance().hasBlock(block.getHash())) return;
 
         String latest = BlockDb.getInstance().getLatestBlockHash();
         if (!block.getPreviousHash().equals(latest)) {
@@ -136,7 +138,7 @@ public final class ConsensusEngine implements MessageHandler {
     }
 
     public void publishBlock() {
-        log.info("[ConsensusEngine] Publishing block");
+        log.info("Publishing new block to network");
         Block block = new Block(
                 BlockDb.getInstance().getLatestBlockHash(),
                 new ArrayList<>(transactions),
@@ -162,7 +164,7 @@ public final class ConsensusEngine implements MessageHandler {
         livenessController.resetTimer();
     }
 
-    public static boolean hasNoPendingTransactions() {
-        return transactions.isEmpty();
+    private static class Holder {
+        private static final ConsensusEngine INSTANCE = new ConsensusEngine();
     }
 }

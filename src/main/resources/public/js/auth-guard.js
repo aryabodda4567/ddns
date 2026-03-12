@@ -31,7 +31,7 @@
 
     async function checkAuth() {
         try {
-            const response = await fetch('/auth/session', { credentials: 'same-origin' });
+            const response = await fetch('/auth/session', {credentials: 'same-origin'});
             const sessionState = await response.json();
 
             if (sessionState.requireJoin && protectedPaths.has(window.location.pathname)) {

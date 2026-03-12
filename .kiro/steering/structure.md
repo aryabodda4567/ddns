@@ -7,68 +7,69 @@ Base package: `org.ddns`
 ### Core Modules
 
 - **`bc/`** - Blockchain primitives
-  - Block, Transaction, MerkleTree
-  - Signature utilities and key adapters
-  - Transaction types
+    - Block, Transaction, MerkleTree
+    - Signature utilities and key adapters
+    - Transaction types
 
 - **`bootstrap/`** - Bootstrap node behavior
-  - BootstrapNode implementation
+    - BootstrapNode implementation
 
 - **`chain/`** - Wallet and key management
-  - Wallet utility for key pair operations
+    - Wallet utility for key pair operations
 
 - **`consensus/`** - Consensus engine
-  - ConsensusEngine, ConsensusScheduler, ConsensusSystem
-  - CircularQueue, QueueNode for leader rotation
-  - LivenessController for failover
+    - ConsensusEngine, ConsensusScheduler, ConsensusSystem
+    - CircularQueue, QueueNode for leader rotation
+    - LivenessController for failover
 
 - **`constants/`** - Shared enums and configuration keys
-  - ConfigKey, DNSMessage, ElectionType, FileNames, Role
+    - ConfigKey, DNSMessage, ElectionType, FileNames, Role
 
 - **`crypto/`** - Cryptographic operations
-  - Crypto utilities, SSL configuration
+    - Crypto utilities, SSL configuration
 
 - **`db/`** - Persistence layer (SQLite)
-  - DBUtil (node config, key-value store)
-  - BlockDb, TransactionDb, DNSDb, BootstrapDB
-  - Domain-specific database access
+    - DBUtil (node config, key-value store)
+    - BlockDb, TransactionDb, DNSDb, BootstrapDB
+    - Domain-specific database access
 
 - **`dns/`** - DNS domain logic
-  - DNSModel, DNSService, DNSServer, DNSResolver
-  - DNSCache, DNSPersistence, DNSExecutor
-  - TCP/UDP packet servers
-  - RecordType enum
+    - DNSModel, DNSService, DNSServer, DNSResolver
+    - DNSCache, DNSPersistence, DNSExecutor
+    - TCP/UDP packet servers
+    - RecordType enum
 
 - **`governance/`** - Election and voting
-  - Election, Nomination, Vote
+    - Election, Nomination, Vote
 
 - **`net/`** - Network layer
-  - NetworkManager (message routing, broadcast, file transfer)
-  - Message, MessageType, MessageHandler
+    - NetworkManager (message routing, broadcast, file transfer)
+    - Message, MessageType, MessageHandler
 
 - **`node/`** - Node management
-  - NodeConfig, NodesManager
-  - Handles sync, apply, and node lifecycle
+    - NodeConfig, NodesManager
+    - Handles sync, apply, and node lifecycle
 
 - **`tests/`** - In-project test harnesses
-  - BlockChainBuilder, ConsensusFailoverTest
-  - SimpleDNSTest, TransactionDbTest
+    - BlockChainBuilder, ConsensusFailoverTest
+    - SimpleDNSTest, TransactionDbTest
 
 - **`util/`** - Shared utilities
-  - ConsolePrinter, ConversionUtil, NetworkUtility, TimeUtil
+    - ConsolePrinter, ConversionUtil, NetworkUtility, TimeUtil
 
 - **`web/`** - Web server and HTTP handlers
-  - WebServer (Spark Java routes)
-  - `services/config/` - Join, bootstrap, mode handlers
-  - `services/dns/` - DNS web API handlers
-  - `services/election/` - Election web handlers
-  - `services/wallet/` - Wallet operations
+    - WebServer (Spark Java routes)
+    - `services/config/` - Join, bootstrap, mode handlers
+    - `services/dns/` - DNS web API handlers
+    - `services/election/` - Election web handlers
+    - `services/wallet/` - Wallet operations
 
 ## Static Web Resources
 
 Location: `src/main/resources/public/`
 
-- **HTML pages**: join.html, login.html, home.html, create.html, update.html, delete.html, lookup.html, vote.html, status.html
+- **HTML pages**: join.html, login.html, home.html, create.html, update.html, delete.html, lookup.html, vote.html,
+  status.html
 - **CSS**: css/common.css
 - **JavaScript**: js/auth-guard.js (frontend session validation)
 

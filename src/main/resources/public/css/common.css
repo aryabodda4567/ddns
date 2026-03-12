@@ -31,10 +31,9 @@ body {
     min-height: 100vh;
     font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
     color: var(--text);
-    background:
-            radial-gradient(circle at 12% 10%, #e5f0ff 0%, transparent 40%),
-            radial-gradient(circle at 85% 8%, #d8ecff 0%, transparent 36%),
-            linear-gradient(135deg, #f8fbff 0%, #eef4fa 100%);
+    background: radial-gradient(circle at 12% 10%, #e5f0ff 0%, transparent 40%),
+    radial-gradient(circle at 85% 8%, #d8ecff 0%, transparent 36%),
+    linear-gradient(135deg, #f8fbff 0%, #eef4fa 100%);
 }
 
 .page-shell {

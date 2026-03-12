@@ -7,32 +7,38 @@ import java.util.Objects;
 
 /**
  * NodeConfig represents a node in the distributed DNS network.
- *
+ * <p>
  * It is used for:
  * - Node identity verification
  * - Network membership validation
  * - HashSet / HashMap membership checks
- *
+ * <p>
  * IMPORTANT:
  * This class overrides equals() and hashCode() so it can safely
  * be used inside HashSet and HashMap collections.
  */
 public class NodeConfig {
 
-    /** Node IP address */
+    /**
+     * Node IP address
+     */
     private String ip;
 
-    /** Node role (BOOTSTRAP / VALIDATOR / NONE etc.) */
+    /**
+     * Node role (BOOTSTRAP / VALIDATOR / NONE etc.)
+     */
     private Role role;
 
-    /** Node public key used for cryptographic identity */
+    /**
+     * Node public key used for cryptographic identity
+     */
     private PublicKey publicKey;
 
     /**
      * Constructor
      *
-     * @param ip node IP address
-     * @param role node role (defaults to NONE if null)
+     * @param ip        node IP address
+     * @param role      node role (defaults to NONE if null)
      * @param publicKey node public key
      */
     public NodeConfig(String ip, Role role, PublicKey publicKey) {
@@ -94,7 +100,7 @@ public class NodeConfig {
 
     /**
      * Equality check used by HashSet.contains() and HashMap lookups.
-     *
+     * <p>
      * Two NodeConfig objects are considered equal if:
      * - IP matches
      * - PublicKey matches
@@ -116,7 +122,7 @@ public class NodeConfig {
 
     /**
      * Hash code used by HashSet / HashMap bucket placement.
-     *
+     * <p>
      * Must be consistent with equals().
      */
     @Override

@@ -37,7 +37,7 @@ public class TCPPacketServer implements Runnable {
             }
         } catch (IOException e) {
             if (running) {
-                log.error("[TCP DNS] Server error: " + e.getMessage());
+                log.error("TCP DNS server error: " + e.getMessage());
             }
         }
     }
@@ -93,6 +93,7 @@ public class TCPPacketServer implements Runnable {
         running = false;
         try {
             if (serverSocket != null) serverSocket.close();
-        } catch (IOException ignored) {}
+        } catch (IOException ignored) {
+        }
     }
 }

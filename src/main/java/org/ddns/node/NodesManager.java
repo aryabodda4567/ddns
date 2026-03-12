@@ -39,9 +39,8 @@ import java.util.*;
 public class NodesManager implements MessageHandler {
 
     private static final Logger log = LoggerFactory.getLogger(NodesManager.class);
-
-    private final Election election;
     private final static int PORT = 53;
+    private final Election election;
 
     /**
      * Registers this manager as a handler with the NetworkManager upon creation.
@@ -52,6 +51,256 @@ public class NodesManager implements MessageHandler {
         networkManager.registerHandler(this);
         this.election = election;
         log.info("[NodesManager] Registered with NetworkManager.");
+    }
+
+    /**
+     * Sends a request to the Bootstrap node to add this node to the network
+     * registry.
+     *
+     * @throws Exception If public key or self-node config is missing.
+     */
+    public static void createAddNodeRequest() throws Exception {
+        log.info("[NodesManager] Sending ADD_NODE request to Bootstrap...");
+        sendBootstrapRequest(MessageType.ADD_NODE);
+    }
+
+    /**
+     * Static variant of {@link #createRemoveRequest()} for use by web handlers
+     * that do not hold a NodesManager reference.
+     *
+     * @throws Exception If bootstrap IP or self-node config is missing.
+     */
+    public static void sendDeleteNodeRequest() throws Exception {
+        log.info("[NodesManager] (static) Sending DELETE_NODE request to Bootstrap...");
+        sendBootstrapRequest(MessageType.DELETE_NODE);
+    }
+
+    /**
+     * Sends a request to the Bootstrap node to promote this node to a Leader.
+     *
+     * @throws Exception If public key or self-node config is missing.
+     */
+    public static void createPromoteRequest() throws Exception {
+        log.info("[NodesManager] Sending PROMOTE_NODE request to Bootstrap...");
+        sendBootstrapRequest(MessageType.PROMOTE_NODE);
+    }
+
+    /**
+     * Sends a request to the Bootstrap node to get the complete list of all known
+     * nodes.
+     *
+     * @throws Exception If public key or bootstrap IP is missing.
+     */
+    public static void createFetchRequest() throws Exception {
+        NodeConfig bootstrap = DBUtil.getInstance().getBootstrapNode();
+
+        if (bootstrap == null) {
+            log.error("[NodesManager] Cannot createFetchRequest: Bootstrap Node is not set.");
+            return;
+        }
+
+        PublicKey selfKey = DBUtil.getInstance().getPublicKey();
+        String selfIp = NetworkUtility.getLocalIpAddress();
+
+        Message message = new Message(
+                MessageType.FETCH_NODES,
+                selfIp,
+                selfKey,
+                ConversionUtil.toJson(Map.of("IP", NetworkUtility.getLocalIpAddress())));
+        message.setExclude(true);
+        log.info("[NodesManager] Sending FETCH_NODES request to Bootstrap at " + bootstrap.getIp());
+        NetworkManager.sendDirectMessage(bootstrap, ConversionUtil.toJson(message));
+    }
+
+    // -------------------------------------------------------------------------
+    // RESOLVERS (Handle incoming updates from Bootstrap)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Helper method to send this node's configuration to the Bootstrap node
+     * for ADD, DELETE, and PROMOTE requests.
+     *
+     * @param type The MessageType of the request.
+     * @throws Exception If bootstrap IP, self-node config, or keys are missing.
+     */
+    private static void sendBootstrapRequest(MessageType type) throws Exception {
+        NodeConfig bootstrap = DBUtil.getInstance().getBootstrapNode();
+        if (bootstrap == null) {
+            log.error("[NodesManager] Cannot send request: Bootstrap Node is not set.");
+            throw new IllegalStateException("Bootstrap Node not found in DBUtil.");
+        }
+
+        NodeConfig selfNode = DBUtil.getInstance().getSelfNode();
+        if (selfNode == null) {
+            log.error("[NodesManager] Cannot send request: Self node config is not set.");
+            throw new IllegalStateException("Self node config not found in DBUtil.");
+        }
+
+        Message message = new Message(
+                type,
+                selfNode.getIp(), // Use IP from self-node config
+                selfNode.getPublicKey(), // Use PublicKey from self-node config
+                ConversionUtil.toJson(selfNode) // Payload is our own NodeConfig
+        );
+        message.setExclude(true);
+        NetworkManager.sendDirectMessage(bootstrap, ConversionUtil.toJson(message));
+    }
+
+    public static void createSyncRequest() {
+        Set<NodeConfig> nodeConfigSet = DBUtil.getInstance().getAllNodes();
+        NodeConfig targetNode = null;
+        for (NodeConfig nodeConfig : nodeConfigSet) {
+            if (nodeConfig == null)
+                continue;
+            NodeConfig self = DBUtil.getInstance().getSelfNode();
+            if (self != null && nodeConfig.getIp().equals(self.getIp()))
+                continue;
+            targetNode = nodeConfig;
+            break;
+        }
+
+        try {
+            Message message = new Message(
+                    MessageType.SYNC_REQUEST,
+                    NetworkUtility.getLocalIpAddress(),
+                    DBUtil.getInstance().getPublicKey(),
+                    "");
+            message.setExclude(true);
+            if (targetNode != null) {
+                NetworkManager.sendDirectMessage(targetNode, ConversionUtil.toJson(message));
+            } else {
+                log.error("[Node Manager] No peer node found for sync");
+                return;
+            }
+            log.info("[Node Manager] Sync request sent to peer " + targetNode.getIp());
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Setup a regular node (all nodes are equal in egalitarian system)
+     */
+    public static void setupEqualNode() throws Exception {
+        NodeConfig nodeConfig = DBUtil.getInstance().getSelfNode();
+        if (nodeConfig.getRole() == null) {
+            nodeConfig.setRole(Role.NONE);
+        }
+        DBUtil.getInstance().saveRole(Role.NONE);
+        DBUtil.getInstance().setSelfNode(nodeConfig);
+        DBUtil.getInstance().addNode(nodeConfig);
+        TimeUtil.waitForSeconds(1);
+        try {
+            createAddNodeRequest();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        ConsensusSystem.start();
+        DNSServer.start();
+        DNSService.start(PORT);
+        try {
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
+    public static void sync() {
+        List<String> insertStatements = BlockDb.getInstance()
+                .extractInsertStatementsFromDbFile(FileNames.BLOCK_DB_TEMP);
+        for (String stmt : insertStatements) {
+            BlockDb.getInstance().executeInsertSQL(stmt);
+        }
+        applyBlock(false);
+    }
+
+    // -------------------------------------------------------------------------
+    // REQUEST CREATORS (Send requests to Bootstrap)
+    // -------------------------------------------------------------------------
+
+    public static synchronized void applyBlock(boolean onlyLast) {
+
+        DNSDb dnsDb = DNSDb.getInstance();
+
+        if (!onlyLast) {
+
+            log.info("[StateApplier] Rebuilding DNS state from blockchain...");
+
+            // 1. Clear current state
+            dnsDb.truncateDatabase(true);
+
+            // 2. Read blocks in correct order
+            List<Block> blocks = BlockDb.getInstance().readAllBlocksOrdered();
+
+            for (Block block : blocks) {
+                applySingleBlock(block, dnsDb);
+            }
+
+            log.info("[StateApplier] Full state rebuild completed. Blocks=" + blocks.size());
+
+        } else {
+            // ⚡ APPLY ONLY LAST BLOCK
+
+            String lastBlockHash = BlockDb.getInstance().getLatestBlockHash();
+            if (lastBlockHash == null || lastBlockHash.equals("0"))
+                return;
+
+            Block lastBlock = BlockDb.getInstance().readBlockByHash(lastBlockHash);
+            if (lastBlock == null)
+                return;
+
+            log.info("[StateApplier] Applying last block: " + lastBlock.getHash());
+
+            applySingleBlock(lastBlock, dnsDb);
+        }
+    }
+
+    private static void applySingleBlock(Block block, DNSPersistence persistence) {
+        if (block == null || block.getTransactions() == null)
+            return;
+
+        for (Transaction transaction : block.getTransactions()) {
+            if (transaction.getPayload() == null)
+                continue;
+
+            for (DNSModel dnsModel : transaction.getPayload()) {
+
+                boolean ok = false;
+
+                switch (transaction.getType()) {
+
+                    case REGISTER -> {
+                        ok = persistence.addRecord(dnsModel);
+                        if (ok)
+                            log.info("[STATE] REGISTER applied: " + dnsModel.getName());
+                        else
+                            log.error("[STATE] REGISTER failed: " + dnsModel.getName());
+                    }
+
+                    case UPDATE_RECORDS -> {
+                        ok = persistence.updateRecord(dnsModel);
+                        if (ok)
+                            log.info("[STATE] UPDATE applied: " + dnsModel.getName());
+                        else
+                            log.error("[STATE] UPDATE failed: " + dnsModel.getName());
+                    }
+
+                    case DELETE_RECORDS -> {
+                        ok = persistence.deleteRecord(
+                                dnsModel.getName(),
+                                dnsModel.getType(),
+                                dnsModel.getRdata());
+                        if (ok)
+                            log.info("[STATE] DELETE applied: " + dnsModel.getName());
+                        else
+                            log.error("[STATE] DELETE failed: " + dnsModel.getName());
+                    }
+                }
+            }
+        }
     }
 
     @Override
@@ -121,14 +370,15 @@ public class NodesManager implements MessageHandler {
         log.info("[Consensus] Queue updated. New size = " + list.size());
     }
 
+    // -------------------------------------------------------------------------
+    // HELPER METHOD
+    // -------------------------------------------------------------------------
+
     @Override
     public void onMulticastMessage(String message) {
         // no-op (for now)
     }
-
-    // -------------------------------------------------------------------------
-    // RESOLVERS (Handle incoming updates from Bootstrap)
-    // -------------------------------------------------------------------------
+    // This method sends a request to any peer node to send sync data
 
     /**
      * Processes a broadcasted ADD_NODE message.
@@ -247,21 +497,6 @@ public class NodesManager implements MessageHandler {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // REQUEST CREATORS (Send requests to Bootstrap)
-    // -------------------------------------------------------------------------
-
-    /**
-     * Sends a request to the Bootstrap node to add this node to the network
-     * registry.
-     *
-     * @throws Exception If public key or self-node config is missing.
-     */
-    public static void createAddNodeRequest() throws Exception {
-        log.info("[NodesManager] Sending ADD_NODE request to Bootstrap...");
-        sendBootstrapRequest(MessageType.ADD_NODE);
-    }
-
     /**
      * Sends a request to the Bootstrap node to remove this node from the network
      * registry.
@@ -271,122 +506,6 @@ public class NodesManager implements MessageHandler {
     public void createRemoveRequest() throws Exception {
         log.info("[NodesManager] Sending DELETE_NODE request to Bootstrap...");
         sendBootstrapRequest(MessageType.DELETE_NODE);
-    }
-
-    /**
-     * Static variant of {@link #createRemoveRequest()} for use by web handlers
-     * that do not hold a NodesManager reference.
-     *
-     * @throws Exception If bootstrap IP or self-node config is missing.
-     */
-    public static void sendDeleteNodeRequest() throws Exception {
-        log.info("[NodesManager] (static) Sending DELETE_NODE request to Bootstrap...");
-        sendBootstrapRequest(MessageType.DELETE_NODE);
-    }
-
-    /**
-     * Sends a request to the Bootstrap node to promote this node to a Leader.
-     *
-     * @throws Exception If public key or self-node config is missing.
-     */
-    public static void createPromoteRequest() throws Exception {
-        log.info("[NodesManager] Sending PROMOTE_NODE request to Bootstrap...");
-        sendBootstrapRequest(MessageType.PROMOTE_NODE);
-    }
-
-    /**
-     * Sends a request to the Bootstrap node to get the complete list of all known
-     * nodes.
-     *
-     * @throws Exception If public key or bootstrap IP is missing.
-     */
-    public static void createFetchRequest() throws Exception {
-        NodeConfig bootstrap = DBUtil.getInstance().getBootstrapNode();
-
-        if (bootstrap == null) {
-            log.error("[NodesManager] Cannot createFetchRequest: Bootstrap Node is not set.");
-            return;
-        }
-
-        PublicKey selfKey = DBUtil.getInstance().getPublicKey();
-        String selfIp = NetworkUtility.getLocalIpAddress();
-
-        Message message = new Message(
-                MessageType.FETCH_NODES,
-                selfIp,
-                selfKey,
-                ConversionUtil.toJson(Map.of("IP", NetworkUtility.getLocalIpAddress())));
-        message.setExclude(true);
-        log.info("[NodesManager] Sending FETCH_NODES request to Bootstrap at " + bootstrap.getIp());
-        NetworkManager.sendDirectMessage(bootstrap, ConversionUtil.toJson(message));
-    }
-
-    // -------------------------------------------------------------------------
-    // HELPER METHOD
-    // -------------------------------------------------------------------------
-
-    /**
-     * Helper method to send this node's configuration to the Bootstrap node
-     * for ADD, DELETE, and PROMOTE requests.
-     *
-     * @param type The MessageType of the request.
-     * @throws Exception If bootstrap IP, self-node config, or keys are missing.
-     */
-    private static void sendBootstrapRequest(MessageType type) throws Exception {
-        NodeConfig bootstrap = DBUtil.getInstance().getBootstrapNode();
-        if (bootstrap == null) {
-            log.error("[NodesManager] Cannot send request: Bootstrap Node is not set.");
-            throw new IllegalStateException("Bootstrap Node not found in DBUtil.");
-        }
-
-        NodeConfig selfNode = DBUtil.getInstance().getSelfNode();
-        if (selfNode == null) {
-            log.error("[NodesManager] Cannot send request: Self node config is not set.");
-            throw new IllegalStateException("Self node config not found in DBUtil.");
-        }
-
-        Message message = new Message(
-                type,
-                selfNode.getIp(), // Use IP from self-node config
-                selfNode.getPublicKey(), // Use PublicKey from self-node config
-                ConversionUtil.toJson(selfNode) // Payload is our own NodeConfig
-        );
-        message.setExclude(true);
-        NetworkManager.sendDirectMessage(bootstrap, ConversionUtil.toJson(message));
-    }
-    // This method sends a request to any peer node to send sync data
-
-    public static void createSyncRequest() {
-        Set<NodeConfig> nodeConfigSet = DBUtil.getInstance().getAllNodes();
-        NodeConfig targetNode = null;
-        for (NodeConfig nodeConfig : nodeConfigSet) {
-            if (nodeConfig == null)
-                continue;
-            NodeConfig self = DBUtil.getInstance().getSelfNode();
-            if (self != null && nodeConfig.getIp().equals(self.getIp()))
-                continue;
-            targetNode = nodeConfig;
-            break;
-        }
-
-        try {
-            Message message = new Message(
-                    MessageType.SYNC_REQUEST,
-                    NetworkUtility.getLocalIpAddress(),
-                    DBUtil.getInstance().getPublicKey(),
-                    "");
-            message.setExclude(true);
-            if (targetNode != null) {
-                NetworkManager.sendDirectMessage(targetNode, ConversionUtil.toJson(message));
-            } else {
-                log.error("[Node Manager] No peer node found for sync");
-                return;
-            }
-            log.info("[Node Manager] Sync request sent to peer " + targetNode.getIp());
-
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
     }
 
     public void resolveSyncRequest(Message message) {
@@ -408,126 +527,6 @@ public class NodesManager implements MessageHandler {
     public void setupGenesisNode() throws Exception {
         // Legacy entry point now delegates to egalitarian setup
         setupEqualNode();
-    }
-
-    /**
-     * Setup a regular node (all nodes are equal in egalitarian system)
-     */
-    public static void setupEqualNode() throws Exception {
-        NodeConfig nodeConfig = DBUtil.getInstance().getSelfNode();
-        if (nodeConfig.getRole() == null) {
-            nodeConfig.setRole(Role.NONE);
-        }
-        DBUtil.getInstance().saveRole(Role.NONE);
-        DBUtil.getInstance().setSelfNode(nodeConfig);
-        DBUtil.getInstance().addNode(nodeConfig);
-        TimeUtil.waitForSeconds(1);
-        try {
-            createAddNodeRequest();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
-        ConsensusSystem.start();
-        DNSServer.start();
-        DNSService.start(PORT);
-        try {
-
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
-    }
-
-    public static void sync() {
-        List<String> insertStatements = BlockDb.getInstance()
-                .extractInsertStatementsFromDbFile(FileNames.BLOCK_DB_TEMP);
-        for (String stmt : insertStatements) {
-            BlockDb.getInstance().executeInsertSQL(stmt);
-        }
-        applyBlock(false);
-    }
-
-    public static synchronized void applyBlock(boolean onlyLast) {
-
-        DNSDb dnsDb = DNSDb.getInstance();
-
-        if (!onlyLast) {
-
-            log.info("[StateApplier] Rebuilding DNS state from blockchain...");
-
-            // 1. Clear current state
-            dnsDb.truncateDatabase(true);
-
-            // 2. Read blocks in correct order
-            List<Block> blocks = BlockDb.getInstance().readAllBlocksOrdered();
-
-            for (Block block : blocks) {
-                applySingleBlock(block, dnsDb);
-            }
-
-            log.info("[StateApplier] Full state rebuild completed. Blocks=" + blocks.size());
-
-        } else {
-            // ⚡ APPLY ONLY LAST BLOCK
-
-            String lastBlockHash = BlockDb.getInstance().getLatestBlockHash();
-            if (lastBlockHash == null || lastBlockHash.equals("0"))
-                return;
-
-            Block lastBlock = BlockDb.getInstance().readBlockByHash(lastBlockHash);
-            if (lastBlock == null)
-                return;
-
-            log.info("[StateApplier] Applying last block: " + lastBlock.getHash());
-
-            applySingleBlock(lastBlock, dnsDb);
-        }
-    }
-
-    private static void applySingleBlock(Block block, DNSPersistence persistence) {
-        if (block == null || block.getTransactions() == null)
-            return;
-
-        for (Transaction transaction : block.getTransactions()) {
-            if (transaction.getPayload() == null)
-                continue;
-
-            for (DNSModel dnsModel : transaction.getPayload()) {
-
-                boolean ok = false;
-
-                switch (transaction.getType()) {
-
-                    case REGISTER -> {
-                        ok = persistence.addRecord(dnsModel);
-                        if (ok)
-                            log.info("[STATE] REGISTER applied: " + dnsModel.getName());
-                        else
-                            log.error("[STATE] REGISTER failed: " + dnsModel.getName());
-                    }
-
-                    case UPDATE_RECORDS -> {
-                        ok = persistence.updateRecord(dnsModel);
-                        if (ok)
-                            log.info("[STATE] UPDATE applied: " + dnsModel.getName());
-                        else
-                            log.error("[STATE] UPDATE failed: " + dnsModel.getName());
-                    }
-
-                    case DELETE_RECORDS -> {
-                        ok = persistence.deleteRecord(
-                                dnsModel.getName(),
-                                dnsModel.getType(),
-                                dnsModel.getRdata());
-                        if (ok)
-                            log.info("[STATE] DELETE applied: " + dnsModel.getName());
-                        else
-                            log.error("[STATE] DELETE failed: " + dnsModel.getName());
-                    }
-                }
-            }
-        }
     }
 
 }

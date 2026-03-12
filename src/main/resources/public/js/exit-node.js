@@ -75,7 +75,10 @@
 
     function showModalError(msg) {
         const el = document.getElementById('exitModalError');
-        if (el) { el.textContent = msg; el.style.display = 'block'; }
+        if (el) {
+            el.textContent = msg;
+            el.style.display = 'block';
+        }
     }
 
     // --- Exit flow ---
@@ -94,9 +97,9 @@
         try {
             const res = await fetch('/node/exit', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {'Content-Type': 'application/json'},
                 credentials: 'same-origin',
-                body: JSON.stringify({ password })
+                body: JSON.stringify({password})
             });
             const json = await res.json();
 
@@ -164,7 +167,7 @@
     // --- Init: only in NODE mode ---
     (async function init() {
         try {
-            const res = await fetch('/auth/session', { credentials: 'same-origin' });
+            const res = await fetch('/auth/session', {credentials: 'same-origin'});
             const json = await res.json();
             if (json.mode !== 'NODE') return; // Bootstrap or unset — don't show button
         } catch (_) {
@@ -173,7 +176,10 @@
 
         // Wait for DOM to be ready before injecting
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => { injectModal(); injectExitButton(); });
+            document.addEventListener('DOMContentLoaded', () => {
+                injectModal();
+                injectExitButton();
+            });
         } else {
             injectModal();
             injectExitButton();

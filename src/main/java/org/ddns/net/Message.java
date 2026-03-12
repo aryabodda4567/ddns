@@ -12,21 +12,21 @@ import java.util.Arrays;
  * with the actual data (e.g., a Transaction JSON) in the payload.
  */
 public class Message {
+    public static final int TTL = 1500;//TTL in milliseconds
     public final MessageType type;
     public final String senderIp;
     public final String senderPublicKey; // Base64 string
+    public final long initTime;
     public String payload; // JSON string of the actual data
     public byte[] signature;
-    public static final int  TTL=1500;//TTL in milliseconds
-    public final long initTime;
     public boolean exclude;
 
     public Message(MessageType type, String senderIp, PublicKey senderPublicKey, String payload) {
         this.type = type;
         this.senderIp = senderIp;
-        if(senderPublicKey!=null)
-        this.senderPublicKey = SignatureUtil.getStringFromKey(senderPublicKey);
-        else this.senderPublicKey=null;
+        if (senderPublicKey != null)
+            this.senderPublicKey = SignatureUtil.getStringFromKey(senderPublicKey);
+        else this.senderPublicKey = null;
         this.payload = payload;
         initTime = TimeUtil.getCurrentUnixTimeMillis();
     }

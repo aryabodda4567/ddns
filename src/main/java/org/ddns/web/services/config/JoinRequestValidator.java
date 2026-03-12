@@ -26,9 +26,9 @@ public final class JoinRequestValidator {
     }
 
     public static void validate(String bootstrapHost,
-            String bootstrapPublicKey,
-            String username,
-            String password) {
+                                String bootstrapPublicKey,
+                                String username,
+                                String password) {
 
         validateHost(bootstrapHost);
         validatePublicKey(bootstrapPublicKey);

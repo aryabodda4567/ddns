@@ -46,17 +46,17 @@ public class BlockChainBuilder {
                     String rdata = (type == 1) ? ("192.168." + i + "." + j)
                             : ("v=spf1 include:spf.example" + i + ".com");
 
-                    DNSModel dns = new DNSModel(name, type, ttl, rdata, keyPair.getPublic(), null,TimeUtil.getCurrentUnixTime());
+                    DNSModel dns = new DNSModel(name, type, ttl, rdata, keyPair.getPublic(), null, TimeUtil.getCurrentUnixTime());
                     List<DNSModel> payload = List.of(dns);
 
 
-                    Transaction tx = new Transaction(keyPair.getPublic(), TransactionType.REGISTER, payload,TimeUtil.getCurrentUnixTime());
+                    Transaction tx = new Transaction(keyPair.getPublic(), TransactionType.REGISTER, payload, TimeUtil.getCurrentUnixTime());
                     tx.sign(keyPair.getPrivate());
                     transactions.add(tx);
                 }
 
                 // --- Create the block ---
-                Block block = new Block(previousHash, transactions,TimeUtil.getCurrentUnixTime());
+                Block block = new Block(previousHash, transactions, TimeUtil.getCurrentUnixTime());
 
                 BlockDb.getInstance().insertBlock(block);
                 NodesManager.applyBlock(false);

@@ -1,6 +1,7 @@
 # Project Index
 
 ## Top-Level
+
 - `.git/` - Git metadata
 - `.idea/` - IDE project settings
 - `docs/` - project documentation
@@ -11,6 +12,7 @@
 - `README.md` - main project guide
 
 ## Java Source (`src/main/java/org/ddns`)
+
 - `Main.java` - application bootstrap
 - `bc/` (7 files) - blockchain primitives and signing
 - `bootstrap/` (1 file) - bootstrap node behavior
@@ -27,15 +29,17 @@
 - `web/` (19 files) - web server, handlers, auth/session
 
 ## Static Web (`src/main/resources/public`)
+
 - Pages:
-  - `join.html`, `login.html`, `home.html`, `index.html`
-  - `create_election.html`, `vote.html`, `join_result.html`
-  - `create.html`, `update.html`, `delete.html`, `lookup.html`, `status.html`
+    - `join.html`, `login.html`, `home.html`, `index.html`
+    - `create_election.html`, `vote.html`, `join_result.html`
+    - `create.html`, `update.html`, `delete.html`, `lookup.html`, `status.html`
 - Assets:
-  - `css/common.css`
-  - `js/auth-guard.js`
+    - `css/common.css`
+    - `js/auth-guard.js`
 
 ## Docs
+
 - `docs/ARCHITECTURE.md`
 - `docs/API_REFERENCE.md`
 - `docs/WEB_FLOW.md`

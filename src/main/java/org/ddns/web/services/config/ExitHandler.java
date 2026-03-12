@@ -36,15 +36,41 @@ import java.util.Map;
 public class ExitHandler {
 
     private static final Logger log = LoggerFactory.getLogger(ExitHandler.class);
-    private final Gson gson = new Gson();
-
-    /** All data files that must be deleted to reset the node to a clean state. */
+    /**
+     * All data files that must be deleted to reset the node to a clean state.
+     */
     private static final String[] DATA_FILES = {
             FileNames.DNS_DB,
             FileNames.BLOCK_DB,
             FileNames.BLOCK_DB_TEMP,
             FileNames.TRANSACTION_DB,
     };
+    private final Gson gson = new Gson();
+
+    /**
+     * Recursively deletes a directory and all its contents.
+     */
+    private static void deleteDirectory(File dir) {
+        if (dir == null || !dir.exists())
+            return;
+        if (dir.isDirectory()) {
+            File[] children = dir.listFiles();
+            if (children != null) {
+                for (File child : children)
+                    deleteDirectory(child);
+            }
+        }
+        boolean deleted = dir.delete();
+        log.info("[ExitHandler] " + (deleted ? "Deleted" : "Failed to delete") + ": " + dir.getPath());
+    }
+
+    /**
+     * Returns the username of the configured web user, or empty string if none.
+     */
+    private static String getUsername() {
+        User user = User.getUser();
+        return user != null ? user.getUsername() : "";
+    }
 
     public Object exit(Request request, Response response) {
         // Only available in NODE mode
@@ -122,27 +148,6 @@ public class ExitHandler {
         shutdown.start();
 
         return body;
-    }
-
-    /** Recursively deletes a directory and all its contents. */
-    private static void deleteDirectory(File dir) {
-        if (dir == null || !dir.exists())
-            return;
-        if (dir.isDirectory()) {
-            File[] children = dir.listFiles();
-            if (children != null) {
-                for (File child : children)
-                    deleteDirectory(child);
-            }
-        }
-        boolean deleted = dir.delete();
-        log.info("[ExitHandler] " + (deleted ? "Deleted" : "Failed to delete") + ": " + dir.getPath());
-    }
-
-    /** Returns the username of the configured web user, or empty string if none. */
-    private static String getUsername() {
-        User user = User.getUser();
-        return user != null ? user.getUsername() : "";
     }
 
     private static class ExitRequest {

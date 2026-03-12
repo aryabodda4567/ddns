@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>Startup Mode | DDNS Console</title>
-    <link rel="stylesheet" href="/css/common.css">
+    <link href="/css/common.css" rel="stylesheet">
 </head>
 <body>
 <div class="page-shell" style="max-width: 760px;">
@@ -51,8 +51,8 @@
         try {
             const res = await fetch('/mode/select', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mode })
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({mode})
             });
             const json = await res.json();
 

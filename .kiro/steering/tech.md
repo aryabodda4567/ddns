@@ -19,16 +19,19 @@
 ## Common Commands
 
 ### Build
+
 ```bash
 mvn clean package
 ```
 
 ### Run Application
+
 ```bash
 mvn exec:java
 ```
 
 ### Clean Build Artifacts
+
 ```bash
 mvn clean
 ```

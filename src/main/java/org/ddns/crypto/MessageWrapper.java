@@ -15,7 +15,7 @@ public class MessageWrapper {
         this.encryptedMessage = encryptedMessage;
     }
 
-    public MessageWrapper(PublicKey senderPublicKey, byte[] signature, String encryptedMessage,boolean exclude) {
+    public MessageWrapper(PublicKey senderPublicKey, byte[] signature, String encryptedMessage, boolean exclude) {
         this.senderPublicKey = senderPublicKey;
         this.signature = signature;
         this.encryptedMessage = encryptedMessage;

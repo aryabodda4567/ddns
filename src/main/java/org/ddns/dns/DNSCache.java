@@ -5,25 +5,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class DNSCache {
 
-    private static final class CacheKey {
-        final String name;
-        final int type;
-
-        CacheKey(String n, int t) {
-            this.name = n.toLowerCase();
-            this.type = t;
-        }
-
-        @Override public boolean equals(Object o) {
-            if (!(o instanceof CacheKey k)) return false;
-            return name.equals(k.name) && type == k.type;
-        }
-
-        @Override public int hashCode() {
-            return Objects.hash(name, type);
-        }
-    }
-
     private final Map<CacheKey, List<DNSModel>> cache = new ConcurrentHashMap<>();
 
     public void put(String name, int type, List<DNSModel> records) {
@@ -54,5 +35,26 @@ public final class DNSCache {
 
     public void clear() {
         cache.clear();
+    }
+
+    private static final class CacheKey {
+        final String name;
+        final int type;
+
+        CacheKey(String n, int t) {
+            this.name = n.toLowerCase();
+            this.type = t;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (!(o instanceof CacheKey k)) return false;
+            return name.equals(k.name) && type == k.type;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(name, type);
+        }
     }
 }

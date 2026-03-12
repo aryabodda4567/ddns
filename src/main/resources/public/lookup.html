@@ -3,202 +3,200 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>DNS Lookup | DDNS Console</title>
-    <link rel="stylesheet" href="/css/common.css">
+    <link href="/css/common.css" rel="stylesheet">
     <script src="/js/auth-guard.js"></script>
     <script src="/js/exit-node.js"></script>
 </head>
 
 <body>
-    <div class="page-shell">
-        <div class="topbar">
-            <div class="brand">
-                <div class="brand-badge">DD</div>
-                <div>
-                    <div class="brand-title">DDNS Network Console</div>
-                    <div class="brand-sub">Record Query</div>
-                </div>
+<div class="page-shell">
+    <div class="topbar">
+        <div class="brand">
+            <div class="brand-badge">DD</div>
+            <div>
+                <div class="brand-title">DDNS Network Console</div>
+                <div class="brand-sub">Record Query</div>
             </div>
-            <span class="status-pill"><span class="status-dot"></span> DNS Read</span>
         </div>
-
-        <div class="main-grid">
-            <aside class="sidebar">
-                <div class="menu-title">DNS Operations</div>
-                <nav class="menu">
-                    <a href="/control.html">Control Panel</a>
-                    <a href="/create.html">Create</a>
-                    <a href="/update.html">Update</a>
-                    <a href="/delete.html">Delete</a>
-                    <a class="active" href="/lookup.html">Lookup</a>
-                    <a href="/status.html">Status</a>
-                </nav>
-            </aside>
-
-            <main class="content-stack">
-                <section class="card">
-                    <h2>DNS Lookup</h2>
-
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label for="dnsName">Domain</label>
-                            <input id="dnsName" placeholder="example.com">
-                        </div>
-                        <div class="form-group">
-                            <label for="dnsType">Type (optional)</label>
-                            <input id="dnsType" placeholder="A, AAAA, TXT, NS, CNAME or empty">
-                        </div>
-                    </div>
-
-                    <div class="action-row" style="margin-top: 12px;">
-                        <button onclick="lookupDNS()">Run Lookup</button>
-                        <button class="secondary" onclick="location.href='/control.html'">Back To Panel</button>
-                    </div>
-
-                    <div id="result"></div>
-                </section>
-            </main>
-        </div>
+        <span class="status-pill"><span class="status-dot"></span> DNS Read</span>
     </div>
 
-    <script>
-        function renderValue(value, container) {
-            if (Array.isArray(value)) {
-                value.forEach((item, i) => {
-                    const sub = document.createElement("div");
-                    sub.className = "record";
+    <div class="main-grid">
+        <aside class="sidebar">
+            <div class="menu-title">DNS Operations</div>
+            <nav class="menu">
+                <a href="/control.html">Control Panel</a>
+                <a href="/create.html">Create</a>
+                <a href="/update.html">Update</a>
+                <a href="/delete.html">Delete</a>
+                <a class="active" href="/lookup.html">Lookup</a>
+                <a href="/status.html">Status</a>
+            </nav>
+        </aside>
 
-                    const title = document.createElement("h3");
-                    title.textContent = "Item #" + (i + 1);
-                    sub.appendChild(title);
+        <main class="content-stack">
+            <section class="card">
+                <h2>DNS Lookup</h2>
 
-                    renderObject(item, sub);
-                    container.appendChild(sub);
-                });
-            }
-            else if (typeof value === "object" && value !== null) {
-                renderObject(value, container);
-            }
-            else {
-                const div = document.createElement("div");
-                div.textContent = value;
-                container.appendChild(div);
-            }
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label for="dnsName">Domain</label>
+                        <input id="dnsName" placeholder="example.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="dnsType">Type (optional)</label>
+                        <input id="dnsType" placeholder="A, AAAA, TXT, NS, CNAME or empty">
+                    </div>
+                </div>
+
+                <div class="action-row" style="margin-top: 12px;">
+                    <button onclick="lookupDNS()">Run Lookup</button>
+                    <button class="secondary" onclick="location.href='/control.html'">Back To Panel</button>
+                </div>
+
+                <div id="result"></div>
+            </section>
+        </main>
+    </div>
+</div>
+
+<script>
+    function renderValue(value, container) {
+        if (Array.isArray(value)) {
+            value.forEach((item, i) => {
+                const sub = document.createElement("div");
+                sub.className = "record";
+
+                const title = document.createElement("h3");
+                title.textContent = "Item #" + (i + 1);
+                sub.appendChild(title);
+
+                renderObject(item, sub);
+                container.appendChild(sub);
+            });
+        } else if (typeof value === "object" && value !== null) {
+            renderObject(value, container);
+        } else {
+            const div = document.createElement("div");
+            div.textContent = value;
+            container.appendChild(div);
         }
+    }
 
-        function renderObject(obj, container) {
-            for (let key in obj) {
-                const value = obj[key];
+    function renderObject(obj, container) {
+        for (let key in obj) {
+            const value = obj[key];
 
-                const row = document.createElement("div");
-                row.className = "kv";
+            const row = document.createElement("div");
+            row.className = "kv";
 
-                const k = document.createElement("div");
-                k.className = "key";
-                k.textContent = key;
+            const k = document.createElement("div");
+            k.className = "key";
+            k.textContent = key;
 
-                const v = document.createElement("div");
+            const v = document.createElement("div");
 
-                if (typeof value === "object" && value !== null) {
-                    const nested = document.createElement("div");
-                    nested.className = "nested";
-                    renderValue(value, nested);
-                    v.appendChild(nested);
-                } else {
-                    v.textContent = value;
-                }
-
-                row.appendChild(k);
-                row.appendChild(v);
-                container.appendChild(row);
+            if (typeof value === "object" && value !== null) {
+                const nested = document.createElement("div");
+                nested.className = "nested";
+                renderValue(value, nested);
+                v.appendChild(nested);
+            } else {
+                v.textContent = value;
             }
+
+            row.appendChild(k);
+            row.appendChild(v);
+            container.appendChild(row);
         }
+    }
 
-        function showMessage(json, ok) {
-            const result = document.getElementById("result");
-            result.innerHTML = "";
+    function showMessage(json, ok) {
+        const result = document.getElementById("result");
+        result.innerHTML = "";
 
-            const box = document.createElement("div");
-            box.className = "alert " + (ok ? "success" : "error");
-            box.style.display = "block";
+        const box = document.createElement("div");
+        box.className = "alert " + (ok ? "success" : "error");
+        box.style.display = "block";
 
-            if (typeof json === "object") {
-                if (Array.isArray(json.records)) {
-                    box.innerHTML = "<div style='margin-bottom:10px;'><b>Domain:</b> " + json.name + "<br><b>Query Type:</b> " + json.type + "<br><b>Total Records:</b> " + json.count + "</div>";
+        if (typeof json === "object") {
+            if (Array.isArray(json.records)) {
+                box.innerHTML = "<div style='margin-bottom:10px;'><b>Domain:</b> " + json.name + "<br><b>Query Type:</b> " + json.type + "<br><b>Total Records:</b> " + json.count + "</div>";
 
-                    if (json.records.length === 0) {
-                        box.innerHTML += "<div>No records found</div>";
-                    } else {
-                        json.records.forEach((rec, i) => {
-                            const card = document.createElement("div");
-                            card.className = "record";
-
-                            const h = document.createElement("h3");
-                            h.textContent = "Record #" + (i + 1);
-                            card.appendChild(h);
-
-                            renderObject(rec, card);
-                            box.appendChild(card);
-                        });
-                    }
+                if (json.records.length === 0) {
+                    box.innerHTML += "<div>No records found</div>";
                 } else {
-                    renderObject(json, box);
+                    json.records.forEach((rec, i) => {
+                        const card = document.createElement("div");
+                        card.className = "record";
+
+                        const h = document.createElement("h3");
+                        h.textContent = "Record #" + (i + 1);
+                        card.appendChild(h);
+
+                        renderObject(rec, card);
+                        box.appendChild(card);
+                    });
                 }
             } else {
-                box.textContent = json;
+                renderObject(json, box);
             }
-
-            result.appendChild(box);
+        } else {
+            box.textContent = json;
         }
 
-        function isValidDomain(domain) {
-            return /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(domain);
+        result.appendChild(box);
+    }
+
+    function isValidDomain(domain) {
+        return /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(domain);
+    }
+
+    function isValidType(type) {
+        const allowed = ["A", "AAAA", "TXT", "NS", "CNAME", "ANY"];
+        return allowed.includes(type.toUpperCase());
+    }
+
+    async function lookupDNS() {
+        const name = document.getElementById("dnsName").value.trim();
+        const type = document.getElementById("dnsType").value.trim().toUpperCase();
+
+        if (!name) {
+            showMessage({error: "Domain name is required"}, false);
+            return;
         }
 
-        function isValidType(type) {
-            const allowed = ["A", "AAAA", "TXT", "NS", "CNAME", "ANY"];
-            return allowed.includes(type.toUpperCase());
+        if (!isValidDomain(name)) {
+            showMessage({error: "Invalid domain format"}, false);
+            return;
         }
 
-        async function lookupDNS() {
-            const name = document.getElementById("dnsName").value.trim();
-            const type = document.getElementById("dnsType").value.trim().toUpperCase();
+        if (type && !isValidType(type)) {
+            showMessage({error: "Invalid type. Use A, AAAA, TXT, NS, CNAME, ANY"}, false);
+            return;
+        }
 
-            if (!name) {
-                showMessage({ error: "Domain name is required" }, false);
+        let url = "/dns/lookup?name=" + encodeURIComponent(name);
+        if (type) url += "&type=" + encodeURIComponent(type);
+
+        try {
+            const res = await fetch(url);
+            const json = await res.json();
+
+            if (!res.ok || json.error) {
+                showMessage(json, false);
                 return;
             }
 
-            if (!isValidDomain(name)) {
-                showMessage({ error: "Invalid domain format" }, false);
-                return;
-            }
+            showMessage(json, true);
 
-            if (type && !isValidType(type)) {
-                showMessage({ error: "Invalid type. Use A, AAAA, TXT, NS, CNAME, ANY" }, false);
-                return;
-            }
-
-            let url = "/dns/lookup?name=" + encodeURIComponent(name);
-            if (type) url += "&type=" + encodeURIComponent(type);
-
-            try {
-                const res = await fetch(url);
-                const json = await res.json();
-
-                if (!res.ok || json.error) {
-                    showMessage(json, false);
-                    return;
-                }
-
-                showMessage(json, true);
-
-            } catch (err) {
-                showMessage({ error: "Network error", details: err.toString() }, false);
-            }
+        } catch (err) {
+            showMessage({error: "Network error", details: err.toString()}, false);
         }
-    </script>
+    }
+</script>
 </body>
 
 </html>

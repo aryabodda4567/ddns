@@ -24,6 +24,73 @@ public class User {
         this.lastName = lastName;
     }
 
+    public static void saveUser(User user) {
+        if (user == null || user.getUsername() == null || user.getPassword() == null) {
+            throw new IllegalArgumentException("User credentials are required");
+        }
+
+        DBUtil db = DBUtil.getInstance();
+        db.putString(ConfigKey.USERNAME.key(), user.getUsername());
+        db.putString(ConfigKey.PASSWORD.key(), hashString(user.getPassword()));
+        db.putString(ConfigKey.EMAIL.key(), user.getEmail());
+        db.putString(ConfigKey.FIRSTNAME.key(), user.getFirstName());
+        db.putString(ConfigKey.LASTNAME.key(), user.getLastName());
+        db.putInt(ConfigKey.IS_LOGGED_IN.key(), 0);
+    }
+
+    public static User getUser() {
+        DBUtil db = DBUtil.getInstance();
+
+        String username = db.getString(ConfigKey.USERNAME.key());
+        String password = db.getString(ConfigKey.PASSWORD.key());
+        String email = db.getString(ConfigKey.EMAIL.key());
+        String firstName = db.getString(ConfigKey.FIRSTNAME.key());
+        String lastName = db.getString(ConfigKey.LASTNAME.key());
+
+        if (username == null) {
+            return null;
+        }
+
+        return new User(username, password, email, firstName, lastName);
+    }
+
+    public static User fromCredentials(String username, String password) {
+        if (username == null || password == null) {
+            throw new IllegalArgumentException("Username and password are required");
+        }
+
+        return new User(username.trim(), password.trim(), "", "", "");
+    }
+
+    public static boolean verifyCredentials(String username, String password) {
+        User storedUser = getUser();
+        if (storedUser == null) {
+            return false;
+        }
+
+        return storedUser.login(username, password);
+    }
+
+    private static String hashString(String input) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hashBytes = digest.digest(input.getBytes());
+
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hashBytes) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) {
+                    hexString.append('0');
+                }
+                hexString.append(hex);
+            }
+
+            return hexString.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("Error hashing string", e);
+        }
+    }
+
     @Override
     public String toString() {
         return "User{" +
@@ -75,53 +142,6 @@ public class User {
         this.lastName = lastName;
     }
 
-    public static void saveUser(User user) {
-        if (user == null || user.getUsername() == null || user.getPassword() == null) {
-            throw new IllegalArgumentException("User credentials are required");
-        }
-
-        DBUtil db = DBUtil.getInstance();
-        db.putString(ConfigKey.USERNAME.key(), user.getUsername());
-        db.putString(ConfigKey.PASSWORD.key(), hashString(user.getPassword()));
-        db.putString(ConfigKey.EMAIL.key(), user.getEmail());
-        db.putString(ConfigKey.FIRSTNAME.key(), user.getFirstName());
-        db.putString(ConfigKey.LASTNAME.key(), user.getLastName());
-        db.putInt(ConfigKey.IS_LOGGED_IN.key(), 0);
-    }
-
-    public static User getUser() {
-        DBUtil db = DBUtil.getInstance();
-
-        String username = db.getString(ConfigKey.USERNAME.key());
-        String password = db.getString(ConfigKey.PASSWORD.key());
-        String email = db.getString(ConfigKey.EMAIL.key());
-        String firstName = db.getString(ConfigKey.FIRSTNAME.key());
-        String lastName = db.getString(ConfigKey.LASTNAME.key());
-
-        if (username == null) {
-            return null;
-        }
-
-        return new User(username, password, email, firstName, lastName);
-    }
-
-    public static User fromCredentials(String username, String password) {
-        if (username == null || password == null) {
-            throw new IllegalArgumentException("Username and password are required");
-        }
-
-        return new User(username.trim(), password.trim(), "", "", "");
-    }
-
-    public static boolean verifyCredentials(String username, String password) {
-        User storedUser = getUser();
-        if (storedUser == null) {
-            return false;
-        }
-
-        return storedUser.login(username, password);
-    }
-
     public boolean login(String username, String password) {
         return checkUsername(username) && checkPassword(password);
     }
@@ -148,25 +168,5 @@ public class User {
         // - fallback: plain-text value from older data
         return Objects.equals(storedPassword, candidateHash)
                 || Objects.equals(storedPassword, candidate);
-    }
-
-    private static String hashString(String input) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hashBytes = digest.digest(input.getBytes());
-
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : hashBytes) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) {
-                    hexString.append('0');
-                }
-                hexString.append(hex);
-            }
-
-            return hexString.toString();
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Error hashing string", e);
-        }
     }
 }

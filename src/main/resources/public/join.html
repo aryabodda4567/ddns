@@ -3,279 +3,288 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>Node Join | DDNS Console</title>
-    <link rel="stylesheet" href="/css/common.css">
+    <link href="/css/common.css" rel="stylesheet">
     <script src="/js/auth-guard.js"></script>
     <script src="/js/exit-node.js"></script>
 </head>
 
 <body>
-    <div class="page-shell">
-        <div class="topbar">
-            <div class="brand">
-                <div class="brand-badge">DD</div>
-                <div>
-                    <div class="brand-title">DDNS Network Console</div>
-                    <div class="brand-sub">Secure Node Onboarding</div>
-                </div>
+<div class="page-shell">
+    <div class="topbar">
+        <div class="brand">
+            <div class="brand-badge">DD</div>
+            <div>
+                <div class="brand-title">DDNS Network Console</div>
+                <div class="brand-sub">Secure Node Onboarding</div>
             </div>
-            <span class="status-pill"><span class="status-dot"></span> Bootstrap Mode</span>
         </div>
-
-        <div class="main-grid">
-            <aside class="sidebar">
-                <div class="menu-title">Onboarding Flow</div>
-                <nav class="menu">
-                    <a class="active" href="/join.html">1. Join Network</a>
-                    <a href="/create_election.html">2. Create Election</a>
-                    <a data-requires-accepted="true" href="/vote.html">3. Vote</a>
-                    <a href="/join_result.html">4. Join Result</a>
-                    <a data-requires-accepted="true" href="/control.html">DNS Control</a>
-                </nav>
-            </aside>
-
-            <main class="content-stack">
-                <section class="card">
-                    <h2>Join Network</h2>
-                    <p class="subtle">Provide bootstrap endpoint, key material, and web credentials for secure app
-                        access.</p>
-
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label for="username">Web Username</label>
-                            <input id="username" placeholder="network-admin">
-                        </div>
-                        <div class="form-group">
-                            <label for="password">Web Password</label>
-                            <input id="password" type="password" placeholder="At least 6 characters">
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="bootstrapIp">Bootstrap IP / Host</label>
-                        <input id="bootstrapIp" placeholder="192.168.1.10 or node.example.com">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="bootstrapPubKey">Bootstrap Node Public Key</label>
-                        <textarea id="bootstrapPubKey"
-                            placeholder="Paste the bootstrap node's public key here"></textarea>
-                    </div>
-
-                    <div class="action-row" style="margin-top: 14px;">
-                        <button id="joinBtn" onclick="joinNode()">Join Network</button>
-                        <button class="secondary" onclick="goNext()">Next Step</button>
-                    </div>
-
-                    <div id="result"></div>
-
-                    <div id="successBox" class="muted-box" style="display:none; margin-top: 14px;">
-                        ✅ Node configured successfully. Your generated public key:
-                        <div style="margin-top:10px; display:flex; align-items:flex-start; gap:10px;">
-                            <div id="pubKeyDisplay"
-                                style="font-family: Consolas, monospace; font-size:12px; word-break:break-all; flex:1; line-height:1.5;">
-                            </div>
-                            <button id="copyPubKeyBtn" onclick="copyPublicKey()"
-                                style="flex-shrink:0; padding:4px 10px; font-size:12px; border-radius:6px; cursor:pointer; border:1px solid #ccc; background:#fff;">Copy</button>
-                        </div>
-                    </div>
-                </section>
-            </main>
-        </div>
+        <span class="status-pill"><span class="status-dot"></span> Bootstrap Mode</span>
     </div>
 
-    <script>
-        function renderJSON(obj, container) {
-            for (let key in obj) {
-                const value = obj[key];
-                const row = document.createElement("div");
-                row.className = "kv";
+    <div class="main-grid">
+        <aside class="sidebar">
+            <div class="menu-title">Onboarding Flow</div>
+            <nav class="menu">
+                <a class="active" href="/join.html">1. Join Network</a>
+                <a href="/create_election.html">2. Create Election</a>
+                <a data-requires-accepted="true" href="/vote.html">3. Vote</a>
+                <a href="/join_result.html">4. Join Result</a>
+                <a data-requires-accepted="true" href="/control.html">DNS Control</a>
+            </nav>
+        </aside>
 
-                const k = document.createElement("div");
-                k.className = "key";
-                k.textContent = key;
+        <main class="content-stack">
+            <section class="card">
+                <h2>Join Network</h2>
+                <p class="subtle">Provide bootstrap endpoint, key material, and web credentials for secure app
+                    access.</p>
 
-                const v = document.createElement("div");
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label for="username">Web Username</label>
+                        <input id="username" placeholder="network-admin">
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Web Password</label>
+                        <input id="password" placeholder="At least 6 characters" type="password">
+                    </div>
+                </div>
 
-                if (typeof value === "object" && value !== null) {
-                    const nested = document.createElement("div");
-                    nested.className = "nested";
-                    renderJSON(value, nested);
-                    v.appendChild(nested);
-                } else {
-                    v.textContent = value;
-                }
+                <div class="form-group">
+                    <label for="bootstrapIp">Bootstrap IP / Host</label>
+                    <input id="bootstrapIp" placeholder="192.168.1.10 or node.example.com">
+                </div>
 
-                row.appendChild(k);
-                row.appendChild(v);
-                container.appendChild(row);
-            }
-        }
+                <div class="form-group">
+                    <label for="bootstrapPubKey">Bootstrap Node Public Key</label>
+                    <textarea id="bootstrapPubKey"
+                              placeholder="Paste the bootstrap node's public key here"></textarea>
+                </div>
 
-        function showMessage(obj, ok) {
-            const result = document.getElementById("result");
-            result.innerHTML = "";
+                <div class="action-row" style="margin-top: 14px;">
+                    <button id="joinBtn" onclick="joinNode()">Join Network</button>
+                    <button class="secondary" onclick="goNext()">Next Step</button>
+                </div>
 
-            const box = document.createElement("div");
-            box.className = "alert " + (ok ? "success" : "error");
-            box.style.display = "block";
+                <div id="result"></div>
 
-            if (typeof obj === "object") {
-                renderJSON(obj, box);
+                <div class="muted-box" id="successBox" style="display:none; margin-top: 14px;">
+                    ✅ Node configured successfully. Your generated public key:
+                    <div style="margin-top:10px; display:flex; align-items:flex-start; gap:10px;">
+                        <div id="pubKeyDisplay"
+                             style="font-family: Consolas, monospace; font-size:12px; word-break:break-all; flex:1; line-height:1.5;">
+                        </div>
+                        <button id="copyPubKeyBtn" onclick="copyPublicKey()"
+                                style="flex-shrink:0; padding:4px 10px; font-size:12px; border-radius:6px; cursor:pointer; border:1px solid #ccc; background:#fff;">
+                            Copy
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+</div>
+
+<script>
+    function renderJSON(obj, container) {
+        for (let key in obj) {
+            const value = obj[key];
+            const row = document.createElement("div");
+            row.className = "kv";
+
+            const k = document.createElement("div");
+            k.className = "key";
+            k.textContent = key;
+
+            const v = document.createElement("div");
+
+            if (typeof value === "object" && value !== null) {
+                const nested = document.createElement("div");
+                nested.className = "nested";
+                renderJSON(value, nested);
+                v.appendChild(nested);
             } else {
-                box.textContent = obj;
+                v.textContent = value;
             }
 
-            result.appendChild(box);
+            row.appendChild(k);
+            row.appendChild(v);
+            container.appendChild(row);
+        }
+    }
+
+    function showMessage(obj, ok) {
+        const result = document.getElementById("result");
+        result.innerHTML = "";
+
+        const box = document.createElement("div");
+        box.className = "alert " + (ok ? "success" : "error");
+        box.style.display = "block";
+
+        if (typeof obj === "object") {
+            renderJSON(obj, box);
+        } else {
+            box.textContent = obj;
         }
 
-        function isValidHost(host) {
-            return host.length >= 3;
+        result.appendChild(box);
+    }
+
+    function isValidHost(host) {
+        return host.length >= 3;
+    }
+
+    function validateJoin(data) {
+        if (!data.username || data.username.length < 3) return "Username is required (min 3 characters)";
+        if (!data.password || data.password.length < 6) return "Password is required (min 6 characters)";
+        if (!data.bootstrapIp || !isValidHost(data.bootstrapIp)) return "Bootstrap IP / Host is required";
+        if (!data.bootstrapPublicKey || data.bootstrapPublicKey.length < 20) return "Bootstrap Public Key is required";
+        return null;
+    }
+
+    async function joinNode() {
+        const data = {
+            username: document.getElementById("username").value.trim(),
+            password: document.getElementById("password").value.trim(),
+            bootstrapIp: document.getElementById("bootstrapIp").value.trim(),
+            bootstrapPublicKey: document.getElementById("bootstrapPubKey").value.trim()
+        };
+
+        const resultBox = document.getElementById("result");
+        const successBox = document.getElementById("successBox");
+
+        resultBox.innerHTML = "";
+        successBox.style.display = "none";
+
+        const error = validateJoin(data);
+        if (error) {
+            showMessage({error: error}, false);
+            return;
         }
 
-        function validateJoin(data) {
-            if (!data.username || data.username.length < 3) return "Username is required (min 3 characters)";
-            if (!data.password || data.password.length < 6) return "Password is required (min 6 characters)";
-            if (!data.bootstrapIp || !isValidHost(data.bootstrapIp)) return "Bootstrap IP / Host is required";
-            if (!data.bootstrapPublicKey || data.bootstrapPublicKey.length < 20) return "Bootstrap Public Key is required";
-            return null;
-        }
+        try {
+            const res = await fetch("/join", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(data)
+            });
 
-        async function joinNode() {
-            const data = {
-                username: document.getElementById("username").value.trim(),
-                password: document.getElementById("password").value.trim(),
-                bootstrapIp: document.getElementById("bootstrapIp").value.trim(),
-                bootstrapPublicKey: document.getElementById("bootstrapPubKey").value.trim()
-            };
+            const json = await res.json();
 
-            const resultBox = document.getElementById("result");
-            const successBox = document.getElementById("successBox");
-
-            resultBox.innerHTML = "";
-            successBox.style.display = "none";
-
-            const error = validateJoin(data);
-            if (error) {
-                showMessage({ error: error }, false);
+            if (!res.ok || json.error) {
+                showMessage(json, false);
                 return;
             }
 
-            try {
-                const res = await fetch("/join", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(data)
-                });
+            document.getElementById("pubKeyDisplay").textContent = json.publicKey || '';
+            successBox.style.display = "block";
+            document.getElementById("joinBtn").disabled = true;
+            showMessage(json, true);
 
-                const json = await res.json();
+            // Auto-check acceptance / election status and route accordingly
+            setTimeout(() => resolveNextStep(), 1000);
 
-                if (!res.ok || json.error) {
-                    showMessage(json, false);
-                    return;
-                }
-
-                document.getElementById("pubKeyDisplay").textContent = json.publicKey || '';
-                successBox.style.display = "block";
-                document.getElementById("joinBtn").disabled = true;
-                showMessage(json, true);
-
-                // Auto-check acceptance / election status and route accordingly
-                setTimeout(() => resolveNextStep(), 1000);
-
-            } catch (err) {
-                showMessage({ error: "Connection failed", details: err.toString() }, false);
-            }
+        } catch (err) {
+            showMessage({error: "Connection failed", details: err.toString()}, false);
         }
+    }
 
-        async function copyPublicKey() {
-            const text = document.getElementById('pubKeyDisplay').textContent;
-            const btn = document.getElementById('copyPubKeyBtn');
-            try {
-                await navigator.clipboard.writeText(text);
-                btn.textContent = 'Copied!';
-                btn.style.background = '#16a34a';
-                btn.style.color = '#fff';
-                setTimeout(() => { btn.textContent = 'Copy'; btn.style.background = ''; btn.style.color = ''; }, 2000);
-            } catch (e) {
-                btn.textContent = 'Failed';
-                setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
-            }
+    async function copyPublicKey() {
+        const text = document.getElementById('pubKeyDisplay').textContent;
+        const btn = document.getElementById('copyPubKeyBtn');
+        try {
+            await navigator.clipboard.writeText(text);
+            btn.textContent = 'Copied!';
+            btn.style.background = '#16a34a';
+            btn.style.color = '#fff';
+            setTimeout(() => {
+                btn.textContent = 'Copy';
+                btn.style.background = '';
+                btn.style.color = '';
+            }, 2000);
+        } catch (e) {
+            btn.textContent = 'Failed';
+            setTimeout(() => {
+                btn.textContent = 'Copy';
+            }, 2000);
         }
+    }
 
-        /**
-         * Calls /checkfetchresult which:
-         *  - Sets IS_ACCEPTED=1 if this is the first node (no election needed)
-         *  - Returns election:true if the node needs to go through the governance flow
-         * Then routes to the right page.
-         */
-        async function resolveNextStep() {
+    /**
+     * Calls /checkfetchresult which:
+     *  - Sets IS_ACCEPTED=1 if this is the first node (no election needed)
+     *  - Returns election:true if the node needs to go through the governance flow
+     * Then routes to the right page.
+     */
+    async function resolveNextStep() {
+        try {
+            const res = await fetch("/checkfetchresult");
+            const raw = await res.text();
+            let data = {};
             try {
-                const res = await fetch("/checkfetchresult");
-                const raw = await res.text();
-                let data = {};
-                try {
-                    data = raw ? JSON.parse(raw) : {};
-                } catch (e) {
-                    // Fallback: go to home and let auth-guard sort it out
-                    window.location.href = "/home.html";
-                    return;
-                }
-
-                if (!res.ok) {
-                    // Still redirect to home on server errors
-                    window.location.href = "/home.html";
-                    return;
-                }
-
-                if (data.election === true) {
-                    window.location.href = "/create_election.html";
-                } else {
-                    // First node or already accepted — go straight to home/control panel
-                    window.location.href = "/home.html";
-                }
+                data = raw ? JSON.parse(raw) : {};
             } catch (e) {
+                // Fallback: go to home and let auth-guard sort it out
+                window.location.href = "/home.html";
+                return;
+            }
+
+            if (!res.ok) {
+                // Still redirect to home on server errors
+                window.location.href = "/home.html";
+                return;
+            }
+
+            if (data.election === true) {
+                window.location.href = "/create_election.html";
+            } else {
+                // First node or already accepted — go straight to home/control panel
                 window.location.href = "/home.html";
             }
+        } catch (e) {
+            window.location.href = "/home.html";
         }
+    }
 
-        // Guard: redirect to '/' if not in NODE mode
-        (async function checkNodeMode() {
-            try {
-                const res = await fetch('/mode');
-                const json = await res.json();
-                if (json.mode !== 'NODE') {
-                    window.location.replace('/');
-                }
-            } catch (_) { /* allow page to load */ }
-        })();
-
-        async function goNext() {
-            try {
-                const res = await fetch("/checkfetchresult");
-                const raw = await res.text();
-                let data = {};
-                try {
-                    data = raw ? JSON.parse(raw) : {};
-                } catch (e) {
-                    throw new Error("Invalid server response. Please login again.");
-                }
-
-                if (!res.ok) {
-                    throw new Error(data.error || "Failed to fetch next step");
-                }
-
-                if (data.election === true) {
-                    window.location.href = "/create_election.html";
-                } else {
-                    window.location.href = "/home.html";
-                }
-            } catch (e) {
-                alert("Failed to check next step: " + e.message);
+    // Guard: redirect to '/' if not in NODE mode
+    (async function checkNodeMode() {
+        try {
+            const res = await fetch('/mode');
+            const json = await res.json();
+            if (json.mode !== 'NODE') {
+                window.location.replace('/');
             }
+        } catch (_) { /* allow page to load */
         }
-    </script>
+    })();
+
+    async function goNext() {
+        try {
+            const res = await fetch("/checkfetchresult");
+            const raw = await res.text();
+            let data = {};
+            try {
+                data = raw ? JSON.parse(raw) : {};
+            } catch (e) {
+                throw new Error("Invalid server response. Please login again.");
+            }
+
+            if (!res.ok) {
+                throw new Error(data.error || "Failed to fetch next step");
+            }
+
+            if (data.election === true) {
+                window.location.href = "/create_election.html";
+            } else {
+                window.location.href = "/home.html";
+            }
+        } catch (e) {
+            alert("Failed to check next step: " + e.message);
+        }
+    }
+</script>
 </body>
 
 </html>

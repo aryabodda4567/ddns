@@ -149,19 +149,22 @@ public class SignatureUtil {
         try {
             KeyFactory kf = KeyFactory.getInstance("EC"); // or "EC", "BC"
             return kf.generatePrivate(spec);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         // Optional: support RSA too
         try {
             KeyFactory kf = KeyFactory.getInstance("RSA");
             return kf.generatePrivate(spec);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         // Optional: support DSA
         try {
             KeyFactory kf = KeyFactory.getInstance("DSA");
             return kf.generatePrivate(spec);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         throw new IllegalArgumentException("Unsupported or invalid private key format");
     }
